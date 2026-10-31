@@ -224,7 +224,10 @@ _YEARS_RE = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:yrs|years|yoe|y
 
 
 def required_years(criteria: Criteria) -> int | None:
-    """Years asked for in the brief, e.g. '5+ yrs' in must-haves or the raw text."""
+    """Years asked for in the brief: Criteria.min_years if WS2 sets it, else '5+ yrs' in must-haves or the raw text."""
+    explicit = getattr(criteria, "min_years", None)
+    if isinstance(explicit, int) and explicit > 0:
+        return explicit
     for text in [*criteria.must_haves, *criteria.nice_to_haves, criteria.raw_brief, criteria.seniority or ""]:
         m = _YEARS_RE.search(text or "")
         if m:
