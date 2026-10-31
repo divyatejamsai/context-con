@@ -8,6 +8,7 @@ An agent on another machine enrolls first, with the one-time token its employer'
 
     python scripts/agaxes_agent.py enroll <token>          -> prints the agent id; key saved in ~/.agaxes/<agent_id>.json
     python scripts/agaxes_agent.py rotate <agent_id>       -> new key pair, passport re-issued, old key stops working
+    python scripts/agaxes_agent.py ping <agent_id>         -> a signed heartbeat (enroll sends the first one itself)
 
 Agents onboarded on the Agaxes server itself (in the same repo) fall back to the key in the registry store.
 
@@ -88,7 +89,34 @@ def enroll(api: str, token: str) -> int:
     print(json.dumps({"agent_id": agent["agent_id"], "name": agent["name"], "status": agent["status"],
                       "decision": res["verdict"]["decision"], "key_file": str(f)}, indent=2))
     print(f"Enrolled as {agent['name']} ({agent['agent_id']}). Private key kept at {f}; Agaxes only has the public key.")
-    return 0 if agent["status"] == "active" else 3
+    if agent["status"] != "active":
+        return 3
+    return ping(api, agent["agent_id"])  # the first signed call: completes the connection in the console
+
+
+def ping(api: str, agent_id: str, text: str = "hello from my own machine") -> int:
+    """A signed heartbeat. Agaxes checks the signature against the passport's key and records the first one."""
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    from app.runtime.external import signed_text
+    cur = load_identity(agent_id)
+    if not cur:
+        print(f"no local key for {agent_id} in {home()}")
+        return 2
+    ts = int(time.time())
+    sig = sign_message(Passport.model_validate(cur["passport"]), base64.b64decode(cur["private_key"]),
+                       signed_text("heartbeat", agent_id, None, ts, text))
+    r = httpx.post(f"{api}/api/agents/heartbeat", json={"agent_id": agent_id, "ts": ts, "text": text, "signature": sig},
+                   timeout=60)
+    if r.status_code >= 400:
+        print(f"REFUSED ({r.status_code}): {r.json().get('detail', r.text)}")
+        return 2
+    res = r.json()
+    print(f"Heartbeat accepted{' (first signed call: connection complete)' if res.get('first') else ''}.")
+    if res.get("stop"):
+        print(f"STOP: {res.get('reason')}")
+        return 3
+    return 0
 
 
 def rotate(api: str, agent_id: str) -> int:
@@ -128,12 +156,15 @@ def main() -> int:
     d.add_argument("--failed", action="store_true")
     e = sub.add_parser("enroll"); e.add_argument("token")
     r = sub.add_parser("rotate"); r.add_argument("agent_id")
+    hb = sub.add_parser("ping"); hb.add_argument("agent_id"); hb.add_argument("text", nargs="?", default="heartbeat")
     a = ap.parse_args()
     api = os.getenv("AGAXES_API_URL", "http://localhost:8000").rstrip("/")
     if a.cmd == "enroll":
         return enroll(api, a.token)
     if a.cmd == "rotate":
         return rotate(api, a.agent_id)
+    if a.cmd == "ping":
+        return ping(api, a.agent_id, a.text)
 
     from app.agents import registry
     from app.agents.models import Passport

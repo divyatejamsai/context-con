@@ -202,6 +202,23 @@ export function describe(e: LedgerEntry, names: Map<string, string>): Line {
     }
     case "message.sent":
       return { cat, noise, tone: "ok", text: <>{who}&apos;s email to {person(p.to)} went out{p.delivered_to ? ` (delivered to the test inbox ${String(p.delivered_to)}, not the person)` : ""}</> };
+    case "connect.requested": {
+      const risky = (p.needs_review as string[] | undefined) ?? [];
+      return { cat, noise, tone: risky.length ? "warn" : "neutral", text: <>{by ?? String(p.requested_by ?? "An admin")} asked to connect <b className="font-[590]">{String(p.name ?? "an agent")}</b>{risky.length ? `, with high-risk ${risky.join(", ")} that needs another admin` : ""}</>,
+        detail: `Owner ${String(p.owner ?? "the sponsor")} · sponsor ${String(p.sponsor ?? "")} · ${((p.scopes as string[]) ?? []).join(", ")}` };
+    }
+    case "connect.approved":
+      return { cat, noise, tone: "ok", text: <>{by ?? "An admin"} approved connecting <b className="font-[590]">{String(p.name ?? "an agent")}</b>{p.sole_admin ? " (the only admin in the company)" : ""}</>, detail: p.note ? String(p.note) : undefined };
+    case "connect.rejected":
+      return { cat, noise, tone: "bad", text: <>{by ?? "An admin"} rejected connecting <b className="font-[590]">{String(p.name ?? "an agent")}</b></>, detail: p.note ? String(p.note) : undefined };
+    case "connect.cancelled":
+      return { cat, noise, tone: "neutral", text: <>{by ?? "An admin"} cancelled connecting <b className="font-[590]">{String(p.name ?? "an agent")}</b></> };
+    case "connect.issued":
+      return { cat, noise, tone: p.decision === "allow" ? "ok" : "bad", text: <>{who}&apos;s passport was issued{p.decision === "allow" ? " and its sponsor checked out" : ", but its sponsor check failed"}</> };
+    case "connect.policy":
+      return { cat, noise: true, tone: "neutral", text: <>{who} got its tools and daily limits</>, detail: ((p.tools as string[]) ?? []).join(", ") || undefined };
+    case "agent.first_heartbeat":
+      return { cat, noise, tone: "ok", text: <>{who} made its first signed call{p.via === "agent" ? " from its own machine" : ""}</> };
     case "message.reply":
       return { cat, noise, tone: "ok", text: <>{person(p.from ?? p.to)} replied to {who}</> };
     case "message.status":
