@@ -276,7 +276,7 @@ def prescore(p: dict, c: Criteria) -> int:
     if p.get("_domain_match"):
         s += 3
     if p.get("_school_match"):
-        s += 3
+        s += 6  # the brief asked for these schools: they go to enrich ahead of title-only matches
     blob = str(p).lower()
     s += sum(1 for k in fit_terms(c) if re.search(rf"(?<![a-z0-9]){re.escape(k)}(?![a-z0-9])", blob))
     return s

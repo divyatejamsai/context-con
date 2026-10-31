@@ -38,7 +38,7 @@ QUANT = "need a junior quant trader ,prestige college in  india,"
 
 # brief -> (role, seniority, locations) the rule pass must get without any LLM
 MESSY = [
-    (QUANT, "Quantitative Trader", "junior", []),
+    (QUANT, "Quantitative Trader", "junior", ["India"]),
     ("need a junior quant trader from a tier 1 college", "Quantitative Trader", "junior", []),
     ("lookin for equity research analyst mumbai 3+ yrs CFA preferred", "Equity Research Analyst", None, ["Mumbai"]),
     ("hiring fresher data analysts from IITs or BITS Pilani, remote in india", "Data Analyst", "junior", ["India"]),
@@ -69,7 +69,9 @@ def test_quant_brief_is_not_software_engineer_and_education_is_shown():
     assert "software" not in c.role.lower()
     assert "Quant Trader" in c.title_variants
     assert c.education_note == "prestige college in india"
-    assert c.locations == []  # "college in india" describes the school, not where they must live
+    # "college in india" names the school's country: searched first, and said so (the ladder drops it if thin)
+    assert c.locations == ["India"]
+    assert any("searching India first" in x for x in a.assumptions)
     # without the AI parser the tier can't be expanded: say so instead of silently ignoring it
     assert any("prestige college in india" in x and "not filtering" in x for x in a.assumptions)
 
@@ -123,7 +125,8 @@ def test_llm_expands_school_tier_and_keeps_it_out_of_skills(monkeypatch):
         education_note="prestige college in India",
         schools=["IIT", "Indian Institute of Technology", "ISI", "Indian Statistical Institute", "BITS Pilani",
                  "IIM", "IISc", "Indian Institute of Science"],
-        assumptions=["No location given, searching globally"]))
+        assumptions=["No location given, searching globally",
+                     "'prestige college in India' read as top IITs, ISI, BITS Pilani and the IIMs"]))
     a = analyze(QUANT)
     c = a.criteria
     assert "prestige college" in calls[0]  # the brief went to the model
@@ -131,6 +134,11 @@ def test_llm_expands_school_tier_and_keeps_it_out_of_skills(monkeypatch):
     assert "ISI" in c.schools and "BITS Pilani" in c.schools
     assert c.skills == ["Options"] and c.must_haves == []  # education lives in schools, not skills/must-haves
     assert any(x.startswith("'prestige college in India' read as: IIT") for x in a.assumptions)
+    # the model's own reading of the education ask is dropped so it can't contradict the schools searched,
+    # and "no location" is gone because India is searched first
+    assert not any("top IITs" in x for x in a.assumptions)
+    assert not any("No location given" in x for x in a.assumptions)
+    assert c.locations == ["India"]
 
 
 def test_llm_drifting_to_software_engineer_is_corrected_by_rules(monkeypatch):
@@ -261,3 +269,21 @@ def test_education_claim_and_ranking_prefer_the_asked_schools():
     _, s_other, reasons_o = asyncio.run(score("Gujarat Technological University"))
     assert any("not one of the schools" in r.text for r in reasons_o)
     assert s_iit > s_other
+
+
+def test_junior_brief_caps_a_twenty_year_career():
+    c = Criteria(role="Quantitative Trader", title_variants=["Quantitative Trader"], seniority="junior",
+                 schools=["IIT"], education_note="prestige college in India")
+    senior = _person("Indian Institute of Technology, Kanpur")
+    senior["experience"]["employment_details"]["past"] = [
+        {"title": "Trader", "name": "Old Bank", "start_date": "2004-07-01", "end_date": "2024-06-30"}]
+    fresh = _person("Indian Institute of Technology, Kanpur")
+
+    async def score(p):
+        claims, _ = await verify_candidate(p, None, c, None)
+        return await rank_candidate(p, claims, c)
+
+    s_senior, reasons = asyncio.run(score(senior))
+    s_fresh, _ = asyncio.run(score(fresh))
+    assert any(r.text.startswith("Too senior for a junior role") for r in reasons)
+    assert s_senior <= 60 < s_fresh
