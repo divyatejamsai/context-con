@@ -64,6 +64,19 @@ echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local   # optional, this i
 NEXT_PUBLIC_AGENT_ID=sourced npm run dev   # http://localhost:3000 (Sourced) and /console (Countersign)
 ```
 
+**Company accounts (login and sign-up)**
+Every page (`/`, `/console`) and the Next.js API routes need a signed-in user; you land on `/login` otherwise.
+- `/signup`: two steps. Work email first (personal domains like gmail are refused, since a workspace is one company
+  domain), then Crustdata Company Identify prefills the company name and size. A second person from the same domain
+  joins the existing workspace instead of making a duplicate.
+- `/login`: email and password, or **Use the demo workspace** (one click, no password; turn it off with `DEMO_ACCOUNT=0`).
+- Backend: `backend/app/accounts/` (SQLite at `backend/data/accounts.db`, scrypt password hashes, hashed session tokens,
+  14-day sliding sessions, 5 wrong passwords lock the account for 10 minutes). Routes: `POST /api/auth/{lookup,signup,login,demo,logout}`, `GET /api/auth/me`.
+- The browser never sees the token: Next.js keeps it in an httpOnly cookie and `src/middleware.ts` checks it against
+  the backend on every request. Set `AUTH_API_URL` if the Next server should reach the backend on a different address.
+- Not covered yet: the FastAPI run endpoints themselves stay open (scripts, MCP and the fleet call them without a login),
+  and there's no password reset email (the event rules forbid sending mail).
+
 **Countersign and the fleet**
 ```bash
 cd backend
