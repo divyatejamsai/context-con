@@ -132,7 +132,7 @@ async def test_send_writes_outbox_only_on_allow(tmp_path):
     ("I lead hiring at Razorpay. Would love to chat.", {}),  # the sender's own company is not a claim about the recipient
 ])
 def test_rule_extractor(body, expect):
-    got = {k: v for k, v in extract_claims_rules(body).model_dump(exclude={"other"}).items() if v is not None}
+    got = {k: v for k, v in extract_claims_rules(body).model_dump(exclude={"other"}).items() if v not in (None, [])}
     assert got == expect
 
 
@@ -166,6 +166,29 @@ async def test_unparsed_claim_fails_closed_without_llm():
     v = await guard("Hi Vinod, it's been over 4 years since you joined Fam, right?")
     assert v.decision == "block"
     assert any(c.status == "unverifiable" for c in check(v, "claims_in_body_true"))
+
+
+@pytest.mark.asyncio
+async def test_past_role_in_past_tense_is_verified_not_stale():
+    # Vinod was at Trinkerr (ended 2022-12): past tense is a true past-role claim, not a stale "still there" claim
+    v = await guard("Hi Vinod, you were previously at Trinkerr, and now your work at Fam caught our eye.")
+    assert v.decision == "allow", [c.model_dump() for c in v.checks]
+    v = await guard("Hi Vinod, you were previously at Razorpay, and now your work at Fam caught our eye.")
+    assert v.decision == "block"  # never worked there
+
+
+@pytest.mark.asyncio
+async def test_skill_claims_use_skills_headline_and_titles():
+    from app.agents.guard import extract_claims_rules
+    from app.verify.profile import load_person
+
+    pr = load_person(Graph(None, mode="replay")._fx()["linkedin.com/in/vinod-sonagara"])
+    have = pr.skills[0]
+    assert extract_claims_rules(f"Hi Vinod, your experience with {have} stands out.").skills == [have]
+    v = await guard(f"Hi Vinod, your experience with {have} stands out.")
+    assert v.decision == "allow", [c.model_dump() for c in v.checks]
+    v = await guard("Hi Vinod, your experience with Quantum Chromodynamics stands out.")
+    assert v.decision == "block" and any(c.status == "unverifiable" for c in check(v, "claims_in_body_true"))
 
 
 @pytest.mark.asyncio
