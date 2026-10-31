@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from ..schemas import Claim, Criteria, Source
 
 from .profile import (
-    CompanyFacts, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
+    CompanyFacts, get_path, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
     same_company, seniority_rank, skill_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
@@ -120,6 +120,23 @@ def _result_url(r: dict | None) -> str | None:
     return unwrap_url(r.get("url") or r.get("link") or r.get("source_url"))
 
 
+def _strip_likely(e: str) -> str:
+    return re.sub(r"^likely, from [a-z ]+: ", "", e)
+
+
+def _company_is(company: dict, job: Job) -> bool:
+    """Does this company record describe the job's employer? Id match wins; otherwise compare name/domain."""
+    rec = unwrap_record(company, "company_data")
+    cid = rec.get("crustdata_company_id") or get_path(rec, "basic_info.crustdata_company_id")
+    if cid and job.company_id:
+        return str(cid) == str(job.company_id)
+    name = get_path(rec, "basic_info.name") or rec.get("company_name") or rec.get("name")
+    dom = get_path(rec, "basic_info.primary_domain") or rec.get("company_website_domain")
+    if job.domain and dom and norm(job.domain) == norm(dom):
+        return True
+    return same_company(name, job.company) if name and job.company else True
+
+
 def _has(text: str | None, term: str) -> bool:
     return bool(text) and bool(re.search(rf"\b{re.escape(norm(term))}\b", norm(text)))
 
@@ -213,8 +230,14 @@ async def verify_candidate(
 
     cur: Job | None = pr.current[0] if pr.current else None
 
+    if company is not None and cur is not None and not _company_is(company, cur):
+        log.warning("verify: company record %s doesn't match current employer %s; refetching",
+                    get_path(company, "basic_info.name") or get_path(company, "company_name"), cur.company)
+        company = None
     if company is None and cur is not None:
         company = await _fetch_company(client, cur)
+        if company is not None and not _company_is(company, cur):
+            company = None
     cf: CompanyFacts | None = load_company(company)
 
     # 1. Employer
@@ -371,19 +394,20 @@ async def verify_candidate(
             ev = "listed in profile skills" + (f" as '{listed}'" if norm(listed) != k else "")
             dom = domain_hits(pr, cf, skill) if domain_terms(skill) else []
             if dom:
-                ev += f"; also: {'; '.join(h[0] for h in dom[:3])}"
+                ev += f" | also inferred: {'; '.join(_strip_likely(h[0]) for h in dom[:3])}"
             out.add(f"Skill: {skill}", "verified", ev, ep, pr.skills_field)
         else:
             hit = _text_evidence(pr, k)
             dom = domain_hits(pr, cf, skill) if domain_terms(skill) else []
-            if hit:
-                primary, rest = (hit[0], hit[1], ep), dom
+            if hit:  # direct evidence; employer-industry hits are listed separately as inferred
+                ev = hit[0] + (f" | also inferred: {'; '.join(_strip_likely(h[0]) for h in dom[:3])}" if dom else "")
+                primary = (hit[0], hit[1], ep)
             elif dom:
-                primary, rest = dom[0], dom[1:]
+                primary = dom[0]
+                ev = "inferred only: " + "; ".join(_strip_likely(h[0]) for h in dom[:4])
             else:
                 missing.append(skill)
                 continue
-            ev = primary[0] + (f"; also: {'; '.join(h[0] for h in rest[:3])}" if rest else "")
             out.add(f"Skill: {skill}", "verified", ev, primary[2], primary[1])
             continue
     if missing:
