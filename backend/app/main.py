@@ -46,6 +46,7 @@ from .accounts.api import router as auth_router  # noqa: E402  (company sign-up,
 from .accounts.members_api import platform as platform_router  # noqa: E402  (operator: every company)
 from .accounts.members_api import router as members_router  # noqa: E402  (workspace roles: app/accounts/authz.py)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
+from .rules.api import router as rules_router  # noqa: E402  (company rules set without code: app/rules, docs/RULES.md)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -60,6 +61,7 @@ app.include_router(auth_router)
 app.include_router(members_router)
 app.include_router(platform_router)
 app.include_router(talent_router)
+app.include_router(rules_router)
 
 
 @app.exception_handler(OutOfCredits)

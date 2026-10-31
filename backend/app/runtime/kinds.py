@@ -497,14 +497,24 @@ async def offer_letter(ctx: RuntimeCtx, inp: dict) -> dict:
             pass
     ctx.log(f"  draft     offer letter for {who['name']} ({role}), drafted by {by}")
     sha = hashlib.sha256(letter.encode()).hexdigest()
+    from ..rules import engine as rules
+    needed, hits = rules.offer_approvers(ctx.agent, comp)
+    note = ("Approve to sign: the agent's passport is re-checked for contract.sign, then it signs the letter's hash."
+            + (f" {rules.explain(hits[0])}." if hits else ""))
     a = store.add_approval(task_id=ctx.task_id, agent_id=ctx.agent_id, agent_name=ctx.agent["name"], action="sign_offer",
                            to=who, body=letter, scope="contract.sign", signature=None, today=None,
-                           preview={"decision": "allow", "checks": [], "note": "Approve to sign: the agent's passport is "
-                                    "re-checked for contract.sign, then it signs the letter's hash."})
+                           terms={"compensation": comp, "role": role, "start_date": start},
+                           approvals_needed=needed, approvals=[], rules=hits,
+                           preview={"decision": "allow", "checks": [], "note": note})
+    if hits:
+        ctx.log(f"  rule      {rules.explain(hits[0])}")
+        rules.enforced(hits[0], ctx.agent, "sign_offer", f"needs {needed} approvers", target=who,
+                       approval_id=a["approval_id"], task_id=ctx.task_id)
     store.task_mutate(ctx.task_id, lambda t: (
         t["output"].__setitem__("offer", {"candidate": who["name"], "profile_url": who["profile_url"], "role": role,
                                           "compensation": comp, "start_date": start, "state": "waiting for your approval",
                                           "approval_id": a["approval_id"], "sha256": sha, "drafted_by": by,
+                                          "approvals_needed": needed, "rules": hits,
                                           "letter": letter, "slot": inp.get("slot")}),
         t["output"].setdefault("artifacts", []).append({"kind": "offer_letter", "title": f"Offer letter: {who['name']}",
                                                          "content": letter})))

@@ -255,6 +255,13 @@ class Runtime:
                 why = f"{ag['name']} is busy with another task"
             elif store.usage(ag["agent_id"])["tasks"] >= store.policy(ag["agent_id"])["budget"]["tasks_per_day"]:
                 why = "daily task budget reached"
+            else:
+                from ..rules import engine as rules
+                hit = rules.cap_hit(ag, "tasks")
+                if hit:
+                    why = rules.explain(hit)
+                    if t.get("waiting_on") != why:  # once per change, not every tick
+                        rules.enforced(hit, ag, "start_task", "task waits until tomorrow", task_id=t["task_id"])
             if why:
                 if t.get("waiting_on") != why:
                     store.update_task(t["task_id"], waiting_on=why)

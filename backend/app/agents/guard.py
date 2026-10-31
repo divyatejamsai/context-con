@@ -556,6 +556,26 @@ def resolve_agent(agent_id: str) -> tuple[Passport, str]:
     return Passport.model_validate(rec["passport"]), rec.get("status") or "active"
 
 
+def _rule_checks(agent_id: str, to: dict, scope: str, holds_block: bool) -> list[Check]:
+    """Company rules (app/rules, set in the console) this message breaks. Block rules always fail the guard; hold rules
+    (quiet hours) only at the moment of sending: a draft written at night still reaches the approval inbox."""
+    try:
+        from ..rules import engine
+        hits = engine.send_hits(agent_id, to, scope)
+    except Exception as e:  # noqa: BLE001 - fail closed only when rules exist; a missing store means no rules
+        log.warning("guard: rules check failed: %s", e)
+        return []
+    out = []
+    for h in hits:
+        if h["effect"] == "hold" and not holds_block:
+            continue
+        out.append(Check(id=f"r{len(out) + 1}", name="company_rule", status="fail", detail=engine.explain(h),
+                         source=Source(endpoint="agaxes/rules", field=f"{h['rule_id']}@v{h['version']}")))
+        engine.enforced(h, agent_id, "send", "blocked by Send Guard" if h["effect"] == "block" else "held at send",
+                        target=to, scope=scope)
+    return out
+
+
 def _status_check(status: str | None) -> list[Check]:
     if status is None:
         return []
@@ -567,9 +587,10 @@ def _status_check(status: str | None) -> list[Check]:
 
 async def check_send(passport: Passport | dict, signature: str, to: dict, body: str, scope: Scope,
                      client: CrustdataClient | None = None, *, today: date | None = None,
-                     graph: Graph | None = None, agent_status: str | None = None) -> Verdict:
+                     graph: Graph | None = None, agent_status: str | None = None, holds_block: bool = False) -> Verdict:
     """Run every pre-send check; allow only if all pass. Never raises on bad data. Records one ledger entry.
-    agent_status: the registry status when the passport was resolved from an agent_id (anything but active blocks)."""
+    agent_status: the registry status when the passport was resolved from an agent_id (anything but active blocks).
+    holds_block: this is the send itself, so a rule that holds messages (quiet hours) blocks it too."""
     today = today or datetime.now(timezone.utc).date()
     graph = graph or Graph(client)
     client = client if client is not None else graph.client
@@ -580,7 +601,8 @@ async def check_send(passport: Passport | dict, signature: str, to: dict, body: 
         verify_passport(passport, client, scope, today=today, graph=graph, record=False),
         _recipient_checks(to, body, graph, client, today),
     )
-    checks = [*_status_check(agent_status), *pv.checks, _signature_check(passport, body, signature or ""), *r_checks]
+    checks = [*_status_check(agent_status), *pv.checks, _signature_check(passport, body, signature or ""), *r_checks,
+              *_rule_checks(passport.agent_id, to, scope, holds_block)]
     decision = "allow" if checks and all(c.status == "pass" for c in checks) else "block"
     subject = "msg_" + hashlib.sha256(f"{passport.agent_id}\n{body}".encode()).hexdigest()[:12]
     verdict = Verdict(subject=subject, decision=decision, checks=checks)
@@ -597,7 +619,8 @@ async def send_if_allowed(passport: Passport | dict, signature: str, to: dict, b
                           client: CrustdataClient | None = None, *, today: date | None = None,
                           graph: Graph | None = None, agent_status: str | None = None) -> tuple[Verdict, bool]:
     """Guarded "send": on allow, append the message to the outbox file. Nothing leaves the machine."""
-    v = await check_send(passport, signature, to, body, scope, client, today=today, graph=graph, agent_status=agent_status)
+    v = await check_send(passport, signature, to, body, scope, client, today=today, graph=graph, agent_status=agent_status,
+                         holds_block=True)
     if v.decision != "allow":
         return v, False
     agent_id = passport.agent_id if isinstance(passport, Passport) else passport.get("agent_id")
