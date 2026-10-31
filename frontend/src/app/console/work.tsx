@@ -616,7 +616,7 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
         <Button variant="ghost" onClick={onSettings} className="ml-auto" title="Approvals and budgets"><Settings2 className="size-3.5" /></Button>
       </div>
       <p className="mt-2 text-[10.5px] text-faint">
-        {a.policy.require_approval ? "Sends need your approval" : "Sends go out once Send Guard clears them"} · last active {ago(m.last_active)}
+        {a.policy.require_approval ? "Sends need your approval" : "Sends go out once Send Guard clears them"} · {m.last_active ? `last active ${ago(m.last_active)}` : "no tasks yet"}
       </p>
     </div>
   );
