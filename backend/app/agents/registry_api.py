@@ -31,6 +31,8 @@ class OnboardBody(BaseModel):
     sponsor: Sponsor
     scopes: list[Scope] | None = None
     days: int = Field(30, ge=1, le=365)
+    job: str | None = None
+    runtime: str = "in-house"
 
 
 class ReasonBody(BaseModel):
@@ -62,7 +64,8 @@ def _bad(e: registry.RegistryError):
 @router.post("")
 async def onboard(body: OnboardBody):
     try:
-        agent = registry.onboard(body.name, body.role, body.sponsor, body.scopes, days=body.days)
+        agent = registry.onboard(body.name, body.role, body.sponsor, body.scopes, days=body.days, job=body.job,
+                                 runtime=body.runtime)
     except registry.RegistryError as e:
         raise _bad(e)
     verdict = await registry.recheck(agent["agent_id"], _client())

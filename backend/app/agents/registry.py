@@ -181,9 +181,11 @@ def _record_check(rec: dict, v: Verdict, kind: str = "agent.checked") -> Verdict
 
 # ---- lifecycle -------------------------------------------------------------------------------
 
-def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | None = None, days: int = 30) -> dict:
+def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | None = None, days: int = 30, *,
+            job: str | None = None, runtime: str = "in-house") -> dict:
     """Issues a passport and adds the agent as active. The API runs recheck() right after, so an agent with a
-    sponsor who can't vouch for it shows up suspended instead of silently active."""
+    sponsor who can't vouch for it shows up suspended instead of silently active. job is a one-line description of
+    the work; runtime says where the agent runs ("in-house", or "external" for agents that only reach us over MCP)."""
     if not agent_name.strip():
         raise RegistryError("agent name is required")
     key = role_key(role)
@@ -193,12 +195,14 @@ def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | 
     passport, private_key = pp.issue_passport(agent_name.strip(), role_title, sponsor, scopes, days)
     entry = ledger.append("agent.onboarded", {"agent_id": passport.agent_id, "agent_name": passport.agent_name,
                                                "role": role_title, "sponsor": _dump(sponsor), "scopes": scopes,
-                                               "expires_at": passport.expires_at})
+                                               "expires_at": passport.expires_at, "runtime": runtime})
     rec = {
         "agent_id": passport.agent_id,
         "employee_no": 0,
         "name": passport.agent_name,
         "role": role_title,
+        "job": (job or "").strip() or None,
+        "runtime": runtime,
         "status": "active",
         "reason": None,
         "suspended_by": None,

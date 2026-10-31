@@ -9,6 +9,7 @@ the agent signs the body itself with passport.sign_message, so the key never cro
   verify_agent(agent_id | passport, scope?)                         -> Verdict  (passport + live sponsor checks)
   check_before_send(agent_id | passport, signature, to, body, scope) -> Verdict  (allow / block, every check cited)
   send_message(agent_id | passport, signature, to, body, scope)      -> {verdict, sent}  (allow -> outbox file; never emailed)
+  record_work(agent_id, signature, kind, summary, details?, sources?) -> {recorded, ledger_entry}  (agent-signed work log)
   ledger_lookup(agent_id?)                                          -> {chain_ok, first_bad_seq, entries}
 
 Plain JSON-RPC 2.0 over newline-delimited stdin/stdout (the MCP stdio transport), so it needs no MCP SDK.
@@ -20,6 +21,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -38,7 +40,8 @@ from app.agents import ledger  # noqa: E402
 from app.agents.graph import Graph  # noqa: E402
 from app.agents.guard import UnknownAgent, blocking_reasons, check_send, resolve_agent, send_if_allowed  # noqa: E402
 from app.agents.models import SCOPES, Passport  # noqa: E402
-from app.agents.passport import verify_passport  # noqa: E402
+from app.agents.passport import signature_valid, verify_message_signature, verify_passport  # noqa: E402
+from app.schemas import Source  # noqa: E402
 
 SERVER_INFO = {"name": "countersign", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
@@ -74,6 +77,18 @@ TOOLS = [
     {"name": "send_message",
      "description": "Guarded send: runs check_before_send and, only on allow, writes the message to the outbox. Never emails.",
      "inputSchema": _SEND_ARGS},
+    {"name": "record_work",
+     "description": "File a finished piece of work (a research brief, a batch of resume checks, an outreach run) on the "
+                    "tamper-evident ledger with the Crustdata sources behind it. Sign work_body(kind, summary, details) with "
+                    "your key. Refused unless the passport is genuine, unrevoked and the agent is active.",
+     "inputSchema": {"type": "object", "properties": {
+         "agent_id": _AGENT_ID,
+         "signature": {"type": "string", "description": "Your Ed25519 signature of work_body(kind, summary, details)"},
+         "kind": {"type": "string", "description": "Short slug, e.g. report, resume_check, outreach_run"},
+         "summary": {"type": "string"}, "details": {"type": "object"},
+         "sources": {"type": "array", "items": {"type": "object", "properties": {
+             "endpoint": {"type": "string"}, "field": {"type": "string"}, "url": {"type": "string"}}}}},
+         "required": ["agent_id", "signature", "kind", "summary"]}},
     {"name": "ledger_lookup",
      "description": "Read the tamper-evident Countersign ledger (optionally for one agent) and whether the hash chain is intact.",
      "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}, "kind": {"type": "string"},
@@ -118,6 +133,31 @@ def _agent(args: dict) -> tuple[Passport, str | None]:
     raise UnknownAgent("send agent_id (or, for agents not onboarded here, passport)")
 
 
+def work_body(kind: str, summary: str, details: dict | None) -> str:
+    """What an agent signs to file work: the canonical JSON of kind, summary and details."""
+    return ledger.canonical({"kind": kind, "summary": summary, "details": details or {}})
+
+
+def _record_work(args: dict) -> tuple[str, bool]:
+    p, status = _agent(args)
+    kind = re.sub(r"[^a-z0-9_]+", "_", str(args.get("kind") or "").lower()).strip("_") or "note"
+    refusals = []
+    if status != "active":
+        refusals.append(f"agent is {status or 'not onboarded here'}")
+    if not signature_valid(p):
+        refusals.append("passport signature invalid")
+    if ledger.is_revoked(p.agent_id):
+        refusals.append("passport revoked")
+    if not verify_message_signature(p, work_body(args["kind"], args["summary"], args.get("details")), args.get("signature") or ""):
+        refusals.append("work signature does not match this agent's key")
+    if refusals:
+        return json.dumps({"recorded": False, "refused": refusals}), False
+    sources = [Source(**s) for s in args.get("sources") or [] if isinstance(s, dict) and s.get("endpoint")]
+    entry = ledger.append(f"work.{kind}", {"agent_id": p.agent_id, "summary": args["summary"],
+                                           "details": args.get("details") or {}, "signed": True}, sources[:200])
+    return json.dumps({"recorded": True, "ledger_entry": entry, "sources": len(sources)}), False
+
+
 async def call_tool(name: str, args: dict) -> tuple[str, bool]:
     """Returns (text, is_error)."""
     if name == "verify_agent":
@@ -132,6 +172,8 @@ async def call_tool(name: str, args: dict) -> tuple[str, bool]:
             return _verdict_text(v), False
         v, sent = await send_if_allowed(p, args["signature"], args["to"], args["body"], args["scope"], **kw)
         return ("SENT to outbox. " if sent else "NOT SENT. ") + _verdict_text(v, {"sent": sent}), False
+    if name == "record_work":
+        return _record_work(args)
     if name == "ledger_lookup":
         ok, bad = ledger.verify_chain()
         rows = ledger.entries(args.get("agent_id"), args.get("kind"))[-int(args.get("limit") or 50):]

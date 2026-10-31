@@ -35,6 +35,7 @@ cleanly together (only CONTEXT.md conflicted; main's copy kept). With this branc
 | P2-13 | No hosted URL: Vertex ADC only on laptops; cloud sandboxes can't reach api.crustdata.com | Roadmap: Dockerfile + host, Gemini API-key path. Cloud runs need `api.crustdata.com` allowed in the project's cloud environment |
 | P2-14 | Payroll re-check is a button, not scheduled | Roadmap: cron `recheck_all` / Crustdata Watcher |
 | P2-15 | Nothing is ever really sent | By design (event rule): allowed drafts go to the outbox file |
+| **P0-16** | Sourced was the only real agent, so the registry, guard and ledger had almost nothing to manage | **Fixed on `claude/project-thread-6gjqrs`:** a fleet of 5 more agents with different jobs, sponsors and scopes (`backend/app/fleet/`, docs/FLEET.md), all reaching Countersign over MCP, plus a real Claude Code run. `scripts/run_fleet.py` runs it all. New MCP tool `record_work` files each agent's signed work with its sources |
 
 ## Run it end to end (Mac, live)
 ```bash
@@ -46,5 +47,6 @@ curl -s localhost:8000/api/ledger | jq '.chain_ok, [.entries[].kind]'
 curl -s -X POST localhost:8000/api/verify_resume -H 'content-type: application/json' \
   -d '{"profile_url":"https://www.linkedin.com/in/pankajsavaliya","claimed":{"employer":"Google"}}'
 python scripts/mcp_agent_demo.py             # an agent calling Send Guard over MCP
+python scripts/run_fleet.py --claude-code     # the whole fleet, incl. Claude Code, over MCP (docs/FLEET.md)
 ```
 Offline check of the same flow: `CRUSTDATA_MODE=replay LLM_MODE=mock python -m pytest -q tests/test_sourced_agent.py`.
