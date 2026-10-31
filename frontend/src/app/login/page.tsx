@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND } from "@/lib/brand";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -7,7 +8,7 @@ import { AuthShell, Button, Divider, Field, Input, Notice, PasswordInput, postJS
 
 const REASONS: Record<string, string> = {
   expired: "Your session ended. Log in again to pick up where you left off.",
-  backend: "Can't reach the Sourced backend right now. Start it (backend/scripts/demo_up.sh) and try again.",
+  backend: `Can't reach the ${BRAND.name} backend right now. Start it (backend/scripts/demo_up.sh) and try again.`,
   logout: "You're logged out.",
 };
 
@@ -50,7 +51,7 @@ function LoginForm() {
 
   return (
     <>
-      <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Log in to Sourced</h1>
+      <h1 className="text-[22px] font-semibold tracking-[-0.02em]">Log in to {BRAND.name}</h1>
       <p className="mt-1 text-[14px] text-muted-foreground">
         New here? <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Create a company workspace</Link>
       </p>

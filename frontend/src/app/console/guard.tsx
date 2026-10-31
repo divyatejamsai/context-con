@@ -59,7 +59,7 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
   const name = (id: string) => agents.find((a) => a.agent_id === id)?.name ?? id;
 
   return (
-    <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] ">
+    <main className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6 sm:px-8 sm:py-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <section className="min-w-0">
         <PageHead title="Check a message before an agent sends it">
           The <Term tip={TERMS.guard}>Send Guard</Term> sits between an agent and the outside world. It checks the agent&apos;s passport, its

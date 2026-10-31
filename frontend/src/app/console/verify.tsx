@@ -4,6 +4,7 @@ import { IdCard, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiError, SCOPE_INFO, api, type Agent, type Passport, type Scenario, type Scope, type Verdict } from "./api";
 import { Button, EmptyState, HowTo, PageHead, TERMS, Term, VerdictHeader, VerdictList, inputCls } from "./parts";
+import { BRAND } from "@/lib/brand";
 
 const SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -46,10 +47,10 @@ export function VerifyView({ agents, scenarios, onOnboard }: { agents: Agent[]; 
   const story = (a: Agent) => scenarios.find((s) => s.sponsor.profile_url === a.passport.sponsor.profile_url)?.story;
 
   return (
-    <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] ">
+    <main className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6 sm:px-8 sm:py-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <section className="min-w-0">
         <PageHead title="Check an agent's passport">
-          Use this when an AI agent contacts you. It checks that the <Term tip={TERMS.passport}>passport</Term> was signed by Countersign
+          Use this when an AI agent contacts you. It checks that the <Term tip={TERMS.passport}>passport</Term> was signed by {BRAND.name}{" "}
           and not edited, then looks up its <Term tip={TERMS.sponsor}>sponsor</Term> in Crustdata: are they real, do they still work
           there, and can they delegate this work.
         </PageHead>

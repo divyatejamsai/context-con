@@ -6,6 +6,7 @@ import { StatusPill as ClaimPill } from "@/components/evidence";
 import { Button, EmptyState, Field, HowTo, SectionHead, SourceChip, cardCls, inputCls } from "@/app/console/parts";
 import { FLAG_LABEL, LIE_LABEL, TalentError, label, pct, sse, talent, type Screening, type StaffingEvent, type StaffingReport } from "@/lib/talent";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 
 const ROLE_LABEL: Record<string, string> = {
   delivery: "Delivery", warehouse: "Warehouse", support: "Customer support", retail: "Retail", security: "Security", hospitality: "Hospitality",
@@ -55,7 +56,7 @@ export default function StaffingPage() {
       if ((e as Error).name !== "AbortError") {
         const msg = e instanceof Error ? e.message : String(e);
         setErr({
-          msg: e instanceof TalentError && e.status === 401 ? "The backend needs an admin token for this. Set it with the key icon in the Countersign console, then try again." : msg,
+          msg: e instanceof TalentError && e.status === 401 ? `The backend needs an admin token for this. Set it with the key icon in the ${BRAND.name} console, then try again.` : msg,
           noPool: /no recorded applicant pool/i.test(msg),
         });
       }

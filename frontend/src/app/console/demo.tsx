@@ -8,6 +8,7 @@ import type { Source } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getAdminToken, type AgentStatus, type Check as CheckT, type Scope, type Scorecard, type Sponsor } from "./api";
 import { Button, CheckRow, DecisionBadge, RuntimeBadge, ScopeChip, SourceChip, StatusPill, cardCls, checkLabel } from "./parts";
+import { BRAND } from "@/lib/brand";
 
 // ---- stream types (mirror the docstring of backend/app/fleet/demo.py) ----------------------------
 
@@ -178,12 +179,12 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
   const canNext = current < last && received > current;
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-6">
+    <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-[720px]">
           <h1 className="text-[22px] font-[620] tracking-[-0.02em]">Run the demo</h1>
           <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-            Six AI employees do real work through the Countersign MCP server. Every passport, message and finished job is checked against
+            Six AI employees do real work through the {BRAND.name} MCP server. Every passport, message and finished job is checked against
             Crustdata and written to the ledger. Nothing on this page is scripted output: each card is an event from the run as it happens.
           </p>
         </div>

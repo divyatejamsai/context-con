@@ -14,6 +14,7 @@ import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductNav } from "@/components/app-header";
 import { AccountMenu } from "@/components/account-menu";
+import { BRAND } from "@/lib/brand";
 
 function useWide() {
   const [wide, setWide] = useState(true);
@@ -272,7 +273,7 @@ export default function Home() {
 
             {run.passport?.decision === "block" && (
               <div className="mx-4 mt-3 rounded-lg border border-contradicted/30 bg-contradicted/[0.06] px-3 py-2.5 text-[13px]">
-                <span className="font-[510] text-contradicted">Run refused by Countersign.</span>{" "}
+                <span className="font-[510] text-contradicted">Run refused by {BRAND.name}.</span>{" "}
                 <span className="text-secondary">{run.passport.error ?? run.passport.message}</span>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">The agent&apos;s passport did not pass its live check, so nothing was searched. Re-onboard it with a sponsor Crustdata can vouch for.</p>
               </div>
@@ -499,9 +500,9 @@ function TopBar({
             href="/console"
             prefetch={false}
             className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-[510] text-secondary transition hover:bg-hover hover:text-foreground sm:inline-flex"
-            title="Countersign: see this agent's passport, the Send Guard verdicts on its drafts, and the audit ledger"
+            title={`${BRAND.name}: see this agent's passport, the Send Guard verdicts on its drafts, and the audit ledger`}
           >
-            <BadgeCheck className="size-3.5" /> Countersign console
+            <BadgeCheck className="size-3.5" /> {BRAND.name} console
           </Link>
           <button onClick={onHelp} className="hidden size-7 place-items-center rounded-md text-muted-foreground hover:bg-hover hover:text-foreground sm:grid" aria-label="Keyboard shortcuts">
             <Keyboard className="size-4" />
@@ -591,7 +592,7 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
         <p className="mt-6 text-[12.5px] text-muted-foreground">
           Sourced runs as an AI employee with a passport. To see who it acts for and what it was allowed to send, open the{" "}
           <Link href="/console" prefetch={false} className="text-primary hover:underline">
-            Countersign console
+            {BRAND.name} console
           </Link>
           , or{" "}
           <Link href="/console?view=demo" prefetch={false} className="text-primary hover:underline">

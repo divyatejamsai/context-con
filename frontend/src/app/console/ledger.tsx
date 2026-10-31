@@ -31,7 +31,62 @@ const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work
 // Mirrors backend/app/agents/ledger.py: hash = sha256(canonical JSON of every field except "hash"),
 // canonical = sorted keys, no spaces, UTF-8. Re-deriving it here means the console doesn't just trust the server.
 
+// Python writes 55.0 where JavaScript would write 55, so numbers keep the exact text the server sent. The ledger is
+// re-parsed with a small JSON reader that leaves each number as its original lexeme.
+class Num {
+  constructor(public raw: string) {}
+}
+
+function parseLossless(text: string): unknown {
+  let i = 0;
+  const ws = () => {
+    while (i < text.length && " \t\n\r".includes(text[i])) i++;
+  };
+  const value = (): unknown => {
+    ws();
+    const c = text[i];
+    if (c === "{") {
+      i++;
+      const o: Record<string, unknown> = {};
+      ws();
+      if (text[i] === "}") return i++, o;
+      while (true) {
+        ws();
+        const k = value() as string;
+        ws();
+        i++; // :
+        o[k] = value();
+        ws();
+        if (text[i++] === "}") return o;
+      }
+    }
+    if (c === "[") {
+      i++;
+      const a: unknown[] = [];
+      ws();
+      if (text[i] === "]") return i++, a;
+      while (true) {
+        a.push(value());
+        ws();
+        if (text[i++] === "]") return a;
+      }
+    }
+    if (c === '"') {
+      const start = i++;
+      while (text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+      i++;
+      return JSON.parse(text.slice(start, i));
+    }
+    const m = /^(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/.exec(text.slice(i, i + 64));
+    if (!m) throw new Error(`Unexpected ${c} at ${i}`);
+    i += m[0].length;
+    return m[0] === "true" ? true : m[0] === "false" ? false : m[0] === "null" ? null : new Num(m[0]);
+  };
+  return value();
+}
+
 function canonical(v: unknown): string {
+  if (v instanceof Num) return v.raw;
   if (v === null || typeof v !== "object") return JSON.stringify(v);
   if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
   const o = v as Record<string, unknown>;
@@ -44,13 +99,14 @@ async function sha256(s: string): Promise<string> {
 }
 
 /** First seq whose hash or link doesn't hold, or null if the whole chain checks out. */
-async function verifyInBrowser(entries: LedgerEntry[]): Promise<number | null> {
+async function verifyInBrowser(raw: string): Promise<number | null> {
+  const entries = (parseLossless(raw) as { entries: Record<string, unknown>[] }).entries;
   let prev = "0".repeat(64);
   for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const { hash, ...body } = e;
-    if (e.seq !== i || e.prev_hash !== prev || (await sha256(canonical(body))) !== hash) return i;
-    prev = hash;
+    const { hash, ...body } = entries[i];
+    const seq = body.seq instanceof Num ? Number(body.seq.raw) : NaN;
+    if (seq !== i || body.prev_hash !== prev || (await sha256(canonical(body))) !== hash) return Number.isNaN(seq) ? i : seq;
+    prev = hash as string;
   }
   return null;
 }
@@ -72,10 +128,11 @@ export function LedgerExplorer({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const v = await api.ledger();
+      const raw = await api.ledgerText();
+      const v = JSON.parse(raw) as LedgerView;
       setView(v);
       setFailed(false);
-      setBrowserBad(await verifyInBrowser(v.entries));
+      setBrowserBad(await verifyInBrowser(raw).catch(() => 0));
       setCheckedAt(new Date());
       onChain({ chain_ok: v.chain_ok, first_bad_seq: v.first_bad_seq, count: v.entries.length });
     } catch (e) {
@@ -103,7 +160,7 @@ export function LedgerExplorer({
     .reverse();
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-6">
+    <main className="mx-auto max-w-[1100px] px-4 py-6 sm:px-8 sm:py-8">
       <PageHead title="Ledger">
         The permanent record of every passport, check, verdict and suspension, with the Crustdata sources behind each one. Use it to
         prove later why an agent was trusted or stopped. Each entry includes the hash of the one before it, so editing, deleting or

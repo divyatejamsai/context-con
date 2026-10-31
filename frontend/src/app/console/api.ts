@@ -176,6 +176,12 @@ export const api = {
   agent: (id: string) => req<Agent>(`/agents/${id}`),
   roles: () => req<{ roles: Role[]; scopes: Scope[] }>("/agents/roles"),
   scenarios: () => req<{ scenarios: Scenario[] }>("/passport/scenarios").then((r) => r.scenarios),
+  /** The full ledger as the exact text the server sent, so the browser can re-hash it byte for byte. */
+  ledgerText: async () => {
+    const res = await fetch(`${API_URL}/api/ledger`);
+    if (!res.ok) throw new ApiError(`Backend returned ${res.status}`, res.status);
+    return res.text();
+  },
   ledger: (agentId?: string) => req<LedgerView>(`/ledger${agentId ? `?agent_id=${encodeURIComponent(agentId)}` : ""}`),
   onboard: (b: { name: string; role: string; sponsor: Sponsor; scopes?: Scope[]; days?: number; job?: string; runtime?: string }) =>
     post<{ agent: Agent; verdict: Verdict }>("/agents", b),

@@ -81,7 +81,7 @@ function RunButton({ running, disabled, onRun, onStop, label }: { running: boole
       onClick={onRun}
       disabled={disabled}
       title={disabled ? "Write a brief first" : "Search Crustdata for people who match this brief (⌘↵)"}
-      className="inline-flex h-7 items-center gap-1.5 rounded-md bg-foreground px-2.5 text-[12.5px] font-[510] text-background transition hover:opacity-85 disabled:opacity-40"
+      className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-foreground px-2.5 text-[12.5px] font-[510] text-background transition hover:opacity-85 disabled:opacity-40"
     >
       {label === "Search again" ? <CornerDownLeft className="size-3.5" /> : <ArrowUp className="size-3.5" />}
       {label}

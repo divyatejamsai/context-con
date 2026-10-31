@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BadgeCheck, Check, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 
 /** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
@@ -65,9 +66,9 @@ export function ConsoleLink() {
       href="/console"
       prefetch={false}
       className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-[510] text-secondary transition hover:bg-hover hover:text-foreground sm:inline-flex"
-      title="Countersign: the agent's passport, the Send Guard verdicts on its messages, and the audit ledger"
+      title={`${BRAND.name}: the agent's passport, the Send Guard verdicts on its messages, and the audit ledger`}
     >
-      <BadgeCheck className="size-3.5" /> Countersign console
+      <BadgeCheck className="size-3.5" /> {BRAND.name} console
     </Link>
   );
 }

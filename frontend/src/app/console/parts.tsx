@@ -3,6 +3,7 @@ import { CheckCircle2, CircleDashed, Lock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Source } from "@/lib/types";
 import { SCOPE_INFO, type Agent, type AgentStatus, type Check, type Scope, type Verdict } from "./api";
+import { BRAND } from "@/lib/brand";
 
 // Styling uses only the shared semantic tokens (panel, elevated, border, primary, verified, contradicted, flag...),
 // so the console follows whatever look globals.css gives the Sourced app.
@@ -70,7 +71,7 @@ export function ScopeChip({ scope, muted }: { scope: Scope; muted?: boolean }) {
 export function RuntimeBadge({ runtime }: { runtime?: string }) {
   if (runtime !== "external") return null;
   return (
-    <span className="inline-flex h-[18px] items-center rounded border border-border-strong px-1 text-[10.5px] font-[510] text-muted-foreground" title="Runs outside Countersign and reaches it over MCP">
+    <span className="inline-flex h-[18px] items-center rounded border border-border-strong px-1 text-[10.5px] font-[510] text-muted-foreground" title={`Runs outside ${BRAND.name} and reaches it over MCP`}>
       External
     </span>
   );
@@ -143,11 +144,13 @@ export function DecisionBadge({ decision }: { decision: "allow" | "block" }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10.5px] font-medium uppercase tracking-wide",
-        decision === "allow" ? "bg-verified/15 text-verified" : "bg-contradicted/15 text-contradicted",
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[11px] font-[510]",
+        decision === "allow" ? "border-verified/30 bg-verified/10 text-verified" : "border-contradicted/30 bg-contradicted/10 text-contradicted",
       )}
+      title={decision === "allow" ? "Every check passed" : "At least one check failed, so it was stopped"}
     >
-      {decision}
+      {decision === "allow" ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
+      {decision === "allow" ? "Allowed" : "Blocked"}
     </span>
   );
 }
@@ -275,7 +278,7 @@ export function Term({ children, tip }: { children: React.ReactNode; tip: string
 
 export const TERMS = {
   passport: "A signed ID card for an AI agent. It names the agent, the person it acts for, and what it may do. Anyone it contacts can check it.",
-  sponsor: "The real person the agent acts for. Countersign checks in Crustdata that they exist, still work at the company, and have the authority they delegate.",
+  sponsor: `The real person the agent acts for. ${BRAND.name} checks in Crustdata that they exist, still work at the company, and have the authority they delegate.`,
   scope: "A permission written into the passport, such as sending hiring outreach or reading data.",
   ledger: "An append-only log of every passport, check and decision. Each entry includes the hash of the one before it, so edits are detectable.",
   guard: "Checks a drafted message before it can leave: the agent's passport, its signature on the text, and every fact about the recipient.",

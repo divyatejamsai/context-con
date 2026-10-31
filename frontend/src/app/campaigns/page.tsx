@@ -14,6 +14,7 @@ import {
   type Campaign, type CampaignEvent, type CampaignSummary, type Conversation, type ConversationRow, type Message, type Stage,
 } from "@/lib/talent";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 
 const EXAMPLE = "Senior backend engineer, payments, Bangalore\nBudget 40-55 LPA, notice under 60 days\nOne hire, start by January";
 
@@ -260,7 +261,7 @@ function NewCampaign({ onCreated }: { onCreated: (c: Campaign) => void }) {
       const m = e instanceof Error ? e.message : String(e);
       setErr(
         e instanceof TalentError && e.status === 401
-          ? "The backend needs an admin token for this. Set it with the key icon in the Countersign console, then try again."
+          ? `The backend needs an admin token for this. Set it with the key icon in the ${BRAND.name} console, then try again.`
           : e instanceof TalentError && e.status === 422
             ? "No candidates matched this brief. Try a broader role or city."
             : m,
