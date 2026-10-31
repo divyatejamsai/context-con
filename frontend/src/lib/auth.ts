@@ -10,7 +10,7 @@ export interface AuthUser {
   email: string;
   full_name: string;
   job_role: string | null;
-  workspace_role: "owner" | "member";
+  workspace_role: "owner" | "admin" | "member" | "viewer";
   company_id: string;
 }
 
@@ -22,4 +22,15 @@ export interface AuthCompany {
   industry: string | null;
   verified_via: "crustdata" | "self_reported" | "demo";
   crustdata_company_id: number | null;
+}
+
+// What the signed-in person may see (GET /api/auth/me -> access). The backend enforces the same lines.
+//   platform  the Agaxes operator: every company, its people and AI employees
+//   company   a company owner/admin: everything in their own company only
+//   own_work  a recruiter (member/viewer): only the AI employees assigned to them, their tasks and approvals
+export interface AuthAccess {
+  level: "platform" | "company" | "own_work";
+  role: "operator" | "owner" | "admin" | "member" | "viewer";
+  views: string[];
+  summary: string;
 }
