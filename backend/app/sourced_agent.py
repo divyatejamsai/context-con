@@ -133,7 +133,7 @@ class RunStory:
             claims = c.get("claims") or []
             people.append({
                 "id": i, "name": c.get("name"), "title": c.get("title"), "company": c.get("company"),
-                "score": c.get("score"),
+                "profile_url": c.get("profile_url"), "score": c.get("score"),
                 "tier": "shortlist" if i in short else "near_miss" if i in near else "below" if self.tiers else "shortlist",
                 "reasons": [r.get("text") for r in (c.get("reasons") or [])[:3] if r.get("text")],
                 "flags": [str(f) for f in (c.get("flags") or [])[:3]],
