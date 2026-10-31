@@ -90,7 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
-| ~11:07 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
+| ~10:46 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
 | ~10:46 | Seeded-fake resumes are built locally and never committed | Public repo; they contain real people's records | WS5 |
 | 10:43 | Ranker is deterministic and weighted (LLM only rewrites reason text, optional) | Reproducible scores; judges want decisions that stay the same however the case is worded | WS3 |
 | 10:35 | Demo brief = B1 (payments backend, Bangalore) | Indian fintech is dense in Crustdata, so the demo returns rich results | WS5 |
@@ -278,7 +278,7 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
   - skills: `skills.professional_network_skills[]`
   - company stage: `funding.{last_round_type, total_investment_usd}`. Size: `headcount.total`
 - Gotchas: `web_search` URLs are Google redirect links (unwrap before citing), and `web_fetch` content is raw HTML.
-- Person-level fixtures **will be committed** to the public repo (user decision, ~11:07 IST on WS1's card), pushed from Sai's Mac together with `companies.json`.
+- Person-level fixtures **will be committed** to the public repo (user decision on WS1's card, ~10:46 IST), pushed from Sai's Mac together with `companies.json`.
 - **Demo-safety risk:** replay mode can't produce candidates from the repo alone, because person data isn't committed. For a reliable demo, run each demo brief live once on the Mac (in `cache` mode) so `cache/` fills locally, then record in `replay` mode.
 
 ### Branches (all on GitHub, merged to `main` at ~10:44 IST)
