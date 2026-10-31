@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from ..schemas import Source
-from ..verify.profile import Job, load_person, norm, same_company, title_similarity, tokens, expand_title
+from ..verify.profile import Job, company_key, expand_title, load_person, norm, same_company, tokens
 from . import ledger
 from .graph import Graph
 from .models import Check, Passport, Scope, Sponsor, Verdict
@@ -138,7 +138,7 @@ SCOPE_RULES: dict[str, tuple[str, str]] = {
     "outreach.hiring": (_FOUNDER + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)|cto|chief technology"
                         r"|vice president|director|head|engineering manager)\b",
                         "talent/HR, an engineering manager or above, or a founder"),
-    "outreach.sales": (_FOUNDER + r"|\b(sales|business development|growth|revenue|marketing|account executive|partnerships"
+    "outreach.sales": (_FOUNDER + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager|partnerships|vertrieb|verkauf|vermittler|broker"
                        r"|vice president|director|head|chief)\b", "sales/BD/marketing, a director or above, or a founder"),
     "data.read": (r".", "any current employee"),
     "contract.sign": (_FOUNDER + r"|\b(chief \w+ officer|cto|cfo|coo|vice president|director|head|general counsel|legal)\b",
@@ -167,11 +167,45 @@ def _domains_match(a: str | None, b: str | None) -> bool:
     return bool(ra and rb) and (ra == rb or ra.endswith("." + rb) or rb.endswith("." + ra))
 
 
-def _job_for(jobs: list[Job], sponsor: Sponsor) -> Job | None:
-    for j in jobs:
-        if same_company(j.company, sponsor.company) or (sponsor.company_domain and _domains_match(j.domain, sponsor.company_domain)):
-            return j
-    return None
+def _jobs_at(jobs: list[Job], sponsor: Sponsor) -> list[Job]:
+    """Jobs at the sponsor's claimed company, best match first: name must match; then the claimed domain, then an exact name."""
+    hits = [j for j in jobs if same_company(j.company, sponsor.company)]
+    key = company_key(sponsor.company)
+
+    def rank(j: Job) -> tuple:
+        return (bool(sponsor.company_domain and _domains_match(j.domain, sponsor.company_domain)),
+                company_key(j.company) == key, j.start or date.min)
+    return sorted(hits, key=rank, reverse=True)
+
+
+_STOP = {"of", "and", "the", "at", "for", "in", "a", "i", "ai", "an"}
+_ROLE_ABBREV = {
+    "ceo": "chief executive officer", "cto": "chief technology officer", "cfo": "chief financial officer",
+    "coo": "chief operating officer", "cmo": "chief marketing officer", "cpo": "chief product officer",
+    "cio": "chief information officer", "chro": "chief human resources officer", "cro": "chief revenue officer",
+    "svp": "senior vice president", "evp": "executive vice president", "avp": "assistant vice president",
+    "md": "managing director", "bdm": "business development manager", "hrbp": "hr business partner",
+    "cofounder": "co founder", "ta": "talent acquisition",
+}
+
+
+def _stem(w: str) -> str:
+    for suf in ("ial", "ing", "ion", "ive", "es", "al", "s", "e"):
+        if len(w) > 4 and w.endswith(suf):
+            return w[: -len(suf)]
+    return w
+
+
+def title_terms(title: str | None) -> set[str]:
+    words = " ".join(_ROLE_ABBREV.get(w, w) for w in norm(title).split())
+    return {_stem(w) for w in expand_title(words).split() if w not in _STOP}
+
+
+def title_matches(claimed: str | None, actual: str | None) -> bool:
+    """Every word of the claimed title must be in the real one. Understating ("Director" for "Senior Director")
+    passes; any extra or different word ("CEO" for "CTO", "Senior" for a mid-level role) fails."""
+    c, a = title_terms(claimed), title_terms(actual)
+    return bool(c and a) and c <= a
 
 
 def _src(endpoint: str, field: str | None, url: str | None = None) -> Source:
@@ -226,40 +260,47 @@ async def verify_passport(p: Passport, client: Any = None, scope: Scope | None =
             f"{pr.name} found in Crustdata" if name_ok else f"Profile belongs to {pr.name!r}, not {s.name!r}",
             _src(pr.endpoint, pr.name_field or "basic_profile.name", s.profile_url))
 
-        cur = _job_for(pr.current, s)
-        past = _job_for(pr.past, s)
+        at = _jobs_at(pr.current, s)
+        past = _jobs_at(pr.past, s)
+        cur = at[0] if at else None
+        if s.title and at:  # people often hold several roles at one company: check the claim against the one it names
+            cur = next((j for j in at if title_matches(s.title, j.title)), cur)
         if cur:
             since = f" since {cur.start.isoformat()}" if cur.start else ""
             add("sponsor_still_employed", "pass", f"Currently {cur.title or 'employed'} at {cur.company}{since}", _src(pr.endpoint, cur.path, s.profile_url))
         elif past:
-            when = f" on {past.end.isoformat()} ({(today - past.end).days} days ago)" if past.end else ""
+            last = max(past, key=lambda j: j.end or date.min)
+            when = f" on {last.end.isoformat()} ({(today - last.end).days} days ago)" if last.end else ""
             now_at = f"; now at {pr.current[0].company}" if pr.current else ""
-            add("sponsor_still_employed", "fail", f"Left {past.company}{when}{now_at}. Their authority ended when they left.",
-                _src(pr.endpoint, past.path, s.profile_url))
+            add("sponsor_still_employed", "fail", f"Left {last.company}{when}{now_at}. Their authority ended when they left.",
+                _src(pr.endpoint, last.path, s.profile_url))
         else:
             add("sponsor_still_employed", "fail", f"No record of {s.name} working at {s.company}", _src(pr.endpoint, "experience.employment_details", s.profile_url))
 
         job = cur
         if s.company_domain and job:  # only meaningful for a current employer; a departed sponsor already fails above
-            if job.domain:
-                ok = _domains_match(job.domain, s.company_domain)
+            dom_job = next((j for j in at if j.domain), None)
+            if dom_job:
+                ok = any(_domains_match(j.domain, s.company_domain) for j in at)
                 add("domain_matches_company", "pass" if ok else "fail",
-                    f"{s.company_domain} is {job.company}'s domain" if ok else f"{s.company_domain} is not {job.company}'s domain ({job.domain})",
-                    _src(pr.endpoint, f"{job.path}.employer_company_website_domain", s.profile_url))
+                    f"{s.company_domain} is {dom_job.company}'s domain" if ok else f"{s.company_domain} is not {dom_job.company}'s domain ({dom_job.domain})",
+                    _src(pr.endpoint, f"{dom_job.path}.employer_company_website_domain", s.profile_url))
             else:
                 await _domain_via_identify(graph, s, add)
         if job:
             if s.title:
-                sim = title_similarity(s.title, job.title)
-                ok = sim >= 0.5 or norm(s.title) in norm(job.title) or norm(job.title) in norm(s.title)
+                ok = title_matches(s.title, job.title)
+                others = "; ".join(repr(j.title) for j in at if j.title)
                 add("sponsor_title_current", "pass" if ok else "fail",
-                    f"Title confirmed: {job.title}" if ok else f"Passport says {s.title!r}; Crustdata says {job.title!r}",
+                    f"Title confirmed: {job.title}" if ok else f"Passport says {s.title!r}; Crustdata says {others or repr(job.title)}",
                     _src(pr.endpoint, f"{job.path}.title", s.profile_url))
             for sc in ([scope] if scope else p.scopes):
-                ok = can_grant(job.title, sc)
+                # with no title claimed, any current role at the company that carries the authority counts
+                grant = job if s.title else next((j for j in at if can_grant(j.title, sc)), job)
+                ok = can_grant(grant.title, sc)
                 add("sponsor_can_grant_scope", "pass" if ok else "fail",
-                    f"{job.title} can delegate {sc}" if ok else f"{job.title} cannot delegate {sc} (needs {SCOPE_RULES.get(sc, ('', 'a known scope'))[1]})",
-                    _src(pr.endpoint, f"{job.path}.title", s.profile_url))
+                    f"{grant.title} can delegate {sc}" if ok else f"{grant.title} cannot delegate {sc} (needs {SCOPE_RULES.get(sc, ('', 'a known scope'))[1]})",
+                    _src(pr.endpoint, f"{grant.path}.title", s.profile_url))
 
     decision = "allow" if checks and all(c.status == "pass" for c in checks) else "block"
     v = Verdict(subject=p.agent_id, decision=decision, checks=checks)

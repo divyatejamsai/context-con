@@ -48,7 +48,7 @@ os.environ.setdefault("ISSUER_KEY_PATH", str(Path(_tmp) / "issuer.key"))
 
 from app.agents.graph import Graph, norm_url  # noqa: E402
 from app.agents.models import Sponsor  # noqa: E402
-from app.agents.passport import issue_passport, verify_passport  # noqa: E402
+from app.agents.passport import issue_passport, title_terms, verify_passport  # noqa: E402
 from app.crustdata.client import TITLE_FIELD, CrustdataClient  # noqa: E402
 from app.verify.profile import Job, load_person, norm, same_company  # noqa: E402
 
@@ -139,7 +139,7 @@ def build_cases(people: list[tuple[str, str, dict]], rng: random.Random) -> list
             continue
         can, cannot = BUCKETS[bucket][1], BUCKETS[bucket][2]
         if SENIOR.search(job.title or ""):
-            cannot = [s for s in cannot if s == "payment.send" and not re.search(r"cfo|financ|founder|ceo|owner|president|partner", job.title, re.I)]
+            cannot = [s for s in cannot if s == "payment.send" and not re.search(r"cfo|financ|founder|ceo|owner|president|partner|managing director", job.title, re.I)]
         pid = f"{bucket}{idx:03d}"
         base = {"name": pr.name, "profile_url": pr.profile_url, "company": job.company, "company_domain": job.domain, "title": job.title}
         scope = can[0]
@@ -152,18 +152,23 @@ def build_cases(people: list[tuple[str, str, dict]], rng: random.Random) -> list
             fake = rng.choice(lookalikes(job.domain))
             cases.append(Case(f"{pid}-lookalike", "lookalike_domain", bucket, {**base, "company_domain": fake}, scope, "block",
                               "domain_matches_company", note=f"{job.domain} -> {fake}"))
-        left = [p for p in pr.past if p.company and not any(same_company(p.company, c.company) for c in pr.current)]
+        here = [c for c in pr.current if same_company(c.company, job.company)]  # all their current roles at this employer
+        cur_domains = {c.domain for c in pr.current if c.domain}
+        # a past employer that shares a current domain is a rename (Nexxbase -> Noise), not a departure
+        left = [p for p in pr.past if p.company and not any(same_company(p.company, c.company) for c in pr.current)
+                and p.domain not in cur_domains]
         if left:
             p = left[0]
             cases.append(Case(f"{pid}-left", "left", bucket,
                               {**base, "company": p.company, "company_domain": p.domain, "title": p.title}, scope, "block",
                               "sponsor_still_employed", note=f"left {p.company} {p.end}"))
-        moved = [p for p in pr.past if same_company(p.company, job.company) and p.title and norm(p.title) != norm(job.title)
-                 and not set(norm(p.title).split()) >= set(norm(job.title).split())]
+        # an old title that isn't just a subset of a current one ("Director" -> "Senior Director" is understating, not stale)
+        moved = [p for p in pr.past if same_company(p.company, job.company) and p.title
+                 and not any(title_terms(p.title) <= title_terms(c.title) for c in here)]
         if moved:
             cases.append(Case(f"{pid}-stale", "stale_title", bucket, {**base, "title": moved[0].title}, scope, "block",
                               "sponsor_title_current", note=f"was {moved[0].title!r}, now {job.title!r}"))
-        if not re.search(r"\b(ceo|chief executive|founder)\b", job.title, re.I):
+        if not any(re.search(r"\b(ceo|chief executive)\b", c.title or "", re.I) for c in here):
             cases.append(Case(f"{pid}-inflated", "inflated_title", bucket, {**base, "title": "Chief Executive Officer"}, scope, "block",
                               "sponsor_title_current", note=f"really {job.title!r}"))
         other = names[(idx + 7) % len(names)]
