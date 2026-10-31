@@ -252,7 +252,7 @@ function guessName(domain: string) {
 
 export default function SignupPage() {
   return (
-    <AuthShell>
+    <AuthShell switchTo="login">
       <Suspense>
         <SignupForm />
       </Suspense>
