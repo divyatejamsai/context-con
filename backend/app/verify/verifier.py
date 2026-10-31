@@ -210,6 +210,30 @@ def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[
     return hits
 
 
+_STUDENT_TITLE = re.compile(r"\b(intern|internship|trainee|apprentice|student|teaching assistant|research assistant|"
+                            r"campus ambassador|summer analyst|summer associate|undergraduate|graduate researcher|"
+                            r"club|e-?cell|hostel|fest|gymkhana|student body)\b", re.I)
+
+
+def _graduated(pr: Profile) -> date | None:
+    """When the person's latest degree ended (end_year -> 1 July), if the record says."""
+    years = [int(e["end_year"]) for e in pr.education if str(e.get("end_year") or "").isdigit()]
+    return date(max(years), 7, 1) if years else None
+
+
+def _student_role(j: Job, pr: Profile) -> bool:
+    """Internships, campus clubs, jobs at their own university, or anything that ended before graduation."""
+    if (j.title and _STUDENT_TITLE.search(j.title)) or (j.company and _STUDENT_TITLE.search(j.company)):
+        return True
+    if j.company and any(same_company(j.company, e["school"]) or norm(e["school"]) in norm(j.company)
+                         or norm(j.company) in norm(e["school"]) for e in pr.education):
+        return True
+    grad = _graduated(pr)
+    if grad and j.start and j.start < grad and (j.end is None and grad > date.today() or j.end and j.end <= grad):
+        return True
+    return False
+
+
 def _edu_text(e: dict) -> str:
     bits = [b for b in (e.get("degree"), e.get("field_of_study"), str(e["end_year"]) if e.get("end_year") else None) if b]
     return e["school"] + (f" · {', '.join(bits)}" if bits else "")
@@ -347,19 +371,33 @@ async def verify_candidate(
     elif cur:
         out.add(f"Tenure at {cur.company}", "unverifiable", "current role has no start date", ep, f"{cur.path}.start_date")
 
-    # 4. Total experience (only when claimed, or computable)
-    starts = [j.start for j in pr.current + pr.past if j.start]
+    # 4. Total experience (only when claimed, or computable). Student roles don't count: internships, campus clubs
+    # and jobs at the person's own university, and anything that ended before they graduated.
+    dated = [j for j in pr.current + pr.past if j.start]
+    work = [j for j in dated if not _student_role(j, pr)]
+    starts = [j.start for j in work]
     if starts:
         total = _years(min(starts), today)
         cy = claimed.get("years_experience")
-        first_job = min((j for j in pr.current + pr.past if j.start), key=lambda j: j.start)
+        first_job = min(work, key=lambda j: j.start)
         exp_field = f"{first_job.path}.start_date"
+        skipped = len(dated) - len(work)
+        note = f"; {skipped} internship/student role{'s' if skipped != 1 else ''} not counted" if skipped else ""
         if cy is not None and float(cy) - total > EXPERIENCE_TOLERANCE_YEARS:
             out.add(f"{cy} yrs of experience", "contradicted",
-                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)})", ep, exp_field)
+                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)}){note}", ep, exp_field)
         else:
             out.add(f"~{_fmt_years(total)} of experience", "verified",
-                    f"earliest role starts {min(starts).isoformat()} ({first_job.company})", ep, exp_field)
+                    f"earliest role starts {min(starts).isoformat()} ({first_job.company}){note}", ep, exp_field)
+    elif dated:
+        first_job = min(dated, key=lambda j: j.start)
+        cy = claimed.get("years_experience")
+        if cy is not None and float(cy) > EXPERIENCE_TOLERANCE_YEARS:
+            out.add(f"{cy} yrs of experience", "contradicted",
+                    "only internships/student roles on the record", ep, f"{first_job.path}.start_date")
+        else:
+            out.add("~0.0 yrs of experience", "verified", f"only internships/student roles on the record "
+                    f"({len(dated)} role{'s' if len(dated) != 1 else ''})", ep, f"{first_job.path}.start_date")
     elif claimed.get("years_experience") is not None:
         out.add(f"{claimed['years_experience']} yrs of experience", "unverifiable", "no dated roles in the graph", ep, "past_employers")
 
