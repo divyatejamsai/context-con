@@ -9,7 +9,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -22,7 +22,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -35,7 +35,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -48,7 +48,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -61,7 +61,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -74,7 +74,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -87,7 +87,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -100,7 +100,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -113,7 +113,7 @@
       "endpoint": "web/search",
       "request_hash": "ef9da4300378564b",
       "fetched_at": "2026-10-31T05:01:12+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   }
 ]

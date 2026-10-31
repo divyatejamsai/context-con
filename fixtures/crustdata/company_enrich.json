@@ -7155,7 +7155,7 @@
     "endpoint": "company/enrich",
     "request_hash": "7d9897d67c08b8cc",
     "fetched_at": "2026-10-31T05:01:00+00:00",
-    "origin": "live",
+    "origin": "cache",
     "matched_on": "897127"
   }
 }

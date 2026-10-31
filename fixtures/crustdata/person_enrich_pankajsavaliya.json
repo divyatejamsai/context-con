@@ -1,0 +1,232 @@
+{
+  "basic_profile": {
+    "current_title": "Co-Founder | Backend Engineer",
+    "first_name": "Pankaj",
+    "headline": "Co-Founder @ Grewon | Cloud & Backend Architect | Python, Django, ML, AWS, Terraform | Scalable Infra & Web Scraping Expert | Android Dev",
+    "languages": [
+      "English",
+      "Gujarati",
+      "Hindi"
+    ],
+    "last_name": "Savaliya",
+    "location": {
+      "city": "Surat",
+      "continent": "Asia",
+      "country": "India",
+      "full_location": null,
+      "raw": "Surat, Gujarat, India",
+      "state": "Gujarat"
+    },
+    "name": "Pankaj Savaliya",
+    "normalized_title": {
+      "confident": true,
+      "department": "Engineering & Technology",
+      "matched_title": "Senior Backend Engineer",
+      "similarity": 0.9810000061988831,
+      "sub_department": "Software Engineering"
+    },
+    "professional_network_name": "Pankaj Savaliya",
+    "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/881ca7a57442f6528607242472cd1cd0b5a10c30d8eb25415261551bad647780.jpg",
+    "summary": "I'm a Full-Stack Engineer and Co-Founder at Grewon with over 10 years of experience in backend development, scalable infrastructure, and automation.\n\n🔧 Core Expertise:\nPython, Django, Flask\nMachine Learning, Model Deployment\nScalable Web Scraping Systems\nAndroid Development\nAWS, Docker, Kubernetes, Terraform\n\n🚀 I’ve led development of scalable cloud solutions, microservices architectures, and data-driven platforms for diverse industries.\n\nI thrive in agile environments, love solving complex backend challenges, and believe in writing clean, efficient, and tested code. Always exploring new technologies and open to exciting collaborations."
+  },
+  "education": {
+    "schools": [
+      {
+        "activities_and_societies": "",
+        "degree": "Bachelor of Engineering - BE",
+        "description": "",
+        "end_year": 2014,
+        "field_of_study": "Information Technology",
+        "institute_logo_permalink": null,
+        "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4D0BAQGtjQSOHkeaoQ/company-logo_400_400/company-logo_400_400/0/1630478551086?e=1775692800&v=beta&t=JcJNbeWlpPjTt4adxfTxuk_aJagJj0uYO4DUXOVUFfY",
+        "location": {
+          "city": null,
+          "continent": null,
+          "country": null,
+          "raw": null,
+          "state": null
+        },
+        "professional_network_id": "13034038",
+        "school": "Gujarat Technological University",
+        "start_year": 2010
+      }
+    ]
+  },
+  "experience": {
+    "employment_details": {
+      "current": [
+        {
+          "company_description": "The world is always evolving so are the emerging needs that require more efficient digital solutions. Every solution starts with a genuine idea, yet not every idea can be concretized in time or is unique as you think. The key is to look for the right and fastest service provider. Grewon is an expertized growing team of 50+  talented and dedicated members. What we do is: transform your ideas digitally and convert your entrepreneur dreams into practical, flawless and profitable digital solutions with the blessing of the latest and highest technologies.Our process includes filling the blanks in your ideas by developing compelling stories and concretizing them into exceptional Apps and Websites that are ready to conquer the market. With innovative design practices, end-to-end digital, technology, and marketing services are available for all types of businesses going from small businesses, and startups to enterprises. We have been able to deliver more than 1500 projects in diversified industries across the globe and we are proud partners of so many of our clients.We are Grewon and we are ready to deliver flawless services for your digital dreams!Get to know more about who we are and what we do. Check our website - http://www.grewon.com and our work https://grewon.com/our-portfolio/ and get a free consultation for your idea.",
+          "company_headcount_latest": 59,
+          "company_headcount_range": "51-200",
+          "company_industries": [
+            "IT Services and IT Consulting",
+            "Professional Services"
+          ],
+          "company_professional_network_industry": "IT Services and IT Consulting",
+          "company_professional_network_profile_url": "https://linkedin.com/company/14522586",
+          "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/1265513d6e0ac29a25d3561316492532c94e928b64f7f841c32ce277fee38970.jpg",
+          "company_status": "active",
+          "company_website": "https://grewon.com/",
+          "company_website_domain": "grewon.com",
+          "crustdata_company_id": 1090701,
+          "description": "Co-founded and scaled a tech services company focused on backend systems and Android development.\n\nDesigned and implemented cloud-native backend solutions using Python, Django, AWS, Docker, and Terraform.\n\nDeveloped scalable web scraping platforms for market intelligence and automation.\n\nMentored and led a team of engineers; implemented CI/CD pipelines and agile development practices.",
+          "employment_type": "Self-employed",
+          "end_date": null,
+          "function_category": "Engineering",
+          "is_default": true,
+          "location": {
+            "raw": "Surat Area, India"
+          },
+          "name": "Grewon Technologies Pvt. Ltd.",
+          "position_id": 1443478288,
+          "professional_network_id": "14522586",
+          "seniority_level": "Owner / Partner",
+          "start_date": "2019-01-01T00:00:00+00:00",
+          "title": "Co-Founder | Backend Engineer",
+          "years_at_company": "6 to 10 years",
+          "years_at_company_raw": 7.0
+        },
+        {
+          "company_description": "Social Infotech IT Professional services exclusively focus to deliver High Quality IT services with value propositions and unique solutions to need of IT Professional firms in IN. Social Infotech Services main aim is to provide solutions with effectual combination of Technology and comprehensive IT Business applications, which meet all your business needs and challenges improving service delivery and Profitability. Social Infotech IT Professional Services offer innovative software development by following adaptable architectures ensuring 24X7 service availability and reduced augmentation cycle time.Social Infotech Software development services have expertise in assorted areas to meet your needs which include Application Development, Business Processing Outsourcing, Business Consulting, Maintenance and Support, QA &amp; Testing etc. Step to Step progress of IT Services developed in Social Infotech are notified ensuring to meet all your Industrial requirements. Applications developed and Services provided by Technology and Domain Experts at Halcyon Services are of high quality and Cost effective ensuring swift growth of your industry.",
+          "company_headcount_latest": 1,
+          "company_headcount_range": "11-50",
+          "company_industries": [
+            "Software Development",
+            "Technology, Information and Internet",
+            "Technology, Information and Media"
+          ],
+          "company_professional_network_industry": "Software Development",
+          "company_professional_network_profile_url": "https://linkedin.com/company/6614699",
+          "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/32f8654b3deea26de7655360ff9f0cee154dc18cfb234abb5fcdace986da052a.jpg",
+          "company_status": "active",
+          "company_website": "http://socialinfotech.com/",
+          "company_website_domain": "socialinfotech.com",
+          "crustdata_company_id": 4433230,
+          "description": "",
+          "employment_type": "",
+          "end_date": null,
+          "function_category": "Engineering",
+          "is_default": false,
+          "location": {
+            "raw": ""
+          },
+          "name": "Social Infotech",
+          "position_id": 758646958,
+          "professional_network_id": "6614699",
+          "seniority_level": "Owner / Partner",
+          "start_date": "2015-03-01T00:00:00+00:00",
+          "title": "Co-Owner | Android | Backend Engineer",
+          "years_at_company": "More than 10 years",
+          "years_at_company_raw": 11.0
+        }
+      ],
+      "past": [
+        {
+          "company_description": "Infusion Infotech offers SOA services to organizations to enable integrating the applications and businesses. We help enterprises align IT to your business process orchestration needs via our SOA consulting and enablement solutions. We engage in design and architecture of Oracle Fusion Middleware SOA solutions, proofing the concept, development, testing, user training, and production configuration and support. Whether you are about to embark on a new project using Oracle’s Fusion Middleware SOA technologies, or you are mid-way through a project and need some extra help, our team of expert consultants can work with you to ensure the success of your project. We can also engage with you to execute the design/development work backing you with our resources and expertise.Reach out to Sreenivasa Setty at 630.379.6600 for inquiries.",
+          "company_headcount_latest": 5,
+          "company_headcount_range": "2-10",
+          "company_industries": [
+            "IT Services and IT Consulting",
+            "Professional Services"
+          ],
+          "company_professional_network_industry": "IT Services and IT Consulting",
+          "company_professional_network_profile_url": "https://linkedin.com/company/2892131",
+          "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b193d032fa44fd346e08d1d04c095d742d90033191be97594d15e0c9d175196b.jpg",
+          "company_status": "active",
+          "company_website": "http://infusioninfotech.co",
+          "company_website_domain": "infusioninfotech.co",
+          "crustdata_company_id": 13863519,
+          "description": "> Developed android application in various factor such as an emergency helping app, social sharing app, live music app, etc. \n> As a trainee in the iOS app too.",
+          "employment_type": "",
+          "end_date": "2015-03-01T00:00:00+00:00",
+          "function_category": "Engineering",
+          "is_default": false,
+          "location": {
+            "raw": "surat"
+          },
+          "name": "Infusion Infotech",
+          "position_id": 641469136,
+          "professional_network_id": "2892131",
+          "seniority_level": "Entry Level",
+          "start_date": "2014-06-01T00:00:00+00:00",
+          "title": "Jr.Android Developer",
+          "years_at_company": "Less than 1 year",
+          "years_at_company_raw": 0.0
+        },
+        {
+          "company_description": null,
+          "company_headcount_latest": null,
+          "company_headcount_range": null,
+          "company_industries": null,
+          "company_professional_network_industry": null,
+          "company_professional_network_profile_url": null,
+          "company_profile_picture_permalink": null,
+          "company_status": null,
+          "company_website": null,
+          "company_website_domain": null,
+          "crustdata_company_id": null,
+          "description": "* Learning an SQLite Database.\n* REST API parsing.\n* Creating a Prototype from the documentary/requirement.\n* Implementing a third-party library.",
+          "employment_type": "",
+          "end_date": "2014-01-01T00:00:00+00:00",
+          "function_category": "Engineering",
+          "is_default": false,
+          "location": {
+            "raw": "Ahmedabad Area, India"
+          },
+          "name": "Implicit Solutions",
+          "position_id": 1502571098,
+          "professional_network_id": null,
+          "seniority_level": "In Training",
+          "start_date": "2013-01-01T00:00:00+00:00",
+          "title": "Android App Developer Intern",
+          "years_at_company": "1 to 2 years",
+          "years_at_company_raw": 1.0
+        }
+      ]
+    }
+  },
+  "skills": {
+    "professional_network_skills": [
+      "Django",
+      "Kubernetes",
+      "Cloud Computing",
+      "Terraform",
+      "DevOps",
+      "Python (Programming Language)",
+      "Android Development",
+      "Java",
+      "SQL",
+      "Security Management",
+      "Data Analysis",
+      "C++",
+      "Android SDK",
+      "Blockchain",
+      "MySQL"
+    ]
+  },
+  "social_handles": {
+    "dev_platform_identifier": {
+      "profile_url": null
+    },
+    "professional_network_identifier": {
+      "profile_url": "https://www.linkedin.com/in/pankajsavaliya"
+    },
+    "twitter_identifier": {
+      "slug": "savaliya1111"
+    }
+  },
+  "crustdata_person_id": 637977,
+  "_match": {
+    "confidence_score": 1.0,
+    "match_type": "professional_network_profile_url",
+    "match_status": "matched"
+  },
+  "_source": {
+    "endpoint": "person/enrich",
+    "request_hash": "627455e12892d8db",
+    "fetched_at": "2026-10-31T05:00:59+00:00",
+    "origin": "cache",
+    "matched_on": "https://www.linkedin.com/in/pankajsavaliya"
+  }
+}
