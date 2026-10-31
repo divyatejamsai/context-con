@@ -184,7 +184,7 @@ def _record_check(rec: dict, v: Verdict, kind: str = "agent.checked") -> Verdict
 
 def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | None = None, days: int = 30, *,
             job: str | None = None, runtime: str = "in-house", workspace_id: str | None = None,
-            public_key: str | None = None) -> dict:
+            public_key: str | None = None, assignees: list[str] | None = None) -> dict:
     """Issues a passport and adds the agent as active. The API runs recheck() right after, so an agent with a
     sponsor who can't vouch for it shows up suspended instead of silently active. job is a one-line description of
     the work; runtime says where the agent runs ("in-house", or "external" for agents that only reach us over MCP)."""
@@ -222,6 +222,7 @@ def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | 
         "private_key": base64.b64encode(private_key).decode() if private_key else None,
         "key_custody": custody,
         "workspace_id": workspace_id,
+        "assignees": list(assignees or []),
         "reviews": [],
         "ledger_entries": [entry],
     }
@@ -379,6 +380,33 @@ async def set_scopes(agent_id: str, scopes: list[Scope], client, by: str = "spon
             "agent_id": agent_id, "from": list(old.scopes), "to": scopes, "by": by}, _sources(v) if v else []))
         _save(agents)
         return public(rec), v
+
+
+def set_assignees(agent_id: str, user_ids: list[str], by: str = "admin") -> dict:
+    """Which people (recruiters) work with this agent. A member or viewer sees only agents assigned to them."""
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        before = rec.get("assignees") or []
+        rec["assignees"] = list(dict.fromkeys(user_ids))
+        rec["ledger_entries"].append(ledger.append("agent.assignees_changed", {
+            "agent_id": agent_id, "from": before, "to": rec["assignees"], "by": by}))
+        _save(agents)
+        return public(rec)
+
+
+def set_workspace(agent_id: str, workspace_id: str | None, by: str = "operator") -> dict:
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        before = rec.get("workspace_id")
+        rec["workspace_id"] = workspace_id
+        if before != workspace_id:
+            rec["assignees"] = []  # people from the old company don't follow the agent
+        rec["ledger_entries"].append(ledger.append("agent.workspace_changed", {
+            "agent_id": agent_id, "from": before, "to": workspace_id, "by": by}))
+        _save(agents)
+        return public(rec)
 
 
 def rotate_key(agent_id: str, new_public_key: str, by: str = "agent") -> dict:

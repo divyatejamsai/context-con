@@ -42,6 +42,18 @@ Checked on `main` at f5a7520 (442 backend tests passing), then fixed on `claude/
 | 14 | Send Guard covers outbound messages, not every tool call | MCP gateways put policy on every call | Roadmap: a guard mode for any MCP tool (allowlist, rate limit, ledger) |
 | 15 | In-house agents' private keys sit in `backend/data/agents.json`; persistence is JSON files | Key custody and durability | Roadmap: KMS or OS keychain, Postgres. Outside agents now hold their own keys |
 
+## The access hierarchy (added after the audit, at the user's request)
+
+| Level | Who | Sees |
+|---|---|---|
+| Platform | **operator** (emails in `AGAXES_OPERATOR_EMAILS`, the demo operator, or the admin token) | Every company, its people and AI employees: `GET /api/platform/companies`; moves an agent into a company with `PUT /api/platform/agents/{id}/workspace`. The seeded fleet (onboarded before accounts) lives here |
+| Company | **owner**, **admin** | Only their own company: every AI employee, the ledger and export, members, enrollments, payroll |
+| Own work | **member** (a recruiter), **viewer** (read-only) | Only the AI employees assigned to them (`PUT /api/agents/{id}/assignees`), their tasks and approvals, Sourced. No company ledger, member list or registry, no platform view |
+
+`GET /api/auth/me` returns `access: {level, role, views, summary}` so the console hides what the backend refuses.
+Demo sign-ins: `POST /api/auth/demo {"as": "operator" | "admin" | "recruiter"}` (no body = the demo company's
+owner, as before). At demo sign-in the demo company gets Sourced, assigned to the demo recruiter.
+
 ## Try it
 
 ```bash

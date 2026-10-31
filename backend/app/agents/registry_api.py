@@ -41,6 +41,7 @@ class OnboardBody(BaseModel):
     days: int = Field(30, ge=1, le=365)
     job: str | None = None
     runtime: str = "in-house"
+    assignees: list[str] = Field(default_factory=list)  # user ids of the recruiters who work with it
 
 
 class ReasonBody(BaseModel):
@@ -73,6 +74,22 @@ def _by(sent: str) -> str:
     return p.label(sent) if p else sent
 
 
+class AssigneesBody(BaseModel):
+    user_ids: list[str]
+
+
+def _members_only(p, user_ids: list[str]) -> list[str]:
+    """Only people in the caller's company can be assigned (the operator may assign anyone)."""
+    if not user_ids or p is None or not p.scoped:
+        return list(user_ids)
+    from ..accounts.api import store
+    ok = {m["id"] for m in store().members(p.workspace_id)}
+    bad = [u for u in user_ids if u not in ok]
+    if bad:
+        raise HTTPException(400, f"not in your company: {', '.join(bad)}")
+    return list(user_ids)
+
+
 def _client():
     from .api import crustdata  # WS6's shared client; None offline, where checks fall back to fixtures
     return crustdata()
@@ -87,7 +104,8 @@ async def onboard(body: OnboardBody):
     p = authz.current()
     try:
         agent = registry.onboard(body.name, body.role, body.sponsor, body.scopes, days=body.days, job=body.job,
-                                 runtime=body.runtime, workspace_id=p.workspace_id if p else None)
+                                 runtime=body.runtime, workspace_id=p.workspace_id if p else None,
+                                 assignees=_members_only(p, body.assignees))
     except registry.RegistryError as e:
         raise _bad(e)
     verdict = await registry.recheck(agent["agent_id"], _client())
@@ -179,6 +197,15 @@ async def review(agent_id: str, body: ReviewBody):
     try:
         c = _client()
         return await registry.add_review(agent_id, _by(body.reviewer), body.decision, body.notes, body.scopes, c)
+    except registry.RegistryError as e:
+        raise _bad(e)
+
+
+@router.put("/{agent_id}/assignees", dependencies=admin)
+async def set_assignees(agent_id: str, body: AssigneesBody):
+    authz.check_agent(agent_id)
+    try:
+        return registry.set_assignees(agent_id, _members_only(authz.current(), body.user_ids), by=_by("admin"))
     except registry.RegistryError as e:
         raise _bad(e)
 
