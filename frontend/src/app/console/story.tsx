@@ -8,6 +8,22 @@ import { brandText } from "@/lib/brand";
 import { SCOPE_INFO, type Agent, type LedgerEntry, type Scope } from "./api";
 import { SourceChip, checkLabel, plain } from "./parts";
 
+/** run.finished carries the run's counts as an object ({searched, enriched, shortlisted, elapsed_ms}), not a sentence. */
+function runSummary(p: Record<string, unknown>): string | undefined {
+  const s = p.summary;
+  if (typeof s === "string") return s ? brandText(s) : undefined;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const o = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
+  const shortlisted = n(o.shortlisted) ?? (Array.isArray(p.shortlist) ? p.shortlist.length : undefined);
+  const searched = n(o.searched), enriched = n(o.enriched), ms = n(o.elapsed_ms);
+  const parts = [
+    shortlisted !== undefined && `${shortlisted} shortlisted${searched ? ` from ${searched} found` : ""}`,
+    enriched && `${enriched} checked against Crustdata`,
+    ms && `took ${ms < 60_000 ? `${Math.max(1, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)} min`}`,
+  ].filter(Boolean);
+  return parts.length ? parts.join(", ") : undefined;
+}
+
 const KIND_LABEL: Record<string, string> = {
   "passport.issued": "Passport issued",
   "passport.verified": "Passport checked",
@@ -174,7 +190,7 @@ export function describe(e: LedgerEntry, names: Map<string, string>): Line {
     case "run.started":
       return { cat, noise, tone: "neutral", text: <>{who} started a candidate search</>, detail: p.brief ? `“${String(p.brief).split("\n")[0]}”` : undefined };
     case "run.finished":
-      return { cat, noise, tone: "ok", text: <>{who} finished a candidate search</>, detail: p.summary ? brandText(String(p.summary)) : undefined };
+      return { cat, noise, tone: "ok", text: <>{who} finished a candidate search</>, detail: runSummary(p) };
     case "campaign.started":
       return { cat, noise, tone: "neutral", text: <>{who} started a hiring campaign with {String(p.candidates ?? "")} candidates</>, detail: p.brief ? `“${String(p.brief).split("\n")[0]}”` : undefined };
     case "offer.signed":
