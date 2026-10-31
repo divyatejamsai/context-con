@@ -309,3 +309,17 @@ async def test_metered_client_refuses_tools_the_agent_wasnt_connected_to(monkeyp
     registry.annotate(a["agent_id"], tools=None)
     assert connect.tool_allowed(registry.get_agent(a["agent_id"]), "person_enrich") is None
     METER.set(None)
+
+
+def test_any_signed_call_updates_last_seen(c):
+    from app.agents.models import Passport, Sponsor
+    from app.agents.passport import sign_message
+    from app.runtime.external import authenticate, signed_text
+    a = registry.onboard("Scout", "analyst", Sponsor(**SPONSOR), ["data.read"])
+    assert not registry.get_agent(a["agent_id"]).get("last_seen_at")
+    ts = int(time.time())
+    sig = sign_message(Passport.model_validate(a["passport"]), registry.private_key(a["agent_id"]),
+                       signed_text("claim", a["agent_id"], None, ts, ""))
+    authenticate("claim", a["agent_id"], None, ts, "", sig)
+    rec = registry.get_agent(a["agent_id"])
+    assert rec["last_seen_at"] and not rec.get("first_seen_at")

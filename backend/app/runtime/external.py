@@ -14,6 +14,7 @@ within 5 minutes). The employer's controls reach them the same way as in-house a
 from __future__ import annotations
 
 import time
+from datetime import datetime, timezone
 
 from ..agents import ledger, registry
 from ..agents.models import Passport
@@ -47,6 +48,10 @@ def authenticate(action: str, agent_id: str, task_id: str | None, ts: int, text:
         raise AgentAuthError("stale or future timestamp: sign the call with the current time")
     if not verify_message_signature(p, signed_text(action, agent_id, task_id, ts, text), signature or ""):
         raise AgentAuthError("signature does not match this agent's key")
+    try:  # "last signed call" on the agent's page
+        registry.annotate(agent_id, last_seen_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    except registry.RegistryError:
+        pass
     if action not in ONE_SHOT:
         return rec
     now = time.time()
