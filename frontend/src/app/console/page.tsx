@@ -1,20 +1,20 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
-  ShieldAlert, ShieldCheck, Users, X,
+  ShieldAlert, ShieldCheck, UserCog, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, api, getAdminToken, setAdminToken, type Agent, type Role, type Scenario, 
-  type Verdict,
+  ApiError, api, runtime, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
+  type Verdict, type Workspace,
 } from "./api";
 import {
-  AgentMark, Button, DecisionBadge, EmptyState, PageHead, RuntimeBadge, ScopeChip, StatusPill, TERMS, Term, ago, cardCls,
-  checkLabel, inputCls,
+  AgentMark, Button, DecisionBadge, EmptyState, PageHead, RuntimeBadge, ScopeChip, StatusPill, TERMS, Term, ago, cardCls, until,
+  checkLabel, inputCls, plain,
 } from "./parts";
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
@@ -22,16 +22,19 @@ import { LedgerExplorer } from "./ledger";
 import { DemoView } from "./demo";
 import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } from "./agent";
 import { WorkView } from "./work";
+import { MembersView } from "./members";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND, brandText } from "@/lib/brand";
+import { AGENT_APPS, appFor } from "@/lib/apps";
+import { Logo } from "@/components/app-header";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
+type View = "employees" | "work" | "verify" | "guard" | "ledger" | "members" | "demo";
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
-type Group = "Workforce" | "Tools" | "Audit" | "Learn";
-const GROUPS: Group[] = ["Workforce", "Tools", "Audit", "Learn"];
+type Group = "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
+const GROUPS: Group[] = ["Workforce", "Tools", "Audit", "Workspace", "Learn"];
 
 // The sidebar renders this list, grouped. Add a view here and it shows up in the nav.
 // Passport checks and Send Guard live on each agent's page; "Check a passport" is for agents that contact you from outside.
@@ -40,6 +43,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; gr
   { v: "work", label: "Live work", icon: Activity, desc: "Everything your agents are doing right now, and what's waiting for your approval", group: "Workforce" },
   { v: "verify", label: "Check a passport", icon: ShieldCheck, desc: "An agent from another company contacted you? Check whether it can be trusted", group: "Tools" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
+  { v: "members", label: "Members", icon: UserCog, desc: "Who at your company can see and control agents, and their roles", group: "Workspace" },
   { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six agents go through seven situations, with every decision and its source", group: "Learn" },
 ];
 
@@ -56,6 +60,9 @@ export default function Console() {
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
   const [onboarding, setOnboarding] = useState(false);
+  const [ws, setWs] = useState<Workspace | null>(null);
+  const [invites, setInvites] = useState<Enrollment[]>([]);
+  const [pending, setPending] = useState(0);
 
   const setView = (v: View) => {
     setViewState(v);
@@ -69,6 +76,8 @@ export default function Console() {
 
   const refresh = useCallback(async () => {
     const [list, l] = await Promise.all([api.agents(), api.ledger()]);
+    api.enrollments().then(setInvites).catch(() => setInvites([]));
+    runtime.state().then((st) => setPending(st.approvals.pending.length)).catch(() => setPending(0));
     setAgents(list);
     setChain({ chain_ok: l.chain_ok, first_bad_seq: l.first_bad_seq, count: l.entries.length });
     return list;
@@ -76,6 +85,7 @@ export default function Console() {
 
   const connect = useCallback(() => {
     setMode("loading");
+    api.workspace().then(setWs).catch(() => setWs(null));
     Promise.all([refresh(), api.roles(), api.scenarios().catch(() => [])])
       .then(([, r, s]) => {
         setRoles(r.roles);
@@ -119,7 +129,8 @@ export default function Console() {
   };
   const setTab = (t: Tab) => openAgent(selected, t);
 
-  const cur = agents.find((a) => a.agent_id === selected);
+  // ?agent= takes an id, or an agent's name (so other apps can link to "/console?agent=Sourced").
+  const cur = agents.find((a) => a.agent_id === selected) ?? agents.find((a) => !!selected && a.name.toLowerCase() === selected.toLowerCase());
   const counts = useMemo(
     () => agents.reduce((c, a) => ({ ...c, [a.status]: (c[a.status] ?? 0) + 1 }), {} as Record<string, number>),
     [agents],
@@ -138,8 +149,8 @@ export default function Console() {
       const err = e instanceof ApiError ? e : new ApiError(String(e), 0);
       setFlash(
         err.status === 401
-          ? { tone: "bad", title: "Admin token needed", body: "This backend requires an admin token for changes. Add it with the key button at the top right." }
-          : { tone: "bad", title: err.status === 403 ? "Refused" : "Couldn't do that", body: err.message, verdict: err.verdict },
+          ? { tone: "bad", title: "Log in first", body: "This backend only lets signed-in people (or the admin token, under the key button) make changes." }
+          : { tone: "bad", title: err.status === 403 ? "Your role can't do this" : "Couldn't do that", body: err.message, verdict: err.verdict },
       );
     } finally {
       setBusy(null);
@@ -169,7 +180,8 @@ export default function Console() {
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents.length} />
+      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents} ws={ws} pending={pending}
+        current={view === "employees" ? cur?.agent_id : undefined} onPick={(id) => openAgent(id)} />
 
       <div className="min-w-0">
         {mode === "offline" ? (
@@ -186,6 +198,8 @@ export default function Console() {
           <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
         ) : view === "guard" ? (
           <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
+        ) : view === "members" ? (
+          <MembersView ws={ws} />
         ) : view === "demo" ? (
           <DemoView onChanged={refresh} onOpen={setView} />
         ) : view === "ledger" ? (
@@ -259,6 +273,8 @@ export default function Console() {
                 <AgentTable agents={agents} onPick={(id) => openAgent(id)} />
               )}
             </div>
+
+            <Invites invites={invites} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />
           </main>
         )}
       </div>
@@ -319,10 +335,16 @@ function Count({ dot, n, label }: { dot: string; n: number; label: string }) {
 // ---- shell -----------------------------------------------------------------------------------
 
 function Sidebar({
-  view, setView, mode, chain, counts, agents,
-}: { view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: number }) {
+  view, setView, mode, chain, counts, agents, ws, pending, current, onPick,
+}: {
+  view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: Agent[]; ws: Workspace | null;
+  pending: number; current?: string; onPick: (id: string) => void;
+}) {
   const badge = (v: View) =>
-    v === "employees" ? (agents ? String(agents) : undefined) : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
+    v === "employees" ? (agents.length ? String(agents.length) : undefined)
+      : v === "work" ? (pending ? `${pending} waiting` : undefined)
+      : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
+  const apps = Object.values(AGENT_APPS);
   return (
     <aside className="sticky top-0 z-30 flex flex-col border-b border-border bg-elevated/70 backdrop-blur-xl lg:h-screen lg:border-b-0 lg:border-r lg:bg-elevated/40">
       <div className="flex h-12 items-center justify-between gap-2 px-4 lg:h-14">
@@ -330,7 +352,7 @@ function Sidebar({
           <BrandMark />
           <span className="min-w-0 leading-none">
             <span className="block text-[14px] font-[620] tracking-[-0.01em]">{BRAND.name}</span>
-            <span className="mt-0.5 hidden text-[11px] text-faint lg:block">{BRAND.tagline}</span>
+            <span className="mt-0.5 hidden truncate text-[11px] text-faint lg:block">{ws?.company?.name ?? BRAND.tagline}</span>
           </span>
         </span>
         <div className="flex items-center gap-1 lg:hidden">
@@ -345,21 +367,69 @@ function Sidebar({
           <div key={g} className="flex gap-0.5 lg:flex-col">
             <p className="hidden px-2 pb-1 text-[11px] font-[510] text-faint lg:block">{g}</p>
             {VIEWS.filter((x) => x.group === g).map((x) => (
-              <NavItem key={x.v} {...x} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false} alert={x.v === "employees" && !!counts.suspended ? `${counts.suspended} suspended` : undefined} active={view === x.v} onClick={() => setView(x.v)} />
+              <Fragment key={x.v}>
+                <NavItem {...x} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false}
+                  alert={x.v === "employees" && !!counts.suspended ? `${counts.suspended} suspended` : x.v === "work" && pending ? `${pending} sends waiting for your approval` : undefined}
+                  active={view === x.v && !(x.v === "employees" && current)} onClick={() => setView(x.v)} />
+                {x.v === "employees" && agents.length > 0 && (
+                  <ul className="ml-[15px] hidden border-l border-border pl-2 lg:block" aria-label="Your agents">
+                    {agents.filter((a) => a.status !== "offboarded").slice(0, 8).map((a) => (
+                      <li key={a.agent_id}>
+                        <button
+                          onClick={() => onPick(a.agent_id)}
+                          aria-current={current === a.agent_id ? "page" : undefined}
+                          title={`${a.name}: ${a.status}${a.reason ? `. ${plain(a.reason)}` : ""}`}
+                          className={cn(
+                            "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-[12.5px] transition",
+                            current === a.agent_id ? "bg-panel font-[510] text-foreground shadow-[var(--shadow)]" : "text-muted-foreground hover:bg-hover hover:text-foreground",
+                          )}
+                        >
+                          <span className={cn("size-1.5 shrink-0 rounded-full", a.status === "active" ? "bg-verified" : "bg-contradicted")} />
+                          <span className="truncate">{a.name}</span>
+                          {appFor(a) && <span className="ml-auto text-[10.5px] text-faint">app</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Fragment>
             ))}
           </div>
         ))}
+        {apps.map((app) => (
+          <Link key={`m-${app.href}`} href={app.href} prefetch={false} className="inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground hover:bg-hover hover:text-foreground lg:hidden">
+            <Logo /> {app.name}
+          </Link>
+        ))}
+        {apps.length > 0 && (
+          <div className="hidden lg:flex lg:flex-col lg:gap-0.5">
+            <p className="px-2 pb-1 text-[11px] font-[510] text-faint">Agent apps</p>
+            {apps.map((app) => (
+              <div key={app.href}>
+                <Link href={app.href} prefetch={false} title={app.what}
+                  className="group flex h-8 items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition hover:bg-hover hover:text-foreground">
+                  <Logo />
+                  <span className="truncate">{app.name}</span>
+                  <ArrowUpRight className="ml-auto size-3.5 text-faint opacity-0 transition group-hover:opacity-100" />
+                </Link>
+                <ul className="ml-[15px] border-l border-border pl-2">
+                  {app.pages.map((pg) => (
+                    <li key={pg.href}>
+                      <Link href={pg.href} prefetch={false} title={pg.what}
+                        className="flex h-7 items-center rounded-md px-2 text-[12.5px] text-muted-foreground transition hover:bg-hover hover:text-foreground">
+                        {pg.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="hidden border-t border-border p-3 lg:block">
-        <Link
-          href="/"
-          prefetch={false}
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-muted-foreground transition hover:bg-hover hover:text-foreground"
-          title={`${BRAND.agent}, the hiring agent that runs under ${BRAND.name}: shortlists, campaigns and shift staffing`}
-        >
-          <ArrowUpRight className="size-3.5" /> Open {BRAND.agent}
-        </Link>
+        {ws && <AccessNote ws={ws} />}
         <div className="mt-2 flex items-center justify-between gap-2 px-1">
           <BackendDot mode={mode} />
           <div className="flex items-center gap-0.5">
@@ -370,6 +440,52 @@ function Sidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+/** How this console is protected, from GET /api/workspace. Open access is called out, because anyone on the network could act. */
+function AccessNote({ ws }: { ws: Workspace }) {
+  if (ws.auth_mode === "open")
+    return (
+      <p
+        className="mt-2 flex items-start gap-1.5 rounded-md border border-flag/30 bg-flag/[0.07] px-2 py-1.5 text-[11.5px] leading-snug text-secondary"
+        title="The backend is running without a login. Start it with AGAXES_REQUIRE_LOGIN=1 (or set an admin token) before real use."
+      >
+        <ShieldAlert className="mt-px size-3.5 shrink-0 text-flag" />
+        <span><b className="font-[590]">Open access.</b> Anyone on this network can control agents.</span>
+      </p>
+    );
+  const who = ws.via === "session" ? `You're ${ws.role === "admin" || ws.role === "owner" ? "an" : "a"} ${ws.role}` : ws.via === "admin_token" ? "Using the admin token" : "Read-only";
+  return (
+    <p className="mt-2 flex items-center gap-1.5 px-2 text-[11.5px] text-muted-foreground" title={ws.auth_mode === "login_required" ? "Everyone must log in, and their role decides what they can do." : "Changes need a login or the admin token. Anyone can read."}>
+      <ShieldCheck className="size-3.5 shrink-0 text-verified" />
+      <span className="truncate">{ws.auth_mode === "login_required" ? "Login required" : "Changes need a login"} · {who}</span>
+    </p>
+  );
+}
+
+/** Outside agents invited with a one-time command that haven't connected yet. */
+function Invites({ invites, onRevoke, busy }: { invites: Enrollment[]; onRevoke: (id: string) => void; busy: string | null }) {
+  const pending = invites.filter((i) => i.status === "pending");
+  if (!pending.length) return null;
+  return (
+    <section className="mt-8">
+      <h3 className="text-[14px] font-[590]">Waiting to connect ({pending.length})</h3>
+      <p className="mt-0.5 text-[12px] text-muted-foreground">Outside agents you invited. Each one gets its passport when it runs its one-time command and proves it holds its own key.</p>
+      <ul className={cn(cardCls, "mt-3 divide-y divide-border")}>
+        {pending.map((i) => (
+          <li key={i.enrollment_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-[510]">{i.name} <span className="font-normal text-muted-foreground">· for {i.sponsor.name}, {i.sponsor.company}</span></span>
+              <span className="block text-[12px] text-muted-foreground">Invited by {i.created_by} {ago(i.created_at)} · command expires {until(i.expires_at)}</span>
+            </span>
+            <Button variant="ghost" onClick={() => onRevoke(i.enrollment_id)} disabled={!!busy}>
+              {busy === `inv:${i.enrollment_id}` ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Cancel invite
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

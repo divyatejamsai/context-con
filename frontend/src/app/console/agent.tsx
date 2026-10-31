@@ -1,8 +1,11 @@
 "use client";
-import { brandText } from "@/lib/brand";
+import Link from "next/link";
+import { BRAND, brandText } from "@/lib/brand";
+import { appFor } from "@/lib/apps";
+import { Logo } from "@/components/app-header";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft, Ban, FileClock, IdCard, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
+  ArrowLeft, Ban, Check, Copy, FileClock, IdCard, KeyRound, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -11,9 +14,9 @@ import {
 } from "./api";
 import {
   AgentMark, Button, DecisionBadge, EmptyState, Field, RuntimeBadge, ScopeChip, ScopeToggle, SectionHead, StatusPill, VerdictList, ago, cardCls,
-  checkLabel, day, inputCls, plain
+  checkLabel, day, inputCls, plain, until
 } from "./parts";
-import { LedgerTimeline } from "./ledger";
+import { ExportButtons, LedgerTimeline } from "./ledger";
 import { GuardView } from "./guard";
 import { WorkView } from "./work";
 
@@ -121,6 +124,12 @@ export function AgentDetail({
         </div>
         {!gone && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {appFor(a) && (
+              <Link href={appFor(a)!.href} prefetch={false} title={appFor(a)!.what}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-strong bg-panel px-3 text-[13px] font-[510] transition hover:bg-hover">
+                <Logo /> Open {appFor(a)!.name}
+              </Link>
+            )}
             {a.status === "active" && (
               <Button variant="primary" onClick={() => setTab("work")} title="Open its Work tab to assign a task">
                 <Plus className="size-3.5" /> Give it work
@@ -255,6 +264,8 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
 
+      {appFor(a) && <AppCard agent={a} />}
+
       <section>
         <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
           <Fact k="Vouched for by" v={s.name} sub={[s.title, s.company].filter(Boolean).join(", ")} />
@@ -270,7 +281,12 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
               ))}
             </dd>
           </div>
-          <Fact k="Runs" v={a.runtime === "external" ? "Outside, over MCP" : "Inside Agaxes"} sub={`Connected ${day(a.onboarded_at)}`} />
+          <Fact k="Runs" v={a.runtime === "external" ? "On its own machine" : `Inside ${BRAND.name}`} sub={`Connected ${day(a.onboarded_at)}`} />
+          <Fact
+            k="Signing key"
+            v={a.key_custody === "agent" ? "Held by the agent" : `Held by ${BRAND.name}`}
+            sub={a.key_custody === "agent" ? `${BRAND.name} only has the public half` : `${BRAND.name} signs for it`}
+          />
         </dl>
       </section>
 
@@ -289,6 +305,37 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
     </div>
+  );
+}
+
+/** The agent's own app, opened from Agaxes. Everything it does there is still checked and logged here. */
+function AppCard({ agent: a }: { agent: Agent }) {
+  const app = appFor(a)!;
+  return (
+    <section className={cn(cardCls, "overflow-hidden")}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Logo />
+          <div className="min-w-0">
+            <p className="text-[14px] font-[590]">{app.name}&apos;s dashboard</p>
+            <p className="text-[12.5px] text-muted-foreground">{app.what} Every message it sends from there still passes Send Guard and lands on this page&apos;s history.</p>
+          </div>
+        </div>
+        <Link href={app.href} prefetch={false} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-foreground px-3 text-[13px] font-[510] text-background transition hover:opacity-90">
+          Open {app.name} <span aria-hidden>→</span>
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {app.pages.map((pg) => (
+          <Link key={pg.href} href={pg.href} prefetch={false} className="group px-5 py-3.5 transition hover:bg-elevated">
+            <span className="flex items-center justify-between text-[13px] font-[510]">
+              {pg.label} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{pg.what}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -637,6 +684,10 @@ function AgentHistory({ agent: a }: { agent: Agent }) {
   if (!view.entries.length) return <EmptyState icon={FileClock} title="No history yet">Entries appear here as soon as {a.name} is checked or does any work.</EmptyState>;
   return (
     <div className="max-w-[760px]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12.5px] text-muted-foreground">{view.entries.length} entries about {a.name}, newest first.</p>
+        <ExportButtons agentId={a.agent_id} />
+      </div>
       <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} />
     </div>
   );
@@ -656,7 +707,11 @@ export function OnboardForm({
   const [sponsor, setSponsor] = useState<Sponsor>(scenarios[0]?.sponsor ?? { name: "", profile_url: "", company: "", company_domain: "", title: "" });
   const [days, setDays] = useState(30);
   const [job, setJob] = useState(first ? "Sources candidates for open roles and drafts outreach" : "");
-  const [runtime, setRuntime] = useState<"in-house" | "external">("in-house");
+  // "own": it runs on its own machine and makes its own key; Agaxes issues a one-time command instead of a key.
+  const [runtime, setRuntime] = useState<"in-house" | "own">("in-house");
+  const [ttl, setTtl] = useState(60);
+  const [invite, setInvite] = useState<{ command: string; expires_at: string; note?: string }>();
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<{ agent: Agent; verdict: Verdict }>();
@@ -674,8 +729,15 @@ export function OnboardForm({
   const submit = async () => {
     setBusy(true);
     setError(undefined);
+    const sp = { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null };
     try {
-      const r = await api.onboard({ name, role: roleKey, sponsor: { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null }, scopes, days, job: job.trim() || undefined, runtime });
+      if (runtime === "own") {
+        const r = await api.enroll({ name, role: roleKey, sponsor: sp, scopes, days, job: job.trim() || undefined, ttl_minutes: ttl });
+        setInvite({ command: r.command, expires_at: r.enrollment.expires_at, note: r.note });
+        onDone("");
+        return;
+      }
+      const r = await api.onboard({ name, role: roleKey, sponsor: sp, scopes, days, job: job.trim() || undefined, runtime: "in-house" });
       setResult(r);
       onDone(r.agent.agent_id);
     } catch (err) {
@@ -684,6 +746,42 @@ export function OnboardForm({
       setBusy(false);
     }
   };
+
+  if (invite) {
+    const copy = () => {
+      navigator.clipboard?.writeText(invite.command).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      }).catch(() => {});
+    };
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex-1 overflow-y-auto p-6">
+          <span className="grid size-10 place-items-center rounded-full bg-elevated"><KeyRound className="size-5 text-foreground" /></span>
+          <h2 className="mt-4 text-[19px] font-[620] tracking-[-0.01em]">Run this on {name}&apos;s machine</h2>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+            The command makes {name} its own signing key, proves it holds it, and collects its passport. {BRAND.name} only ever sees the public half.
+            Then {sponsor.name} is checked in Crustdata, the same as any other agent.
+          </p>
+          <div className="mt-4 rounded-lg border border-border-strong bg-elevated">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+              <span className="text-[11.5px] text-muted-foreground">Works once · expires {until(invite.expires_at)}</span>
+              <button type="button" onClick={copy} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11.5px] font-[510] text-secondary hover:bg-hover">
+                {copied ? <Check className="size-3.5 text-verified" /> : <Copy className="size-3.5" />} {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-all px-3 py-2.5 font-mono text-[11.5px] leading-relaxed">{invite.command}</pre>
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-faint">
+            This is the only time the command is shown. If it&apos;s lost or expires, cancel the invite from Agents and make a new one.
+          </p>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+          <Button variant="primary" onClick={() => onOpen("")}>Done</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     const ok = result.agent.status === "active";
@@ -757,8 +855,8 @@ export function OnboardForm({
               <span className="mb-1.5 block text-[12px] font-[510] text-muted-foreground">Where it runs</span>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {([
-                  ["in-house", "Inside Agaxes", "Agaxes runs its tasks for you."],
-                  ["external", "Outside, over MCP", "It runs on its own machine, like Claude Code, and calls Agaxes for every check."],
+                  ["in-house", `Inside ${BRAND.name}`, `${BRAND.name} runs its tasks for you and holds its signing key.`],
+                  ["own", "On its own machine", `Like Claude Code on a laptop. It makes and keeps its own key; you get a one-time command to run there.`],
                 ] as const).map(([k, t, d]) => (
                   <button type="button" key={k} onClick={() => setRuntime(k)}
                     className={cn("rounded-lg border px-3 py-2.5 text-left transition", runtime === k ? "border-foreground/40 bg-elevated" : "border-border-strong hover:bg-hover")}>
@@ -822,6 +920,15 @@ export function OnboardForm({
                 <span className="text-[12.5px] text-muted-foreground">days</span>
               </span>
             </Field>
+            {runtime === "own" && (
+              <Field label="The command works for" hint="It works once. After this it expires and you'd make a new one.">
+                <select value={ttl} onChange={(e) => setTtl(Number(e.target.value))} className={cn(inputCls, "w-40")}>
+                  <option value={60}>1 hour</option>
+                  <option value={24 * 60}>1 day</option>
+                  <option value={7 * 24 * 60}>7 days</option>
+                </select>
+              </Field>
+            )}
             <div className="rounded-lg border border-border bg-elevated px-3.5 py-3 text-[12.5px] leading-relaxed text-secondary">
               <b className="font-[590]">{name || "This agent"}</b> will act for <b className="font-[590]">{sponsor.name || "…"}</b> at {sponsor.company || "…"} as a {role?.title ?? roleKey},
               and may {scopes.length ? scopes.map((s) => SCOPE_INFO[s].label.toLowerCase()).join(", ") : "do nothing yet"}.
@@ -837,7 +944,8 @@ export function OnboardForm({
           <Button variant="primary" onClick={() => setStep((s) => s + 1)} disabled={!canNext}>Continue</Button>
         ) : (
           <Button variant="primary" onClick={submit} disabled={busy || !canNext}>
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <IdCard className="size-3.5" />} Issue passport and check sponsor
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : runtime === "own" ? <KeyRound className="size-3.5" /> : <IdCard className="size-3.5" />}
+            {runtime === "own" ? "Make the one-time command" : "Issue passport and check sponsor"}
           </Button>
         )}
       </div>

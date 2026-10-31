@@ -8,6 +8,7 @@ import {
   RefreshCw, Repeat, Settings2, ShieldAlert, Trash2, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useConfirm } from "@/components/ui/confirm";
 import { cn } from "@/lib/utils";
 import {
   ApiError, receiptUrl, runtime, type Approval, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
@@ -54,6 +55,7 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
   const [openTask, setOpenTask] = useState<string | null>(null);
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
   const [allPending, setAllPending] = useState(false);
+  const [ask, confirmDialog] = useConfirm();
 
   const load = useCallback(async () => {
     try {
@@ -122,6 +124,7 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
 
   return (
     <Wrap className={wrapCls}>
+      {confirmDialog}
       <div className={cn("flex flex-wrap items-start justify-between gap-4", agentId && "hidden")}>
         <PageHead title="Live work">
           Your agents and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
@@ -159,17 +162,19 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
 
       <section className={agentId ? "" : "mt-7"}>
         <SectionHead title={`Waiting on you (${st.approvals.pending.length})`} aside={st.approvals.pending.length > 1 ? (
-          <Button disabled={!!busy} onClick={() => {
-            if (!window.confirm(`Approve all ${st.approvals.pending.length} messages? Each is re-checked by Send Guard before it goes out.`)) return;
-            act("apv:all", async () => {
+          <Button disabled={!!busy} onClick={() => ask({
+            title: `Approve all ${st.approvals.pending.length} messages?`,
+            body: "Each one is checked by Send Guard again right before it goes out, and any that fail stay unsent. Approved messages are written to the outbox, never emailed.",
+            confirm: "Approve all",
+            onConfirm: () => act("apv:all", async () => {
               let sent = 0;
               for (const x of st.approvals.pending) {
                 const r = await runtime.approve(x.approval_id).catch(() => null);
                 if (r?.status === "sent") sent++;
               }
               return sent;
-            }, "Approved all: each one was re-checked by Send Guard");
-          }}>
+            }, "Approved all: each one was re-checked by Send Guard"),
+          })}>
             {busy === "apv:all" ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} Approve all
           </Button>
         ) : undefined}>
@@ -224,10 +229,14 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
                 onSettings={() => setSettingsFor(a.agent_id)}
                 onPause={() => act(`ag:${a.agent_id}`, () => runtime.pause(a.agent_id, "paused from the Work view"), `${a.name} paused`)}
                 onResume={() => act(`ag:${a.agent_id}`, () => runtime.resume(a.agent_id), `${a.name} resumed`)}
-                onSuspend={() => {
-                  const reason = window.prompt(`Suspend ${a.name}? Its running task stops now and its passport is revoked until reinstated. Reason:`, "suspended by the employer");
-                  if (reason) act(`ag:${a.agent_id}`, () => runtime.suspend(a.agent_id, reason), `${a.name} suspended`);
-                }} />
+                onSuspend={() => ask({
+                  title: `Suspend ${a.name}?`,
+                  body: "Its running task stops now and its passport is revoked until you reinstate it. The reason goes on the ledger.",
+                  confirm: "Suspend",
+                  tone: "danger",
+                  reason: { label: "Reason", placeholder: "e.g. sponsor on leave", initial: "suspended by the employer" },
+                  onConfirm: (reason) => act(`ag:${a.agent_id}`, () => runtime.suspend(a.agent_id, reason), `${a.name} suspended`),
+                })} />
             ))}
           </div>
         ) : (

@@ -1,6 +1,8 @@
 // Client for the AI Employee registry (backend/app/agents/registry_api.py) and WS6's passport/ledger routes.
 // Everything shown comes from these calls: there is no offline or seeded data.
-import { API_URL } from "@/lib/stream";
+// Calls go through the console's same-origin proxy (app/api/backend), which adds the signed-in user's session, so
+// the backend answers as that person and shows only their workspace. API_URL is still where that proxy points.
+export const BASE = "/api/backend";
 import type { Source } from "@/lib/types";
 
 export type Scope = "outreach.hiring" | "outreach.sales" | "data.read" | "contract.sign" | "payment.send";
@@ -92,6 +94,9 @@ export interface Agent {
   reviews: Review[];
   ledger_entries: string[];
   scorecard?: Scorecard;
+  /** "agent": it made its own key and Agaxes holds only the public half. "agaxes" (or missing): Agaxes holds it. */
+  key_custody?: "agent" | "agaxes";
+  workspace_id?: string | null;
 }
 
 export interface Role {
@@ -119,6 +124,8 @@ export interface LedgerEntry {
   sources: Source[];
   prev_hash: string;
   hash: string;
+  /** Who caused the entry, from their session or the admin token, covered by the hash. Missing in open mode. */
+  actor?: { via: string; email?: string; role?: string; user_id?: string; [k: string]: unknown } | null;
 }
 
 export interface LedgerView {
@@ -159,7 +166,7 @@ export function setAdminToken(t: string) {
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAdminToken();
-  const res = await fetch(`${API_URL}/api${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(token ? { "x-admin-token": token } : {}), ...(init?.headers ?? {}) },
   });
@@ -178,7 +185,7 @@ export const api = {
   scenarios: () => req<{ scenarios: Scenario[] }>("/passport/scenarios").then((r) => r.scenarios),
   /** The full ledger as the exact text the server sent, so the browser can re-hash it byte for byte. */
   ledgerText: async () => {
-    const res = await fetch(`${API_URL}/api/ledger`);
+    const res = await fetch(`${BASE}/ledger`);
     if (!res.ok) throw new ApiError(`Backend returned ${res.status}`, res.status);
     return res.text();
   },
@@ -196,7 +203,59 @@ export const api = {
   verify: (passport: Passport, scope?: Scope) => post<Verdict>("/passport/verify", { passport, scope: scope ?? null }),
   review: (id: string, b: { reviewer: string; decision: ReviewDecision; notes: string; scopes?: Scope[] }) =>
     post<Agent>(`/agents/${id}/reviews`, b),
+  health: () => req<Health>("/health"),
+  workspace: () => req<Workspace>("/workspace"),
+  members: () => req<{ members: Member[] }>("/workspace/members").then((r) => r.members),
+  setRole: (id: string, role: WorkspaceRole) => post<Member>(`/workspace/members/${id}`, { role }, "PUT"),
+  enrollments: () => req<Enrollment[]>("/agents/enrollments"),
+  enroll: (b: { name: string; role: string; sponsor: Sponsor; scopes?: Scope[]; days?: number; job?: string; ttl_minutes?: number }) =>
+    post<{ enrollment: Enrollment; token: string; command: string; note?: string }>("/agents/enrollments", b),
+  revokeEnrollment: (id: string) => post<Enrollment>(`/agents/enrollments/${id}/revoke`),
+  /** Signed audit export as a file download. JSONL is the evidence (signed manifest + entries); CSV is for reading. */
+  exportLedger: async (format: "jsonl" | "csv", agentId?: string) => {
+    const token = getAdminToken();
+    const q = new URLSearchParams({ format, ...(agentId ? { agent_id: agentId } : {}) });
+    const res = await fetch(`${BASE}/ledger/export?${q}`, { headers: token ? { "x-admin-token": token } : {} });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(body?.detail ?? `Backend returned ${res.status}`, res.status);
+    }
+    const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? `agaxes-ledger.${format}`;
+    const url = URL.createObjectURL(await res.blob());
+    const a = Object.assign(document.createElement("a"), { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  },
 };
+
+export type AuthMode = "open" | "writes_protected" | "login_required";
+export interface Health { ok: boolean; auth_mode?: AuthMode; llm_mode?: string; crustdata_mode?: string }
+export type WorkspaceRole = "viewer" | "member" | "admin" | "owner";
+export interface Workspace {
+  auth_mode: AuthMode;
+  via: "session" | "admin_token" | "open" | string;
+  role: WorkspaceRole;
+  company?: { id?: string; name?: string; domain?: string } | null;
+  roles: { role: WorkspaceRole; can: string }[];
+}
+export interface Member { id: string; email: string; full_name?: string | null; job_role?: string | null; workspace_role: WorkspaceRole; created_at?: string; last_login_at?: string | null }
+export interface Enrollment {
+  enrollment_id: string;
+  name: string;
+  role: string;
+  sponsor: Sponsor;
+  scopes: Scope[] | null;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+  agent_id: string | null;
+  status: "pending" | "used" | "expired" | "revoked";
+}
 
 // ---- Agent runtime (backend/app/runtime, docs/RUNTIME.md): tasks, approvals, budgets, schedules -------------
 
@@ -364,7 +423,7 @@ export interface RuntimeState {
   ledger: { chain_ok: boolean; first_bad_seq: number | null };
 }
 
-export const receiptUrl = (hash: string) => `${API_URL}/api/runtime/receipts/${hash}`;
+export const receiptUrl = (hash: string) => `${BASE}/runtime/receipts/${hash}`;
 
 export interface Template { key: string; name: string; role: string; scopes: Scope[]; job: string; hired: boolean; jobs: string[] }
 
