@@ -54,23 +54,25 @@ export function FlashBar({ flash, onClose }: { flash: NonNullable<Flash>; onClos
 
 // ---- detail ----------------------------------------------------------------------------------
 
+// Work first: it's what you come to an agent's page to do. Trust (Passport, Messages) next, then the record.
+// "overview" is kept in the Tab type so old links (?tab=overview) still open, on Work.
 const TABS: { k: Tab; label: string; what: string }[] = [
-  { k: "overview", label: "Overview", what: "Is it trusted right now, who vouches for it, and what to do next" },
-  { k: "passport", label: "Passport", what: "Its signed ID and what it may do. Check it live against Crustdata" },
+  { k: "work", label: "Work", what: "What it's doing, what's waiting on you, and every task it finished" },
+  { k: "passport", label: "Passport", what: "Who vouches for it, its signed ID and what it may do. Check it live against Crustdata" },
   { k: "messages", label: "Messages", what: "Every message it tried to send and what Send Guard decided. Try one yourself" },
-  { k: "work", label: "Work", what: "Give it tasks, approve what it wants to send, pause it, set its budget" },
-  { k: "reviews", label: "Reviews", what: "Its track record, and your keep, restrict or offboard decisions" },
   { k: "ledger", label: "History", what: "Every ledger entry about it, with the Crustdata sources behind each one" },
+  { k: "reviews", label: "Reviews", what: "Its track record, and your keep, restrict or offboard decisions" },
 ];
 
 export function AgentDetail({
-  agent: a, agents, role, tab, setTab, busy, act, flash, onFlashClose, onBack, onChanged, access,
+  agent: a, agents, role, tab: tab0, setTab, busy, act, flash, onFlashClose, onBack, onChanged, access,
 }: {
   agent: Agent; agents: Agent[]; role?: Role; scenarios: Scenario[]; tab: Tab; setTab: (t: Tab) => void; busy: string | null; act: Act;
   flash: Flash; onFlashClose: () => void; onBack: () => void; onChanged: () => void; access?: Access;
 }) {
   // A recruiter works with the agent; changing it (sponsor checks, suspend, reviews) and its full history are for admins.
   const own = access?.level === "own_work";
+  const tab: Tab = tab0 === "overview" ? "work" : tab0;
   const tabs = own ? TABS.filter((t) => t.k !== "ledger" && t.k !== "reviews") : TABS;
   const [confirm, setConfirm] = useState<"suspend" | "offboard" | null>(null);
   const [reason, setReason] = useState("");
@@ -133,7 +135,7 @@ export function AgentDetail({
                 <Logo /> Open {appFor(a)!.name}
               </Link>
             )}
-            {a.status === "active" && (
+            {a.status === "active" && tab !== "work" && (
               <Button variant="primary" onClick={() => setTab("work")} title="Open its Work tab to assign a task">
                 <Plus className="size-3.5" /> Give it work
               </Button>
@@ -187,7 +189,9 @@ export function AgentDetail({
 
       {flash && <FlashBar flash={flash} onClose={onFlashClose} />}
 
-      <nav className="mt-7 flex gap-5 overflow-x-auto border-b border-border" role="tablist">
+      <TrustStrip agent={a} />
+
+      <nav className="mt-6 flex gap-5 overflow-x-auto border-b border-border" role="tablist">
         {tabs.map((t) => (
           <button
             key={t.k}
@@ -208,9 +212,10 @@ export function AgentDetail({
       <p className="mt-3 text-[12.5px] text-muted-foreground">{TABS.find((t) => t.k === tab)?.what}.</p>
 
       <div className="mt-6 animate-fade" key={tab}>
-        {tab === "overview" && <OverviewTab agent={a} busy={busy} onRecheck={recheck} setTab={setTab} own={own} canAssign={access?.level === "company"} onChanged={onChanged} />}
         {tab === "passport" && (
           <div className="space-y-10">
+            <AgentFacts agent={a} />
+            {access?.level === "company" && <Assignees agent={a} onChanged={onChanged} />}
             <PassportTab agent={a} />
             <PassportCheck agent={a} onChecked={onChanged} />
             <div>
@@ -220,7 +225,12 @@ export function AgentDetail({
           </div>
         )}
         {tab === "messages" && <GuardView agents={agents} lockedAgentId={a.agent_id} onSent={onChanged} onOnboard={() => {}} />}
-        {tab === "work" && <WorkView agentId={a.agent_id} onChanged={onChanged} />}
+        {tab === "work" && (
+          <>
+            <WorkView agentId={a.agent_id} onChanged={onChanged} />
+            {appFor(a) && <div className="mt-10"><AppCard agent={a} /></div>}
+          </>
+        )}
         {tab === "reviews" && <ReviewsTab agent={a} busy={busy} act={act} />}
         {tab === "ledger" && <AgentHistory agent={a} />}
       </div>
@@ -228,92 +238,45 @@ export function AgentDetail({
   );
 }
 
-/** The one-screen answer to "can I trust this agent, and what can I do with it". */
-function OverviewTab({
-  agent: a, busy, onRecheck, setTab, own, canAssign, onChanged,
-}: { agent: Agent; busy: string | null; onRecheck: () => void; setTab: (t: Tab) => void; own?: boolean; canAssign?: boolean; onChanged: () => void }) {
+/** One line above the tabs: can you trust it right now, and why. The full checks are on the Passport tab. */
+function TrustStrip({ agent: a }: { agent: Agent }) {
   const s = a.passport.sponsor;
   const v = a.last_verdict;
   const trusted = a.status === "active" && v?.decision !== "block";
   const fail = v?.checks.find((c) => c.status === "fail") ?? v?.checks.find((c) => c.status !== "pass");
-  const card = a.scorecard;
-  const next: { t: Tab; title: string; body: string; stat?: string }[] = [
-    { t: "passport", title: "Check its passport", body: "See its signed ID in plain words and run every check against Crustdata now.", stat: v ? `${v.checks.filter((c) => c.status === "pass").length} of ${v.checks.length} checks passed last time` : "Not checked yet" },
-    { t: "messages", title: "See its messages", body: "Every message it tried to send and why Send Guard let it through or stopped it.", stat: card ? `${card.messages_checked} checked · ${card.blocked} blocked` : undefined },
-    { t: "work", title: "Give it work", body: "Assign a task, approve what it drafts before anything is sent, set a daily budget.", stat: card?.work_filed ? `${card.work_filed} pieces of work filed` : undefined },
-    { t: "ledger", title: "Read its history", body: "The tamper-evident record of everything about it, with sources.", stat: `${a.ledger_entries.length} ledger entries` },
-  ].filter((n) => !own || n.t !== "ledger") as typeof next;
   return (
-    <div className="space-y-8">
-      <section className={cn("rounded-xl border p-5", trusted ? "border-verified/30 bg-verified/[0.05]" : "border-contradicted/30 bg-contradicted/[0.05]")}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 gap-3">
-            {trusted ? <ShieldCheck className="mt-0.5 size-5 shrink-0 text-verified" /> : <ShieldAlert className="mt-0.5 size-5 shrink-0 text-contradicted" />}
-            <div className="min-w-0">
-              <p className="text-[15px] font-[590]">
-                {a.status === "offboarded" ? "Offboarded. Nobody should trust this passport." : trusted ? "Trusted right now" : "Not trusted right now"}
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-secondary">
-                {a.status === "offboarded"
-                  ? reasonText(a.reason) || "It was retired and its passport revoked."
-                  : trusted
-                    ? `${s.name} still works at ${s.company}${s.title ? ` as ${s.title}` : ""} and can delegate this work, according to Crustdata.`
-                    : reasonText(a.reason) || (fail ? `${checkLabel(fail.name)}: ${fail.detail}` : "Its last check failed.")}
-              </p>
-              <p className="mt-1.5 text-[12px] text-muted-foreground">{a.last_checked ? `Last checked ${ago(a.last_checked)}` : "Not checked yet"}</p>
-            </div>
-          </div>
-          {a.status !== "offboarded" && (
-            <Button onClick={onRecheck} disabled={!!busy}>
-              {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Check again
-            </Button>
-          )}
-        </div>
-      </section>
+    <section className={cn("mt-5 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5",
+      trusted ? "border-verified/30 bg-verified/[0.05]" : "border-contradicted/30 bg-contradicted/[0.05]")}>
+      {trusted ? <ShieldCheck className="mt-px size-4 shrink-0 text-verified" /> : <ShieldAlert className="mt-px size-4 shrink-0 text-contradicted" />}
+      <p className="min-w-0 text-[12.5px] leading-snug text-secondary">
+        <b className="font-[590] text-foreground">
+          {a.status === "offboarded" ? "Offboarded." : trusted ? "Trusted right now." : "Not trusted right now."}
+        </b>{" "}
+        {a.status === "offboarded"
+          ? reasonText(a.reason) || "It was retired and its passport revoked."
+          : trusted
+            ? `${s.name} still works at ${s.company}${s.title ? ` as ${s.title}` : ""} and can delegate this work, according to Crustdata.`
+            : reasonText(a.reason) || (fail ? `${checkLabel(fail.name)}: ${fail.detail}` : "Its last check failed.")}
+        <span className="text-faint"> · {a.last_checked ? `checked ${ago(a.last_checked)}` : "not checked yet"}</span>
+      </p>
+    </section>
+  );
+}
 
-      {appFor(a) && <AppCard agent={a} />}
-
-      {canAssign && <Assignees agent={a} onChanged={onChanged} />}
-
-      <section>
-        <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
-          <Fact k="Vouched for by" v={s.name} sub={[s.title, s.company].filter(Boolean).join(", ")} />
-          <Fact k="Its job" v={brandText(a.job) || a.role} sub={a.role} />
-          <Fact k="Passport valid until" v={day(a.passport.expires_at)} sub={`Issued ${day(a.passport.issued_at)}`} />
-          <div className="sm:col-span-2">
-            <dt className="text-[11.5px] text-faint">May do</dt>
-            <dd className="mt-1.5 flex flex-wrap gap-1.5">
-              {a.passport.scopes.map((sc) => (
-                <span key={sc} title={SCOPE_INFO[sc]?.detail} className="inline-flex h-6 items-center rounded-md border border-border-strong bg-elevated px-2 text-[12px]">
-                  {SCOPE_INFO[sc]?.label ?? sc}
-                </span>
-              ))}
-            </dd>
-          </div>
-          <Fact k="Runs" v={a.runtime === "external" ? "On its own machine" : `Inside ${BRAND.name}`} sub={`Connected ${day(a.onboarded_at)}`} />
-          <Fact
-            k="Signing key"
-            v={a.key_custody === "agent" ? "Held by the agent" : `Held by ${BRAND.name}`}
-            sub={a.key_custody === "agent" ? `${BRAND.name} only has the public half` : `${BRAND.name} signs for it`}
-          />
-        </dl>
-      </section>
-
-      <section>
-        <SectionHead title="What you can do">Each card opens the tab where that happens.</SectionHead>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {next.map((n) => (
-            <button key={n.t} onClick={() => setTab(n.t)} className={cn(cardCls, "group p-4 text-left transition hover:border-foreground/20 hover:bg-elevated")}>
-              <span className="flex items-center justify-between text-[13.5px] font-[590]">
-                {n.title} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
-              </span>
-              <span className="mt-1 block text-[12.5px] leading-relaxed text-muted-foreground">{n.body}</span>
-              {n.stat && <span className="mt-2.5 block text-[11.5px] tabular-nums text-faint">{n.stat}</span>}
-            </button>
-          ))}
-        </div>
-      </section>
-    </div>
+/** Passport tab, top: what the passport card below doesn't say, its job and where it runs. */
+function AgentFacts({ agent: a }: { agent: Agent }) {
+  return (
+    <section>
+      <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
+        <Fact k="Its job" v={brandText(a.job) || a.role} sub={a.role} />
+        <Fact k="Runs" v={a.runtime === "external" ? "On its own machine" : `Inside ${BRAND.name}`} sub={`Connected ${day(a.onboarded_at)}`} />
+        <Fact
+          k="Signing key"
+          v={a.key_custody === "agent" ? "Held by the agent" : `Held by ${BRAND.name}`}
+          sub={a.key_custody === "agent" ? `${BRAND.name} only has the public half` : `${BRAND.name} signs for it`}
+        />
+      </dl>
+    </section>
   );
 }
 
