@@ -30,7 +30,7 @@ CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
 
 def make_client():
     """Returns (client, note). note is a warning string when a fallback is used."""
-    mode = os.getenv("CRUSTDATA_MODE", "live").lower()
+    mode = os.getenv("CRUSTDATA_MODE", "cache").lower()
     if mode == "dev":
         return DevCrustdataClient(), "Using synthetic dev data (CRUSTDATA_MODE=dev)"
     try:
@@ -61,6 +61,45 @@ def _load_ranker():
 
 # ---- steps ----------------------------------------------------------------------------------------
 
+# Real person/search filter grammar (see crustdata/client.py): leaf {"field","type","value"} or
+# {"op": "and"|"or", "conditions": [...]}. "(.)" is a fuzzy contains match.
+PERSON_SEARCH_FIELDS = ["crustdata_person_id", "basic_profile", "experience", "social_handles"]
+_COUNTRIES = {"india", "united states", "usa", "us", "united kingdom", "uk", "singapore", "germany", "canada",
+              "australia", "france", "netherlands", "uae", "united arab emirates"}
+_CITY_SPELLINGS = {"bangalore": ["bangalore", "bengaluru"], "mumbai": ["mumbai", "bombay"],
+                   "gurgaon": ["gurgaon", "gurugram"], "delhi": ["delhi", "new delhi"]}
+
+
+def to_crustdata_filters(f: dict) -> dict:
+    """Simple pipeline filters {"titles","locations","skills"} -> Crustdata person/search grammar."""
+    conds: list[dict] = []
+    titles = f.get("titles") or []
+    if titles:
+        leaves = [{"field": "experience.employment_details.current.title", "type": "(.)", "value": t.lower()} for t in titles]
+        conds.append(leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves})
+    locs = []
+    for loc in f.get("locations") or []:
+        l = loc.lower().strip()
+        if l in _COUNTRIES:
+            locs.append({"field": "basic_profile.location.country", "type": "=", "value": loc})
+        else:
+            locs += [{"field": "basic_profile.location.city", "type": "(.)", "value": v}
+                     for v in _CITY_SPELLINGS.get(l, [l])]
+    if locs:
+        conds.append(locs[0] if len(locs) == 1 else {"op": "or", "conditions": locs})
+    skills = f.get("skills") or []
+    if skills:
+        leaves = [{"field": "skills.professional_network_skills", "type": "(.)", "value": s.lower()} for s in skills]
+        conds.append(leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves})
+    return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
+
+
+async def person_search(client, simple: dict) -> list[dict]:
+    if isinstance(client, DevCrustdataClient):
+        return await client.person_search(simple, limit=SEARCH_LIMIT)
+    return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS)
+
+
 def _key(p: dict) -> str:
     return people.profile_url(p) or f"{people.name(p)}|{people.company(p)}".lower()
 
@@ -77,7 +116,7 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
         prefix = "Broadening search: " if level else ""
         await emit(StepEvent(step="search", message=f"{prefix}Searching {what}{where}...",
                              data={"level": level, "strategy": desc, "filters": filters}))
-        results = await asyncio.gather(*(client.person_search(q, limit=SEARCH_LIMIT) for q in queries),
+        results = await asyncio.gather(*(person_search(client, q) for q in queries),
                                        return_exceptions=True)
         failed = 0
         for q, r in zip(queries, results):
@@ -113,14 +152,15 @@ def prescore(p: dict, c: Criteria) -> int:
     return s
 
 
-async def enrich(client, p: dict) -> tuple[dict, dict | None, list[str]]:
-    """Returns (person, company, problems). Falls back to search data when enrich fails."""
+async def enrich(client, p: dict, pre: dict | None = None) -> tuple[dict, dict | None, list[str]]:
+    """Returns (person, company, problems). Falls back to search data when enrich fails.
+    `pre` holds batch Person Enrich results ({url: person | None}) so we don't call per person."""
     problems: list[str] = []
     person = p
     url = people.profile_url(p)
     if url:
         try:
-            full = await client.person_enrich(url)
+            full = pre[url] if pre is not None and url in pre else await client.person_enrich(url)
             if full:
                 person = {**p, **full}
             else:
@@ -156,13 +196,14 @@ def _namespace(cid: str, claims: list[Claim], reasons: list[Reason]) -> tuple[li
     return claims, reasons
 
 
-async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verify, rank, emit, seen_steps: set) -> Candidate:
+async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verify, rank, emit, seen_steps: set,
+                            pre: dict | None = None) -> Candidate:
     async def stage(step: str, msg: str):
         if step not in seen_steps:
             seen_steps.add(step)
             await emit(StepEvent(step=step, message=msg))
 
-    person, company, problems = await enrich(client, p)
+    person, company, problems = await enrich(client, p, pre)
     for prob in problems:
         await emit(ErrorEvent(step="enrich", message=f"{people.name(p)}: {prob}"))
 
@@ -230,6 +271,15 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
             await emit(StepEvent(step="enrich", message=f"Enriching top {len(chosen)} of {len(pool)} profiles and their companies...",
                                  data={"count": len(chosen)}))
             verify, rank = _load_verifier(), _load_ranker()
+            pre = None
+            if hasattr(client, "person_enrich_many"):
+                # one batched call: Person Enrich allows only 15 requests/min
+                urls = [u for u in (people.profile_url(p) for p in chosen) if u]
+                try:
+                    pre = await client.person_enrich_many(urls)
+                except Exception as e:
+                    await emit(ErrorEvent(step="enrich", message=f"Batch Person Enrich failed ({type(e).__name__}); using search data"))
+                    pre = {u: None for u in urls}
             sem = asyncio.Semaphore(CONCURRENCY)
             seen_steps: set = set()
             done: list[Candidate] = []
@@ -238,7 +288,7 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 async with sem:
                     try:
                         cand = await asyncio.wait_for(
-                            process_candidate(f"c{i + 1}", p, criteria, client, verify, rank, emit, seen_steps),
+                            process_candidate(f"c{i + 1}", p, criteria, client, verify, rank, emit, seen_steps, pre),
                             timeout=CANDIDATE_TIMEOUT)
                     except asyncio.TimeoutError:
                         await emit(ErrorEvent(step="enrich", message=f"{people.name(p)}: timed out, skipped"))
