@@ -137,6 +137,9 @@ export interface Criteria {
   company_preferences?: string[];
   must_haves?: string[];
   nice_to_haves?: string[];
+  schools?: string[];
+  degrees?: string[];
+  education_note?: string | null;
 }
 
 export interface Summary {
