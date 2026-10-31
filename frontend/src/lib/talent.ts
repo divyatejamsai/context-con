@@ -120,7 +120,15 @@ export interface Role {
 
 export interface RoleTemplate { id: string; label: string; blurb: string; roles: Role[] }
 
-export interface StaffingTemplates { templates: RoleTemplate[]; default: string; cities: string[]; csv_columns: string[]; recorded_roles: string[] }
+export interface StaffingTemplates {
+  templates: RoleTemplate[]; default: string; cities: string[]; csv_columns: string[]; recorded_roles: string[];
+  pool_by_role?: Record<string, number>; pool_total?: number;
+}
+
+export type GrowEvent =
+  | { type: "role"; role: string; found: number }
+  | { type: "done"; found: number; new: number; total: number; by_role: Record<string, number>; new_by_role: Record<string, number> }
+  | { type: "error"; message: string };
 
 export interface Upload {
   upload_id: string; name?: string | null; applications: number; errors: { row: number; error: string }[]; error_count: number;

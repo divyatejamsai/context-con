@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  CircleAlert, Copy, Database, Download, FileUp, FlaskConical, Loader2, Play, Plus, ShieldAlert, ShieldCheck, Square, Trash2, UserX, Users,
+  CircleAlert, Copy, Database, Download, Search, FileUp, FlaskConical, Loader2, Play, Plus, ShieldAlert, ShieldCheck, Square, Trash2, UserX, Users,
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { StatusPill as ClaimPill } from "@/components/evidence";
 import { Button, EmptyState, Field, HowTo, SectionHead, SourceChip, cardCls, inputCls } from "@/app/console/parts";
 import {
   FLAG_LABEL, LIE_LABEL, TalentError, label, pct, ssePost, staffingUrl, talent,
-  type Role, type RosterRow, type Screening, type StaffingEvent, type StaffingReport, type StaffingTemplates, type Upload,
+  type GrowEvent, type Role, type RosterRow, type Screening, type StaffingEvent, type StaffingReport, type StaffingTemplates, type Upload,
 } from "@/lib/talent";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
@@ -72,6 +72,8 @@ export default function StaffingPage() {
   const abort = useRef<AbortController | null>(null);
   const set = (p: Partial<Settings>) => setCfg((c) => ({ ...c, ...p }));
 
+  const refreshPool = () => talent.staffingTemplates().then(setTpl).catch(() => {});
+
   useEffect(() => {
     talent
       .staffingTemplates()
@@ -104,8 +106,8 @@ export default function StaffingPage() {
   }, [cfg, tpl]);
 
   const total = useMemo(() => cfg.roles.reduce((n, r) => n + seats(r, cfg.start, cfg.days), 0), [cfg.roles, cfg.start, cfg.days]);
-  const recorded = new Set(tpl?.recorded_roles ?? []);
-  const thinRoles = cfg.source === "recorded" && tpl ? cfg.roles.filter((r) => !recorded.has(r.id) && !recordedLike(r, tpl)) : [];
+  const inPool = (r: Role) => tpl?.pool_by_role?.[r.id] ?? 0;
+  const thinRoles = cfg.source === "recorded" && tpl ? cfg.roles.filter((r) => inPool(r) < 30 && !recordedLike(r, tpl)) : [];
 
   const pickTemplate = (id: string) => {
     const t = tpl?.templates.find((x) => x.id === id);
@@ -199,13 +201,14 @@ export default function StaffingPage() {
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <SourceOption
               active={cfg.source === "recorded"} onClick={() => set({ source: "recorded" })} disabled={running} icon={Database}
-              title="Recorded Crustdata pool" detail="About 1,500 real shift workers (delivery, warehouse, support, retail, security, hospitality) across six metros, recorded once from Crustdata."
+              title="Recorded Crustdata pool" detail={`${(tpl?.pool_total ?? 0).toLocaleString()} real people found with Crustdata searches for these kinds of roles, saved so a run costs no credits.`}
             />
             <SourceOption
               active={cfg.source === "upload"} onClick={() => set({ source: "upload", test: false })} disabled={running} icon={FileUp}
               title="Upload a CSV" detail={upload ? `${upload.name ?? "Upload"}: ${upload.applications.toLocaleString()} applications` : "Your own applications: one row per applicant, with their profile URL."}
             />
           </div>
+          {cfg.source === "recorded" && <GrowPool roles={cfg.roles} template={cfg.template} tpl={tpl} disabled={running} onDone={refreshPool} />}
           {cfg.source === "upload" && (
             <div className="mt-3 space-y-3 rounded-lg border border-border bg-elevated/60 p-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -361,6 +364,56 @@ function SourceOption({ active, onClick, disabled, icon: I, title, detail }: { a
   );
 }
 
+// ---- growing the pool from Crustdata ----------------------------------------------------------------------------
+
+function GrowPool({ roles, template, tpl, disabled, onDone }: {
+  roles: Role[]; template: string; tpl: StaffingTemplates | null; disabled: boolean; onDone: () => void;
+}) {
+  const [per, setPer] = useState(300);
+  const [busy, setBusy] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const title = (id: string) => roles.find((r) => r.id === id)?.title ?? id;
+  const go = async () => {
+    setBusy(true);
+    setErr(null);
+    setLog([]);
+    try {
+      for await (const ev of ssePost<GrowEvent>("/staffing/pool/grow", { template, roles, per_role: per }, new AbortController().signal)) {
+        if (ev.type === "role") setLog((l) => [...l, `${title(ev.role)}: ${ev.found.toLocaleString()} people`]);
+        else if (ev.type === "done") setLog((l) => [...l, `${ev.new.toLocaleString()} new people added. The pool now has ${ev.total.toLocaleString()}.`]);
+        else if (ev.type === "error") setErr(ev.message);
+      }
+      onDone();
+    } catch (e) {
+      setErr(e instanceof TalentError && e.status === 401 ? `The backend needs an admin token for this. Set it with the key icon in the ${BRAND.name} console.` : e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3 rounded-lg border border-border bg-elevated/60 p-3">
+      <div className="grid items-end gap-3 sm:grid-cols-[170px_auto_1fr]">
+        <Field label="People per role">
+          <input type="number" min={10} max={2000} step={50} value={per} onChange={(e) => setPer(clamp(e.target.value, 10, 2000))} className={inputCls} disabled={busy || disabled} />
+        </Field>
+        <div className="pb-[1px]">
+          <Button onClick={go} disabled={busy || disabled || roles.length === 0} title="Run one Crustdata Person Search per role and add the people to the recorded pool">
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />} Search Crustdata for more applicants
+          </Button>
+        </div>
+        <p className="text-[11.5px] leading-snug text-faint">
+          One live Person Search per role ({roles.length} roles), in each role&apos;s cities, using its job titles. Uses Crustdata credits; pages already
+          searched come from the cache for free. New people are saved, so later runs cost nothing.
+        </p>
+      </div>
+      {log.length > 0 && <ul className="mt-2 space-y-0.5 text-[12px] text-secondary">{log.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+      {err && <p className="mt-2 text-[12px] text-contradicted">{err}</p>}
+      {!tpl?.pool_total && !busy && !log.length && <p className="mt-2 text-[12px] text-muted-foreground">No pool recorded yet for these roles.</p>}
+    </div>
+  );
+}
+
 // ---- roles -----------------------------------------------------------------------------------------------------------
 
 function RolesCard({ cfg, set, tpl, total, running, onTemplate, thinRoles }: {
@@ -414,8 +467,8 @@ function RolesCard({ cfg, set, tpl, total, running, onTemplate, thinRoles }: {
         <p className="flex items-start gap-2 border-b border-border bg-flag/[0.06] px-4 py-2 text-[12px] text-secondary">
           <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-flag" />
           <span>
-            The recorded pool has few or no {thinRoles.map((r) => r.title.toLowerCase()).join(", ")} applicants, so those shifts will mostly stay open. Upload your
-            own applications for them.
+            The recorded pool has few or no {thinRoles.map((r) => r.title.toLowerCase()).join(", ")} applicants, so those shifts will mostly stay open. Search
+            Crustdata for more under Applications, or upload your own.
           </span>
         </p>
       )}
@@ -435,6 +488,7 @@ function RolesCard({ cfg, set, tpl, total, running, onTemplate, thinRoles }: {
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="text-[13.5px] font-[590]">{r.title}</span>
                     <span className="text-[12px] tabular-nums text-muted-foreground">{n.toLocaleString()} shifts</span>
+                    {tpl?.pool_by_role && <span className="text-[12px] tabular-nums text-faint">· {(tpl.pool_by_role[r.id] ?? 0).toLocaleString()} searched for this role</span>}
                   </span>
                   <span className="mt-0.5 block text-[12px] text-muted-foreground">
                     {r.cities.join(", ")} · {slotsText(r)} · {r.headcount} per shift{Object.keys(r.city_headcount ?? {}).length ? " (more in some cities)" : ""}
