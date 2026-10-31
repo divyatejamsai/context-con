@@ -325,6 +325,7 @@ class AsOfClient:
         self.cid, self.cname = hiring_company_id, hiring_company
         self.search_widen = search_widen
         self.stats = {"search_rows": 0, "kept": 0, "dropped_after_cutoff": 0}
+        self.out_of_credits = False  # the pipeline swallows search errors; the backtest must not
 
     def _t(self, p):
         return as_of(p, self.cutoff, self.cid, self.cname)
@@ -335,6 +336,9 @@ class AsOfClient:
             rows = await self.inner.person_search(widen_to_past(filters), limit=min(100, limit * self.search_widen),
                                                   fields=fields, **extra)
         except Exception as e:  # server refused the widened filter: fall back to today's filter, still re-checked
+            if _out_of_credits(e):
+                self.out_of_credits = True
+                raise
             log.warning("widened search refused (%s); using the original filter", e)
             rows = await self.inner.person_search(filters, limit=min(100, limit * self.search_widen), fields=fields, **extra)
         out = []
@@ -352,19 +356,32 @@ class AsOfClient:
         return self._t(await self.inner.person_enrich(url, *a, **kw))
 
     async def person_enrich_many(self, urls: list[str], *a, **kw):
-        res = await self.inner.person_enrich_many(urls, *a, **kw)
+        try:
+            res = await self.inner.person_enrich_many(urls, *a, **kw)
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                self.out_of_credits = True
+            raise
         return {u: self._t(p) for u, p in res.items()}
 
     async def request(self, name: str, payload: dict):
         if name.startswith("person/") or name.startswith("web/") or name.startswith("job/"):
             return None  # the pipeline only uses request() for company/enrich batches
-        return await self.inner.request(name, payload)
+        return await self._watch(self.inner.request(name, payload))
+
+    async def _watch(self, coro):
+        try:
+            return await coro
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                self.out_of_credits = True
+            raise
 
     async def company_enrich(self, *a, **kw):
-        return await self.inner.company_enrich(*a, **kw)
+        return await self._watch(self.inner.company_enrich(*a, **kw))
 
     async def company_identify(self, *a, **kw):
-        return await self.inner.company_identify(*a, **kw)
+        return await self._watch(self.inner.company_identify(*a, **kw))
 
     async def company_search(self, *a, **kw):
         return await self.inner.company_search(*a, **kw)
@@ -639,6 +656,8 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
     out["criteria"] = {"role": crit.role, "title_variants": crit.title_variants, "locations": crit.locations,
                        "skills": crit.skills[:8]}
     pool = await orchestrator.search_pool(asof, crit, emit)
+    if asof.out_of_credits:
+        raise OutOfCredits("Crustdata says the key is out of credits (402) during search; stopping.")
     out["pool"] = len(pool)
     out["feeder_rows"] = sum(1 for p in pool if p.get("_feeder"))
     out["hire_via_feeder"] = any(p.get("_feeder") and keys_of(p) & hire_keys for p in pool)
@@ -702,6 +721,8 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
 
     with frozen_today(cutoff):
         await asyncio.gather(*(one(k, p) for k, p in persons.items()))
+    if asof.out_of_credits:
+        raise OutOfCredits("Crustdata says the key is out of credits (402) during enrich; stopping.")
 
     def order(keys: list[str]) -> list[str]:
         return sorted(keys, key=lambda k: (scored[k]["score"], scored[k]["verified"], -scored[k]["contradicted"],
