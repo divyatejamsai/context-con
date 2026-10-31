@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from collections.abc import AsyncIterator
 
 from . import people
@@ -87,6 +88,12 @@ def to_crustdata_filters(f: dict) -> dict:
                      for v in _CITY_SPELLINGS.get(l, [l])]
     if locs:
         conds.append(locs[0] if len(locs) == 1 else {"op": "or", "conditions": locs})
+    domain = f.get("domain") or []
+    if domain:
+        # domain fit: the term in their listed skills OR their headline (e.g. "payments")
+        leaves = [{"field": fld, "type": "(.)", "value": d.lower()}
+                  for d in domain for fld in ("skills.professional_network_skills", "basic_profile.headline")]
+        conds.append({"op": "or", "conditions": leaves})
     skills = f.get("skills") or []
     if skills:
         leaves = [{"field": "skills.professional_network_skills", "type": "(.)", "value": s.lower()} for s in skills]
@@ -100,6 +107,19 @@ async def person_search(client, simple: dict) -> list[dict]:
     return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS)
 
 
+_FILLER = re.compile(r"\b(experience|exp|background|knowledge|expertise|strong|solid|deep|in|with|of)\b", re.I)
+
+
+def domain_terms(c: Criteria, n: int = 3) -> list[str]:
+    """Short domain keywords from must-haves + skills ("payments experience" -> "payments")."""
+    out: list[str] = []
+    for raw in c.must_haves + c.skills:
+        t = re.sub(r"\s+", " ", _FILLER.sub(" ", raw or "")).strip(" ,.-").lower()
+        if t and len(t) <= 30 and t not in out:
+            out.append(t)
+    return out[:n]
+
+
 def _key(p: dict) -> str:
     return people.profile_url(p) or f"{people.name(p)}|{people.company(p)}".lower()
 
@@ -107,12 +127,18 @@ def _key(p: dict) -> str:
 async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
     """Run each title variant as its own query (in parallel), merge + dedupe; broaden while too few hits."""
     pool: dict[str, dict] = {}
+    domain = domain_terms(criteria)
     for level, (desc, filters) in enumerate(broaden_ladder(criteria)):
         titles = filters.get("titles") or []
         queries = [dict(filters, titles=[t]) for t in titles] or [filters]
+        if titles and domain:
+            # one extra query so domain-fit people (e.g. payments) get into the pool, not just title matches
+            queries.append(dict(filters, domain=domain))
         where = f" in {', '.join(filters['locations'])}" if filters.get("locations") else ""
         what = f"{len(titles)} title variant{'s' if len(titles) != 1 else ''}" if titles else \
             f"skills {', '.join(filters.get('skills') or [])}"
+        if titles and domain:
+            what += f" + domain ({', '.join(domain)})"
         prefix = "Broadening search: " if level else ""
         await emit(StepEvent(step="search", message=f"{prefix}Searching {what}{where}...",
                              data={"level": level, "strategy": desc, "filters": filters}))
@@ -126,7 +152,9 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
                 continue
             for p in r or []:
                 if isinstance(p, dict):
-                    pool.setdefault(_key(p), p)
+                    kept = pool.setdefault(_key(p), p)
+                    if q.get("domain"):
+                        kept["_domain_match"] = True
         if failed:
             await emit(ErrorEvent(step="search", message=f"{failed} of {len(queries)} search queries failed after retries"))
         await emit(StepEvent(step="search", message=f"{len(pool)} unique profiles so far ({desc})",
@@ -147,8 +175,10 @@ def prescore(p: dict, c: Criteria) -> int:
     loc = (people.location(p) or "").lower()
     if c.locations and any(l.lower() in loc for l in c.locations):
         s += 2
+    if p.get("_domain_match"):
+        s += 3
     blob = str(p).lower()
-    s += sum(1 for k in c.skills + c.must_haves if k.lower() in blob)
+    s += sum(1 for k in domain_terms(c) if k in blob)
     return s
 
 
