@@ -7,14 +7,16 @@ export const AGENT_ID = process.env.NEXT_PUBLIC_AGENT_ID || "";
 
 export type RunMode = "replay" | "live";
 
-export const liveUrl = () => (AGENT_ID ? `${API_URL}/api/agents/${encodeURIComponent(AGENT_ID)}/run` : `${API_URL}/api/run`);
+// autosend: the agent emails every draft Send Guard clears (agent runs only).
+export const liveUrl = (autosend = false) =>
+  AGENT_ID ? `${API_URL}/api/agents/${encodeURIComponent(AGENT_ID)}/run${autosend ? "?autosend=true" : ""}` : `${API_URL}/api/run`;
 
 /**
  * POSTs the brief and yields parsed events. Works for both real SSE ("data: {...}\n\n")
  * and plain NDJSON lines, so it tolerates whatever the backend ends up emitting.
  */
-export async function* streamRun(brief: string, mode: RunMode, signal: AbortSignal): AsyncGenerator<RunEvent> {
-  const url = mode === "live" ? liveUrl() : "/api/replay";
+export async function* streamRun(brief: string, mode: RunMode, signal: AbortSignal, autosend = false): AsyncGenerator<RunEvent> {
+  const url = mode === "live" ? liveUrl(autosend) : "/api/replay";
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },

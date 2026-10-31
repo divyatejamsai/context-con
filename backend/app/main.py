@@ -7,6 +7,8 @@ GET  /api/health
 GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Countersign AI employee (app/sourced_agent.py)
 POST /api/verify_resume                     -> check a resume's claims against Crustdata
 GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
+POST /api/agents/{agent_id}/email            -> find the email on Crustdata, Send Guard, send for real (app/outbound/)
+GET  /api/messages, POST /api/messages/refresh -> sent emails with delivery status and replies
 """
 from __future__ import annotations
 
@@ -31,6 +33,7 @@ from .schemas import RunRequest  # noqa: E402
 from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
+from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -39,6 +42,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(agents_router)
 app.include_router(sourced_router)
 app.include_router(demo_router)
+app.include_router(outbound_router)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 

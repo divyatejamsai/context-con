@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Check, Copy, ExternalLink, EyeOff, Flag, Link2, MapPin, Pin, RotateCcw, Gauge, ShieldCheck, X } from "lucide-react";
+import { Building2, Check, ExternalLink, EyeOff, Flag, Info, Link2, Mail, MapPin, Pin, RotateCcw, Gauge, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Candidate, ClaimStatus } from "@/lib/types";
 import { claimCounts, evidenceStrength, normalizeStatus } from "@/lib/run-state";
 import { Avatar, FitBadge, GuardBadge, StatusIcon, StatusPill, STATUS_LABEL, matchLabel } from "@/components/evidence";
+import { Outreach } from "@/components/outreach";
 
 type Filter = "all" | ClaimStatus;
 
@@ -47,7 +48,6 @@ function Prop({ icon, label, children }: { icon: React.ReactNode; label: string;
 export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft, onPin, onDismiss }: DossierProps) {
   const [filter, setFilter] = useState<Filter>("all");
   const [hl, setHl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   useEffect(() => setFilter("all"), [c.id]);
 
   const counts = claimCounts(c);
@@ -64,7 +64,6 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
   // Citation numbers follow the claims list order, so [1] in a reason is the first claim below.
   const cite = useMemo(() => new Map(claims.map((k, i) => [k.id, i + 1])), [claims]);
   const shown = filter === "all" ? claims : claims.filter((k) => k.status === filter);
-  const text = draft ?? c.outreach_draft ?? "";
   const m = matchLabel(c.score);
 
   const jump = (id: string) => {
@@ -74,13 +73,6 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
     setTimeout(() => setHl(null), 1600);
   };
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch {}
-  };
 
   return (
     <article className={cn("flex flex-col", dismissed && "opacity-60")}>
@@ -147,8 +139,20 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
             <Prop icon={<ShieldCheck className="size-3.5" />} label="Send Guard">
               <span className="inline-flex items-center gap-1.5">
                 <GuardBadge guard={c.guard} />
-                <span className="text-faint">{c.guard.decision === "allow" ? "draft cleared, not sent" : "draft blocked"}</span>
+                <span className="text-faint">{c.guard.decision === "allow" ? (c.outreach?.status === "sent" ? "cleared and emailed" : "draft cleared to send") : "draft blocked"}</span>
               </span>
+            </Prop>
+          )}
+          {c.contact && (
+            <Prop icon={<Mail className="size-3.5" />} label="Email">
+              {c.contact.email ? (
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-mono text-[12px]">{c.contact.email}</span>
+                  <span className="shrink-0 text-faint">· {c.contact.kind}{c.contact.status ? `, ${c.contact.status}` : ""}</span>
+                </span>
+              ) : (
+                <span className="text-faint">{c.contact.error ? "lookup failed" : "none on Crustdata"}</span>
+              )}
             </Prop>
           )}
           {!!c.flags?.length && (
@@ -217,6 +221,7 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
           </div>
         }
       >
+        <HowChecked />
         <ol className="flex flex-col gap-1.5">
           {shown.map((k) => (
             <li
@@ -241,8 +246,8 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
                       <>
                         <span className="inline-flex items-center gap-1 rounded border border-border bg-elevated px-1.5 py-px font-mono text-secondary">
                           <Link2 className="size-3 text-faint" />
-                          {k.source.endpoint}
-                          {k.source.field && <span className="text-faint">.{k.source.field}</span>}
+                          {sourceLabel(k.source.endpoint)}
+                          {k.source.field && <span className="text-faint" title={`${k.source.endpoint}.${k.source.field}`}>· {fieldLabel(k.source.field)}</span>}
                         </span>
                         {k.source.url && (
                           <a href={k.source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-primary hover:underline">
@@ -263,71 +268,64 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
       </Section>
 
       <Section
-        title="Draft message"
-        hint="Written from verified facts only. Edit it, then copy it into your own email or LinkedIn. Nothing is sent from here."
-        aside={
-          (c.outreach_draft || draft) && (
-            <div className="flex items-center gap-2">
-              {draft !== undefined && draft !== c.outreach_draft && (
-                <button onClick={() => onDraft(c.outreach_draft ?? "")} className="text-[11px] text-muted-foreground hover:text-foreground">
-                  Reset
-                </button>
-              )}
-              <button
-                onClick={copy}
-                className="inline-flex h-6 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2 text-[11px] font-[510] hover:bg-hover"
-              >
-                {copied ? <Check className="size-3" /> : <Copy className="size-3" />} {copied ? "Copied" : "Copy"} <kbd>C</kbd>
-              </button>
-            </div>
-          )
-        }
+        title="Email"
+        hint="Written from verified facts only, signed by the person Sourced works for. The address comes from Crustdata. Send Guard checks the exact text before it goes out."
       >
-        {c.outreach_draft || draft ? (
-          <div className="overflow-hidden rounded-lg border border-border bg-background/40 focus-within:border-primary/50">
-            <div className="flex items-center justify-between border-b border-border px-3 py-1.5 text-[12px]">
-              <span className="text-muted-foreground">
-                To <span className="text-foreground">{c.name}</span>
-              </span>
-              <span className="rounded-full border border-border-strong px-1.5 text-[10.5px] font-[510] text-muted-foreground">Draft · never sent</span>
-            </div>
-            <textarea
-              value={text}
-              onChange={(e) => onDraft(e.target.value)}
-              rows={Math.min(14, Math.max(6, text.split("\n").length + 1))}
-              className="w-full resize-y bg-transparent px-3 py-2.5 text-[13.5px] leading-relaxed text-secondary focus:outline-none"
-            />
-            {c.guard && (
-              <div className="border-t border-border px-3 py-2 text-[12px]">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="font-[510] text-muted-foreground">Send Guard</span>
-                  <GuardBadge guard={c.guard} />
-                </div>
-                {c.guard.error && <p className="text-contradicted">{c.guard.error}. Blocked to be safe.</p>}
-                <ul>
-                  {(c.guard.checks ?? []).map((k, i) => (
-                    <li key={k.id ?? i} className="flex gap-2 py-0.5">
-                      {k.status === "pass" ? (
-                        <Check className="mt-0.5 size-3 shrink-0 text-verified" />
-                      ) : (
-                        <X className={cn("mt-0.5 size-3 shrink-0", k.status === "fail" ? "text-contradicted" : "text-unverifiable")} />
-                      )}
-                      <span className="min-w-0">
-                        <span className="text-secondary">{k.name}</span>
-                        {k.detail && <span className="text-faint"> · {k.detail}</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {c.guard.ledger_entry && <p className="mt-1 font-mono text-[10.5px] text-faint">ledger {c.guard.ledger_entry.slice(0, 12)}</p>}
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-[13px] text-faint">No draft. The agent only writes outreach for strong, verified matches.</p>
-        )}
+        <Outreach candidate={c} draft={draft} onDraft={onDraft} />
       </Section>
     </article>
+  );
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  "person/enrich": "Crustdata person record",
+  "person/search": "Crustdata search result",
+  "company/enrich": "Crustdata company record",
+  "company/identify": "Crustdata company match",
+  "web/search": "Web search",
+  "web/fetch": "Web page",
+  "job/search": "Crustdata job listings",
+};
+const sourceLabel = (e: string) => SOURCE_LABEL[e] ?? e;
+
+/** experience.employment_details.current[0].start_date -> "current job, start date" */
+function fieldLabel(f: string) {
+  const s = f
+    .replace(/experience\.employment_details\.current(\[\d+\])?/, "current job")
+    .replace(/experience\.employment_details\.past(\[\d+\])?/, "past job")
+    .replace(/experience\.employment_details/, "work history")
+    .replace(/basic_profile\./, "profile ")
+    .replace(/funding\./, "funding ")
+    .replace(/headcount\./, "headcount ")
+    .replace(/\./g, ", ")
+    .replace(/_/g, " ");
+  return s.trim();
+}
+
+function HowChecked() {
+  return (
+    <details className="mb-3 rounded-lg border border-border bg-background/30 px-3 py-2 text-[12.5px] leading-relaxed text-muted-foreground">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 font-[510] text-secondary">
+        <Info className="size-3.5" /> How Sourced checks a claim
+      </summary>
+      <div className="mt-2 flex flex-col gap-1.5">
+        <p>
+          A claim is something said about this person: by them (their profile headline and title, or a resume you give Sourced) or by the
+          agent (&quot;5 years in backend roles&quot;). Sourced checks each one against the structured records Crustdata keeps: the
+          person&apos;s employment history (employers, titles, start and end dates, location) and each employer&apos;s company record (size,
+          funding stage, industry, founding year).
+        </p>
+        <ul className="flex flex-col gap-1">
+          <li><span className="font-[510] text-verified">Verified</span>: the records agree, and the chip below names the record and field.</li>
+          <li><span className="font-[510] text-contradicted">Contradicted</span>: a record says otherwise, for example the headline names an employer they left two years ago.</li>
+          <li><span className="font-[510] text-secondary">Unverifiable</span>: no record covers it, so it is not counted as evidence and never helps the score.</li>
+        </ul>
+        <p>
+          What it can&apos;t tell you: whether the person is good at the job or open to moving. Records are only as fresh as Crustdata&apos;s last
+          update, and an old profile is flagged as stale.
+        </p>
+      </div>
+    </details>
   );
 }
 
