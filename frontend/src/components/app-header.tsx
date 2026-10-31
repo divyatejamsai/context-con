@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, Check, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
+import { BrandMark } from "@/components/brand-mark";
 
 /** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
-  { href: "/", label: "Shortlist", title: "Paste a brief and get a ranked shortlist where every claim is checked against Crustdata" },
+  { href: "/sourced", label: "Shortlist", title: "Paste a brief and get a ranked shortlist where every claim is checked against Crustdata" },
   { href: "/campaigns", label: "Campaigns", title: "Take one brief all the way to a signed offer: Sourced runs about 100 conversations at once" },
   { href: "/staffing", label: "Shift staffing", title: "Fill 1,000 shifts from applicants and catch the ones who lie on their application" },
 ] as const;
@@ -60,15 +61,34 @@ export function ThemeToggle() {
   );
 }
 
+/** Sourced is one agent inside Agaxes: this crumb takes you back to the console where all agents live. */
+export function AgaxesCrumb() {
+  return (
+    <>
+      <Link
+        href="/console"
+        prefetch={false}
+        className="flex shrink-0 items-center gap-2 rounded-md py-1 pr-1 transition hover:opacity-80"
+        title={`Back to ${BRAND.name}, where all your agents are`}
+      >
+        <BrandMark className="size-6 rounded-[6px]" />
+        <span className="hidden text-[13.5px] font-[590] tracking-[-0.01em] md:inline">{BRAND.name}</span>
+      </Link>
+      <span className="text-[14px] text-border-strong">/</span>
+    </>
+  );
+}
+
+/** Opens this agent's page in Agaxes: its passport, Send Guard verdicts, work and history. */
 export function ConsoleLink() {
   return (
     <Link
-      href="/console"
+      href={`/console?agent=${encodeURIComponent(BRAND.agent)}`}
       prefetch={false}
       className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-[510] text-secondary transition hover:bg-hover hover:text-foreground sm:inline-flex"
-      title={`${BRAND.name}: the agent's passport, the Send Guard verdicts on its messages, and the audit ledger`}
+      title={`${BRAND.agent}'s page in ${BRAND.name}: its passport, the Send Guard verdicts on its messages, and its history`}
     >
-      <BadgeCheck className="size-3.5" /> {BRAND.name} console
+      <BadgeCheck className="size-3.5" /> Passport and history
     </Link>
   );
 }
@@ -78,7 +98,8 @@ export function AppHeader({ active, children }: { active: (typeof PRODUCT_TABS)[
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-12 max-w-[1680px] items-center gap-3 px-4">
-        <Link href="/" prefetch={false} className="flex shrink-0 items-center gap-2" title="Sourced home">
+        <AgaxesCrumb />
+        <Link href="/sourced" prefetch={false} className="flex shrink-0 items-center gap-2" title="Sourced home">
           <Logo />
           <span className="hidden text-[14px] font-semibold tracking-[-0.01em] sm:inline">Sourced</span>
         </Link>

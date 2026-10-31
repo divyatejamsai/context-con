@@ -1,5 +1,8 @@
 "use client";
+import Link from "next/link";
 import { BRAND, brandText } from "@/lib/brand";
+import { appFor } from "@/lib/apps";
+import { Logo } from "@/components/app-header";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft, Ban, Check, Copy, FileClock, IdCard, KeyRound, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
@@ -121,6 +124,12 @@ export function AgentDetail({
         </div>
         {!gone && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {appFor(a) && (
+              <Link href={appFor(a)!.href} prefetch={false} title={appFor(a)!.what}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-strong bg-panel px-3 text-[13px] font-[510] transition hover:bg-hover">
+                <Logo /> Open {appFor(a)!.name}
+              </Link>
+            )}
             {a.status === "active" && (
               <Button variant="primary" onClick={() => setTab("work")} title="Open its Work tab to assign a task">
                 <Plus className="size-3.5" /> Give it work
@@ -255,6 +264,8 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
 
+      {appFor(a) && <AppCard agent={a} />}
+
       <section>
         <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
           <Fact k="Vouched for by" v={s.name} sub={[s.title, s.company].filter(Boolean).join(", ")} />
@@ -294,6 +305,37 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
     </div>
+  );
+}
+
+/** The agent's own app, opened from Agaxes. Everything it does there is still checked and logged here. */
+function AppCard({ agent: a }: { agent: Agent }) {
+  const app = appFor(a)!;
+  return (
+    <section className={cn(cardCls, "overflow-hidden")}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Logo />
+          <div className="min-w-0">
+            <p className="text-[14px] font-[590]">{app.name}&apos;s dashboard</p>
+            <p className="text-[12.5px] text-muted-foreground">{app.what} Every message it sends from there still passes Send Guard and lands on this page&apos;s history.</p>
+          </div>
+        </div>
+        <Link href={app.href} prefetch={false} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-foreground px-3 text-[13px] font-[510] text-background transition hover:opacity-90">
+          Open {app.name} <span aria-hidden>→</span>
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {app.pages.map((pg) => (
+          <Link key={pg.href} href={pg.href} prefetch={false} className="group px-5 py-3.5 transition hover:bg-elevated">
+            <span className="flex items-center justify-between text-[13px] font-[510]">
+              {pg.label} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{pg.what}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
