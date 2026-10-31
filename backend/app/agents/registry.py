@@ -28,6 +28,7 @@ from typing import Any, Literal
 
 from . import guard, ledger, passport as pp
 from .graph import Graph
+from ..crustdata.client import provider_status
 from .models import SCOPES, Passport, Scope, Sponsor, Verdict
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -184,7 +185,7 @@ def _record_check(rec: dict, v: Verdict, kind: str = "agent.checked") -> Verdict
 
 def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | None = None, days: int = 30, *,
             job: str | None = None, runtime: str = "in-house", workspace_id: str | None = None,
-            public_key: str | None = None) -> dict:
+            public_key: str | None = None, assignees: list[str] | None = None) -> dict:
     """Issues a passport and adds the agent as active. The API runs recheck() right after, so an agent with a
     sponsor who can't vouch for it shows up suspended instead of silently active. job is a one-line description of
     the work; runtime says where the agent runs ("in-house", or "external" for agents that only reach us over MCP)."""
@@ -222,6 +223,7 @@ def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | 
         "private_key": base64.b64encode(private_key).decode() if private_key else None,
         "key_custody": custody,
         "workspace_id": workspace_id,
+        "assignees": list(assignees or []),
         "reviews": [],
         "ledger_entries": [entry],
     }
@@ -255,7 +257,8 @@ def private_key(agent_id: str) -> bytes:
 
 
 async def recheck(agent_id: str, client) -> Verdict:
-    """Live check of one agent. Fail suspends it; a pass never lifts a suspension (that's reinstate's job)."""
+    """Live check of one agent. Fail (or unverifiable) suspends it, except when Crustdata is out of credits; a pass never
+    lifts a suspension (that's reinstate's job)."""
     with _lock:
         rec = _get(_load(), agent_id)
     if rec["status"] == "offboarded":
@@ -265,7 +268,11 @@ async def recheck(agent_id: str, client) -> Verdict:
         agents = _load()
         rec = _get(agents, agent_id)
         _record_check(rec, v)
-        if v.decision == "block" and rec["status"] == "active":
+        # Fail closed: an unverifiable check suspends too. The one exception is our own data provider being out of
+        # credits: that says nothing about the agent, so a check that only couldn't run leaves it as it is (its sends
+        # still fail closed at the guard until the key is topped up).
+        billing_outage = provider_status()["out_of_credits"] and not any(c.status == "fail" for c in v.checks)
+        if v.decision == "block" and rec["status"] == "active" and not billing_outage:
             _suspend(rec, _first_failure(v), by="payroll", sources=_sources(v))
         _save(agents)
     return v
@@ -379,6 +386,33 @@ async def set_scopes(agent_id: str, scopes: list[Scope], client, by: str = "spon
             "agent_id": agent_id, "from": list(old.scopes), "to": scopes, "by": by}, _sources(v) if v else []))
         _save(agents)
         return public(rec), v
+
+
+def set_assignees(agent_id: str, user_ids: list[str], by: str = "admin") -> dict:
+    """Which people (recruiters) work with this agent. A member or viewer sees only agents assigned to them."""
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        before = rec.get("assignees") or []
+        rec["assignees"] = list(dict.fromkeys(user_ids))
+        rec["ledger_entries"].append(ledger.append("agent.assignees_changed", {
+            "agent_id": agent_id, "from": before, "to": rec["assignees"], "by": by}))
+        _save(agents)
+        return public(rec)
+
+
+def set_workspace(agent_id: str, workspace_id: str | None, by: str = "operator") -> dict:
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        before = rec.get("workspace_id")
+        rec["workspace_id"] = workspace_id
+        if before != workspace_id:
+            rec["assignees"] = []  # people from the old company don't follow the agent
+        rec["ledger_entries"].append(ledger.append("agent.workspace_changed", {
+            "agent_id": agent_id, "from": before, "to": workspace_id, "by": by}))
+        _save(agents)
+        return public(rec)
 
 
 def rotate_key(agent_id: str, new_public_key: str, by: str = "agent") -> dict:

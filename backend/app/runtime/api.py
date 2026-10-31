@@ -387,3 +387,42 @@ async def hire(req: HireRequest):
     rt().wake()
     return {"agent": registry.get_agent(rec["agent_id"]) | {"private_key": None}, "decision": v.decision,
             "failed": [c.model_dump() for c in v.checks if c.status != "pass"]}
+
+
+# ---- hiring flows: brief -> shortlist -> verify -> schedule -> offer (app/runtime/flow.py) -----------
+
+class FlowRequest(BaseModel):
+    brief: str
+    role: str | None = None
+    compensation: str | None = None
+    start_date: str | None = None
+    interviewer: str | None = None
+    slots: str | None = None
+    by: str = "employer"
+
+
+@router.post("/flows", dependencies=operate)
+async def start_flow(req: FlowRequest):
+    from . import flow
+    me = authz.current()
+    by = me.label(req.by) if me else req.by
+    try:
+        f = await flow.start(rt(), req.model_dump(), by=by, workspace_id=me.workspace_id if me else None)
+    except (ValueError, KeyError, RegistryError) as e:
+        raise HTTPException(400, str(e))
+    return flow.public(f)
+
+
+@router.get("/flows", dependencies=[Depends(require_read)])
+async def list_flows():
+    from . import flow
+    return [flow.public(f) for f in flow.flows()]
+
+
+@router.get("/flows/{flow_id}", dependencies=[Depends(require_read)])
+async def get_flow(flow_id: str):
+    from . import flow
+    f = flow.get(flow_id)
+    if not f:
+        raise HTTPException(404, "no such flow")
+    return flow.public(f)

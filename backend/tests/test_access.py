@@ -151,13 +151,15 @@ def test_roles_viewer_member_admin(c, monkeypatch):
     assert c.post("/api/agents", json={"name": "X", "role": "researcher", "sponsor": SPONSOR},
                   headers=h(member)).status_code == 403  # onboarding is admin work
     a = onboard(c, h(owner))
+    assert c.put(f"/api/agents/{a['agent_id']}/assignees", json={"user_ids": [vic["id"]]}, headers=h(owner)).status_code == 200
     assert c.post(f"/api/runtime/agents/{a['agent_id']}/pause", json={}, headers=h(viewer_tok)).status_code == 403
     assert c.get(f"/api/agents/{a['agent_id']}", headers=h(viewer_tok)).status_code == 200
     assert c.post(f"/api/agents/{a['agent_id']}/suspend", json={"reason": "x"}, headers=h(member)).status_code == 403
     assert c.post("/api/agents/enrollments", json={"name": "CC", "sponsor": SPONSOR}, headers=h(member)).status_code == 403
     assert c.put(f"/api/workspace/members/{vic['id']}", json={"role": "owner"}, headers=h(member)).status_code == 403
     ws = c.get("/api/workspace", headers=h(viewer_tok)).json()
-    assert ws["role"] == "viewer" and ws["auth_mode"] == "login_required" and len(ws["roles"]) == 4
+    assert ws["role"] == "viewer" and ws["auth_mode"] == "login_required" and len(ws["roles"]) == 5
+    assert ws["access"]["level"] == "own_work"
 
 
 def test_actor_comes_from_the_session_not_the_request_body(c, monkeypatch):
@@ -326,3 +328,100 @@ def test_audit_export_verifies_and_catches_tampering(c):
     filtered = c.get("/api/ledger/export", params={"agent_id": a["agent_id"]}).text
     assert audit.verify_export(filtered, issuer)["ok"]
     assert c.get("/api/ledger/export", params={"format": "xml"}).status_code == 400
+
+
+# ---- the hierarchy: platform operator > company owner/admin > recruiter (own work) -------------------------------
+
+def test_hierarchy_operator_company_recruiter(c, monkeypatch):
+    monkeypatch.setenv("AGAXES_REQUIRE_LOGIN", "1")
+    from app.agents.models import Sponsor
+    fleet = registry.onboard("Fleet bot", "analyst", Sponsor(**SPONSOR), ["data.read"])  # seeded, pre-accounts: no company
+    acme_owner = signup(c, "owner@acme.io")
+    beta_owner = signup(c, "owner@beta.io", "Beta")
+    rec_tok = signup(c, "riya@acme.io")  # an Acme recruiter (member)
+    riya = next(m for m in c.get("/api/workspace/members", headers=h(acme_owner)).json()["members"]
+                if m["email"] == "riya@acme.io")
+    mine = onboard(c, h(acme_owner), "Acme Sourced")
+    other = onboard(c, h(acme_owner), "Acme Closer")
+    beta = onboard(c, h(beta_owner), "Beta Scout")
+    assert c.put(f"/api/agents/{mine['agent_id']}/assignees", json={"user_ids": [riya["id"]]},
+                 headers=h(acme_owner)).status_code == 200
+
+    # recruiter: only the agent assigned to them, no company-wide views
+    names = lambda tok: sorted(a["name"] for a in c.get("/api/agents", headers=h(tok)).json())
+    assert names(rec_tok) == ["Acme Sourced"]
+    assert c.get(f"/api/agents/{other['agent_id']}", headers=h(rec_tok)).status_code == 404
+    assert c.get("/api/ledger", headers=h(rec_tok)).status_code == 403
+    assert c.get("/api/ledger/export", headers=h(rec_tok)).status_code == 403
+    assert c.get("/api/workspace/members", headers=h(rec_tok)).status_code == 403
+    assert c.get("/api/platform/companies", headers=h(rec_tok)).status_code == 403
+    st = c.get("/api/runtime/state", headers=h(rec_tok))
+    assert st.status_code in (200, 503)
+    me = c.get("/api/auth/me", headers=h(rec_tok)).json()
+    assert me["access"]["level"] == "own_work" and "ledger" not in me["access"]["views"]
+
+    # company owner: the whole company, nothing else; not the platform view
+    assert names(acme_owner) == ["Acme Closer", "Acme Sourced"]
+    assert c.get("/api/ledger", headers=h(acme_owner)).status_code == 200
+    assert c.get("/api/platform/companies", headers=h(acme_owner)).status_code == 403
+    assert c.get("/api/auth/me", headers=h(acme_owner)).json()["access"]["level"] == "company"
+    # an owner can't assign someone from another company
+    beta_people = c.get("/api/workspace/members", headers=h(beta_owner)).json()["members"]
+    assert c.put(f"/api/agents/{mine['agent_id']}/assignees", json={"user_ids": [beta_people[0]["id"]]},
+                 headers=h(acme_owner)).status_code == 400
+
+    # platform operator: every company, its people and agents, including the pre-accounts fleet
+    monkeypatch.setenv("AGAXES_OPERATOR_EMAILS", "ops@agaxes.io")
+    ops = signup(c, "ops@agaxes.io", "Agaxes")
+    assert c.get("/api/auth/me", headers=h(ops)).json()["access"]["level"] == "platform"
+    assert names(ops) == sorted(["Fleet bot", "Acme Sourced", "Acme Closer", "Beta Scout"])
+    plat = c.get("/api/platform/companies", headers=h(ops)).json()
+    by = {x["domain"]: x for x in plat["companies"]}
+    assert {a["name"] for a in by["acme.io"]["agents"]} == {"Acme Sourced", "Acme Closer"}
+    assert {m["email"] for m in by["acme.io"]["members"]} == {"owner@acme.io", "riya@acme.io"}
+    assert [a["name"] for a in plat["unassigned_agents"]] == ["Fleet bot"]
+    # only the operator moves an agent between companies
+    assert c.put(f"/api/platform/agents/{fleet['agent_id']}/workspace", json={"workspace_id": by["beta.io"]["id"]},
+                 headers=h(acme_owner)).status_code == 403
+    assert c.put(f"/api/platform/agents/{fleet['agent_id']}/workspace", json={"workspace_id": by["beta.io"]["id"]},
+                 headers=h(ops)).status_code == 200
+    assert names(beta_owner) == ["Beta Scout", "Fleet bot"]
+    assert c.get("/api/ledger", headers=h(ops)).status_code == 200
+    assert beta  # (used above)
+
+
+def test_demo_logins_cover_every_level(c):
+    from app.agents import registry as reg
+    from app.agents.models import Sponsor
+    reg.onboard("Sourced", "recruiter", Sponsor(**SPONSOR), ["data.read"])   # seeded like demo_up.sh: no company
+    reg.onboard("Closer", "analyst", Sponsor(**SPONSOR), ["data.read"])
+    seen = {}
+    for who in ("operator", "admin", "recruiter"):
+        r = c.post("/api/auth/demo", json={"as": who})
+        assert r.status_code == 200, r.text
+        seen[who] = r.json()
+        tok = r.json()["token"]
+        seen[who]["agents"] = sorted(a["name"] for a in c.get("/api/agents", headers=h(tok)).json())
+    assert seen["operator"]["access"]["level"] == "platform" and seen["operator"]["agents"] == ["Closer", "Sourced"]
+    # the demo company sees the seeded (pre-accounts) fleet, so the demo shows every agent without re-onboarding
+    assert seen["admin"]["access"]["level"] == "company" and seen["admin"]["agents"] == ["Closer", "Sourced"]
+    assert seen["recruiter"]["access"]["level"] == "own_work" and seen["recruiter"]["agents"] == ["Sourced"]
+    assert seen["recruiter"]["user"]["workspace_role"] == "member"
+    assert c.post("/api/auth/demo").json()["access"]["level"] == "company"  # no body: as before, the demo company
+    assert c.post("/api/auth/demo", json={"as": "god"}).status_code == 400
+
+
+def test_seeded_fleet_default_workspace(c, monkeypatch):
+    from app.agents import registry as reg
+    from app.agents.models import Sponsor
+    reg.onboard("Closer", "analyst", Sponsor(**SPONSOR), ["data.read"])  # seeded: no company
+    acme = signup(c, "owner@acme.io")
+    names = lambda tok: sorted(a["name"] for a in c.get("/api/agents", headers=h(tok)).json())
+    demo = c.post("/api/auth/demo").json()["token"]
+    assert names(demo) == ["Closer"] and names(acme) == []  # only the demo company, never a real one
+    ledger = c.get("/api/ledger", headers=h(demo)).json()
+    assert any((r.get("payload") or {}).get("agent_id") for r in (ledger if isinstance(ledger, list) else ledger.get("entries", [])))
+    monkeypatch.setenv("AGAXES_DEFAULT_WORKSPACE", "none")
+    assert names(demo) == []
+    monkeypatch.setenv("AGAXES_DEFAULT_WORKSPACE", "acme.io")
+    assert names(acme) == ["Closer"] and names(demo) == []

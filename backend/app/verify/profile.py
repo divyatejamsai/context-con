@@ -6,6 +6,7 @@ several known paths and records which one hit. That path becomes Source.field on
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
@@ -67,7 +68,11 @@ def parse_date(v: Any) -> date | None:
 
 
 def norm(s: Any) -> str:
-    return re.sub(r"[^a-z0-9 ]+", " ", str(s or "").lower()).strip()
+    """Lowercase, accents folded (Nestlé -> nestle), punctuation to spaces. Non-Latin letters (群益金鼎, Яндекс) are kept,
+    so names in other scripts don't normalise to an empty string and fail every comparison."""
+    t = unicodedata.normalize("NFKD", str(s or "")).lower()
+    t = "".join(ch for ch in t if not unicodedata.combining(ch))
+    return re.sub(r"[^\w ]+|_", " ", t).strip()
 
 
 _COMPANY_SUFFIX = re.compile(
@@ -153,6 +158,7 @@ class Profile:
     past: list[Job] = field(default_factory=list)
     skills: list[str] = field(default_factory=list)
     skills_field: str | None = None
+    education: list[dict] = field(default_factory=list)  # {school, degree, field_of_study, end_year, path}
     endpoint: str = "person/enrich"
 
 
@@ -229,7 +235,74 @@ def load_person(person: dict) -> Profile:
     if isinstance(skills, str):
         skills = [s.strip() for s in re.split(r"[,;|]", skills)]
     pr.skills = [s for s in (skills or []) if isinstance(s, str) and s]
+    pr.education = _education(person)
     return pr
+
+
+def _education(person: dict) -> list[dict]:
+    for path in ("education.schools", "education", "education_background", "schools"):
+        rows = get_path(person, path)
+        if isinstance(rows, list) and rows:
+            out = []
+            for i, r in enumerate(rows):
+                if not isinstance(r, dict):
+                    continue
+                school = r.get("school") or r.get("institute_name") or r.get("school_name") or r.get("name")
+                if isinstance(school, str) and school.strip():
+                    out.append({"school": school.strip(), "degree": r.get("degree") or r.get("degree_name"),
+                                "field_of_study": r.get("field_of_study"), "end_year": r.get("end_year"),
+                                "path": f"{path}[{i}].school"})
+            if out:
+                return out
+    return []
+
+
+_SCHOOL_STOP = {"of", "and", "the", "for", "at", "in", "de"}
+
+
+def _acronym(name: str) -> str:
+    return "".join(w[0] for w in norm(name).split() if w not in _SCHOOL_STOP and not w.isdigit())
+
+
+def school_matches(wanted: Any, have: Any) -> bool:
+    """Does the school on a record ("Indian Institute of Technology, Bombay") match a school the brief asks for
+    ("IIT", "IIT Bombay", "Indian Institute of Technology")? Word-level, plus acronyms of the record's name, so
+    "IIT" never matches "IIIT Hyderabad" and "BITS" matches "Birla Institute of Technology and Science, Pilani"."""
+    w, h = norm(wanted).split(), norm(have).split()
+    if not w or not h:
+        return False
+    hs = set(h)
+    acr = _acronym(str(have))
+    for i, t in enumerate(w):
+        dep = t[:-1] if len(t) > 3 and t.endswith("s") and t[:-1].isalpha() else t  # "IITs" -> "iit"
+        if t in hs or dep in hs or (i == 0 and len(dep) >= 2 and len(dep) <= 6 and acr.startswith(dep)):
+            continue
+        return False
+    return True
+
+
+_DEGREE_ALIASES = {
+    "btech": ("bachelor of technology", "b tech", "btech", "bachelor of engineering", "be"),
+    "be": ("bachelor of engineering", "be", "b e", "bachelor of technology", "b tech", "btech"),
+    "mtech": ("master of technology", "m tech", "mtech", "master of engineering", "me"),
+    "mba": ("master of business administration", "mba", "pgdm", "post graduate diploma in management", "pgp"),
+    "pgdm": ("post graduate diploma in management", "pgdm", "mba", "master of business administration"),
+    "phd": ("doctor of philosophy", "phd", "ph d", "doctorate"),
+    "ms": ("master of science", "ms", "m s", "msc", "m sc"), "masters": ("master",), "master": ("master",),
+    "bachelors": ("bachelor",), "bachelor": ("bachelor",), "bsc": ("bachelor of science", "bsc", "b sc"),
+    "msc": ("master of science", "msc", "m sc", "ms"),
+}
+
+
+def degree_matches(wanted: Any, have: Any) -> bool:
+    w, h = norm(wanted), f" {norm(have)} "
+    if not w or not h.strip():
+        return False
+    key = w.replace(" ", "")
+    for alias in _DEGREE_ALIASES.get(key, (w,)):
+        if f" {alias} " in h or (len(alias) > 6 and alias in h):
+            return True
+    return False
 
 
 @dataclass

@@ -20,7 +20,7 @@ from ..schemas import Claim, Criteria, Source
 
 from .profile import (
     CompanyFacts, get_path, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
-    same_company, seniority_rank, skill_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
+    same_company, seniority_rank, skill_matches, school_matches, degree_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
 if TYPE_CHECKING:  # avoid a hard dependency on WS1's module at import time
@@ -66,7 +66,8 @@ async def _safe(coro, what: str):
     try:
         return await asyncio.wait_for(coro, timeout=CALL_TIMEOUT_S)
     except Exception as e:  # CrustdataError, timeout, anything: the claim just stays unverifiable
-        log.warning("verify: %s failed: %s", what, e)
+        log.warning("verify: %s failed: %s%s %s", what, type(e).__name__,
+                    f" (HTTP {e.status})" if getattr(e, "status", None) else "", e)
         return None
 
 
@@ -210,6 +211,58 @@ def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[
     return hits
 
 
+_STUDENT_TITLE = re.compile(r"\b(intern|internship|trainee|apprentice|student|teaching assistant|research assistant|"
+                            r"campus ambassador|summer analyst|summer associate|undergraduate|graduate researcher|"
+                            r"club|e-?cell|hostel|fest|gymkhana|student body)\b", re.I)
+
+
+def _graduated(pr: Profile) -> date | None:
+    """When the person's latest degree ended (end_year -> 1 July), if the record says."""
+    years = [int(e["end_year"]) for e in pr.education if str(e.get("end_year") or "").isdigit()]
+    return date(max(years), 7, 1) if years else None
+
+
+def _student_role(j: Job, pr: Profile) -> bool:
+    """Internships, campus clubs, jobs at their own university, or anything that ended before graduation."""
+    if (j.title and _STUDENT_TITLE.search(j.title)) or (j.company and _STUDENT_TITLE.search(j.company)):
+        return True
+    if j.company and any(same_company(j.company, e["school"]) or norm(e["school"]) in norm(j.company)
+                         or norm(j.company) in norm(e["school"]) for e in pr.education):
+        return True
+    grad = _graduated(pr)
+    if grad and j.start and j.start < grad and (j.end is None and grad > date.today() or j.end and j.end <= grad):
+        return True
+    return False
+
+
+def _edu_text(e: dict) -> str:
+    bits = [b for b in (e.get("degree"), e.get("field_of_study"), str(e["end_year"]) if e.get("end_year") else None) if b]
+    return e["school"] + (f" · {', '.join(bits)}" if bits else "")
+
+
+def education_claim(out: _Claims, pr: Profile, criteria: Criteria, ep: str) -> Claim:
+    """One "Education: <school> · <degree, year>" claim. The ranker re-reads the school and degree from the text."""
+    eds = pr.education
+    if not eds:
+        return out.add("Education", "unverifiable", "no education on the record", ep, "education.schools")
+    def ok(e: dict) -> tuple[str | None, str | None]:
+        s = next((w for w in criteria.schools if school_matches(w, e["school"])), None)
+        d = next((w for w in criteria.degrees if degree_matches(w, e.get("degree") or "")), None)
+        return s, d
+    scored = [(bool(s) * 2 + bool(d), i, e, s, d) for i, e in enumerate(eds) for s, d in [ok(e)]]
+    best = max(scored, key=lambda x: (x[0], -x[1]))
+    _, _, e, s, d = best
+    asked = []
+    if s:
+        asked.append(f"school matches '{s}' from the brief")
+    if d:
+        asked.append(f"degree matches '{d}'")
+    if not s and criteria.schools:
+        asked.append("not one of the schools the brief asks for")
+    ev = "; ".join(asked) + f" ({len(eds)} school{'s' if len(eds) != 1 else ''} on the record)"
+    return out.add(f"Education: {_edu_text(e)}", "verified", ev, ep, e["path"])
+
+
 async def verify_candidate(
     person: dict,
     company: dict | None,
@@ -319,19 +372,33 @@ async def verify_candidate(
     elif cur:
         out.add(f"Tenure at {cur.company}", "unverifiable", "current role has no start date", ep, f"{cur.path}.start_date")
 
-    # 4. Total experience (only when claimed, or computable)
-    starts = [j.start for j in pr.current + pr.past if j.start]
+    # 4. Total experience (only when claimed, or computable). Student roles don't count: internships, campus clubs
+    # and jobs at the person's own university, and anything that ended before they graduated.
+    dated = [j for j in pr.current + pr.past if j.start]
+    work = [j for j in dated if not _student_role(j, pr)]
+    starts = [j.start for j in work]
     if starts:
         total = _years(min(starts), today)
         cy = claimed.get("years_experience")
-        first_job = min((j for j in pr.current + pr.past if j.start), key=lambda j: j.start)
+        first_job = min(work, key=lambda j: j.start)
         exp_field = f"{first_job.path}.start_date"
+        skipped = len(dated) - len(work)
+        note = f"; {skipped} internship/student role{'s' if skipped != 1 else ''} not counted" if skipped else ""
         if cy is not None and float(cy) - total > EXPERIENCE_TOLERANCE_YEARS:
             out.add(f"{cy} yrs of experience", "contradicted",
-                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)})", ep, exp_field)
+                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)}){note}", ep, exp_field)
         else:
             out.add(f"~{_fmt_years(total)} of experience", "verified",
-                    f"earliest role starts {min(starts).isoformat()} ({first_job.company})", ep, exp_field)
+                    f"earliest role starts {min(starts).isoformat()} ({first_job.company}){note}", ep, exp_field)
+    elif dated:
+        first_job = min(dated, key=lambda j: j.start)
+        cy = claimed.get("years_experience")
+        if cy is not None and float(cy) > EXPERIENCE_TOLERANCE_YEARS:
+            out.add(f"{cy} yrs of experience", "contradicted",
+                    "only internships/student roles on the record", ep, f"{first_job.path}.start_date")
+        else:
+            out.add("~0.0 yrs of experience", "verified", f"only internships/student roles on the record "
+                    f"({len(dated)} role{'s' if len(dated) != 1 else ''})", ep, f"{first_job.path}.start_date")
     elif claimed.get("years_experience") is not None:
         out.add(f"{claimed['years_experience']} yrs of experience", "unverifiable", "no dated roles in the graph", ep, "past_employers")
 
@@ -435,6 +502,10 @@ async def verify_candidate(
             path = " -> ".join(dict.fromkeys(j.title for j in dated[-4:]))
             out.add(f"Progression ({trend}): {path}", "verified", f"titles from {dated[0].start.year} to {dated[-1].start.year}", ep,
                     "experience.employment_details" if ".employment_details" in dated[-1].path else "past_employers")
+
+    # 10. Education, when the brief asks for schools or degrees ("prestige college in India" -> IIT, ISI, BITS...)
+    if criteria.schools or criteria.degrees:
+        education_claim(out, pr, criteria, ep)
 
     # Flags: freshness is Crustdata's edge, so surface recent moves loudly.
     if cur and cur.start and 0 <= (today - cur.start).days <= RECENT_CHANGE_DAYS:

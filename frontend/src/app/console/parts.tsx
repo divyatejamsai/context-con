@@ -37,6 +37,17 @@ export function ago(iso?: string | null) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+/** Time until a future moment: "in 52m", "in 3h", or "expired". */
+export function until(iso?: string | null) {
+  if (!iso) return "never";
+  const s = (new Date(iso).getTime() - Date.now()) / 1000;
+  if (s <= 0) return "expired";
+  const m = Math.max(1, Math.round(s / 60));
+  if (m < 60) return `in ${m}m`;
+  if (s < 86400 - 1800) return `in ${Math.round(s / 3600)}h`;
+  return `in ${Math.round(s / 86400)}d`;
+}
+
 export const day = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "–";
 

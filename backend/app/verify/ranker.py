@@ -19,7 +19,8 @@ from pydantic import BaseModel
 
 from ..schemas import Claim, Criteria, Reason
 
-from .profile import domain_terms, load_person, norm, same_company, seniority_rank, title_similarity, tokens
+from .profile import (degree_matches, domain_terms, load_person, norm, same_company, school_matches, seniority_rank,
+                      title_similarity, tokens)
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ _STAGE_PREF = {
 
 def _kind(c: Claim) -> str:
     t = c.claim
+    if t.startswith("Education:") or t == "Education":
+        return "education"
     if t.startswith("Career:"):
         return "career"
     if t.startswith("Progression"):
@@ -181,6 +184,35 @@ def _location(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None:
     return f
 
 
+def _education(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None:
+    """Schools / degrees the brief asks for. A strong trader from another school still shows up, ranked well below
+    the ones who match."""
+    if not criteria.schools and not criteria.degrees:
+        return None
+    f = _Factor("education", 30)  # as heavy as role fit: when a brief names schools, it means it
+    cl = k.get("education", [])
+    if not cl:
+        return f
+    c = cl[0]
+    if c.status != "verified" or c.claim == "Education":
+        f.add(0.5, "Education not on the record", [c])
+        return f
+    school, _, detail = c.claim.removeprefix("Education:").strip().partition(" · ")
+    parts, texts = [], []
+    if criteria.schools:
+        hit = next((w for w in criteria.schools if school_matches(w, school)), None)
+        parts.append(1.0 if hit else 0.0)
+        texts.append(f"Studied at {school}, one of the schools the brief asks for" if hit
+                     else f"Studied at {school}, not one of the schools the brief asks for")
+    if criteria.degrees:
+        hit = next((w for w in criteria.degrees if degree_matches(w, detail)), None)
+        parts.append(1.0 if hit else 0.0)
+        texts.append(f"Has a {hit} degree" if hit else f"No {criteria.degrees[0]} degree on the record")
+    credit = sum(parts) / len(parts)
+    f.add(credit, "; ".join(texts), [c])
+    return f
+
+
 def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Factor | None:
     prefs = [p for p in criteria.company_preferences if p]
     if not prefs:
@@ -304,8 +336,8 @@ def _experience(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None
     s = norm(criteria.seniority or "")
     need = asked if asked is not None else 8 if any(w in s for w in ("staff", "principal", "lead", "head", "director")) else 5 if "senior" in s else 0 if any(
         w in s for w in ("junior", "entry", "intern", "fresher")) else 2
-    if asked is None and ("junior" in s or "entry" in s or "fresher" in s):
-        credit = 1.0 if yrs <= 3 else max(0.3, 1 - (yrs - 3) * 0.15)
+    if asked is None and _is_junior(criteria):
+        credit = 1.0 if yrs <= 3 else max(0.0, 1 - (yrs - 3) * 0.2)  # 8+ yrs earns nothing for a junior role
     else:
         credit = min(1.0, 0.1 + 0.9 * yrs / need) if need else 1.0
     if asked is not None and yrs < asked:
@@ -313,12 +345,31 @@ def _experience(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None
         text = f"{_fmt(yrs)} of experience, below the {asked}+ yrs asked"
     elif asked is not None:
         text = f"{_fmt(yrs)} of experience, meets the {asked}+ yrs asked"
+    elif asked is None and _is_junior(criteria) and yrs > JUNIOR_MAX_YEARS:
+        text = f"{_fmt(yrs)} of experience, far too senior for a {criteria.seniority} role"
     elif need and yrs < need:
         text = f"{_fmt(yrs)} of experience, light for a {criteria.seniority} role"
     else:
         text = f"{_fmt(yrs)} of experience for a {criteria.seniority} role"
     f.add(credit * CREDIT[c.status], text, [c])
     return f
+
+
+JUNIOR_MAX_YEARS = 6  # past this a "junior"/"intern" brief is a mismatch, not a near fit
+
+
+def _is_junior(criteria: Criteria) -> bool:
+    s = norm(criteria.seniority or "")
+    return any(w in s for w in ("junior", "entry", "intern", "fresher"))
+
+
+def _overqualified(k: dict[str, list[Claim]], criteria: Criteria) -> Claim | None:
+    """A junior brief and a verified 6+ yrs career: capped like a missing must-have."""
+    if not _is_junior(criteria) or required_years(criteria) is not None:
+        return None
+    c = (k.get("experience") or [None])[0]
+    yrs = _years_in(c.claim) if c is not None and c.status == "verified" else None
+    return c if yrs is not None and yrs > JUNIOR_MAX_YEARS else None
 
 
 def _fmt(y: float) -> str:
@@ -558,6 +609,7 @@ def rank_parts(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[f
     factors = [f for f in (
         _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
         _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
+        _education(k, criteria),
     ) if f is not None]
     total_w = sum(f.weight for f in factors) or 1
     base = sum(f.earned for f in factors) / total_w * BASE_CAP
@@ -565,7 +617,7 @@ def rank_parts(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[f
     contradicted = [c for c in claims if c.status == "contradicted"]
     stale = {c.id for c in contradicted if c.evidence.startswith("profile headline")}
     penalty = min(MAX_PENALTY, sum(CONTRADICTION_PENALTY / (2 if c.id in stale else 1) for c in contradicted))
-    return base + bonus - penalty, bool(_missing_must_haves(k, criteria))
+    return base + bonus - penalty, bool(_missing_must_haves(k, criteria)) or _overqualified(k, criteria) is not None
 
 
 def final_score(raw: float, gapped: bool, move: float = 0.0) -> int:
@@ -609,6 +661,7 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     factors = [f for f in (
         _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
         _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
+        _education(k, criteria),
     ) if f is not None]
     total_w = sum(f.weight for f in factors) or 1
     base = sum(f.earned for f in factors) / total_w * BASE_CAP
@@ -622,7 +675,8 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     move, move_texts = move_bonus(move_signals(person, criteria), move_weights())
     # Must-haves are gates, not weights: a missing one caps the score however strong the rest is.
     gaps = _missing_must_haves(k, criteria)
-    score = final_score(base + bonus - penalty, bool(gaps), move)
+    over = _overqualified(k, criteria)
+    score = final_score(base + bonus - penalty, bool(gaps) or over is not None, move)
 
     scored: list[tuple[float, Reason]] = []
     for c in contradicted:
@@ -637,6 +691,9 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
             scored.append((impact, r))
     for m, c in gaps:
         scored.append((-2.0, Reason(text=f"Missing must-have: {m} (score capped at {MUST_HAVE_CAP})", claim_ids=[c.id])))
+    if over is not None:
+        scored.append((-2.0, Reason(text=f"Too senior for a {criteria.seniority} role: {over.claim.lstrip('~')} "
+                                         f"(score capped at {MUST_HAVE_CAP})", claim_ids=[over.id])))
     for pts, r in bonuses:
         # Bonus points are on a 0-4 scale; factor impacts are on ~0-15, so scale up for ordering only.
         scored.append((pts * 4, Reason(text=f"+{pts:.0f}: {r.text}" if pts >= 1 else r.text, claim_ids=r.claim_ids)))

@@ -4,7 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sourced · verified shortlists",
+  title: "Agaxes · agent access",
   description: "Paste a hiring brief. Get a ranked shortlist where every claim is checked against Crustdata and cited.",
 };
 

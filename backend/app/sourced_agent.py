@@ -31,6 +31,7 @@ from .accounts import authz
 from .accounts.authz import require_operate
 from .agents import ledger, registry
 from .agents.api import crustdata
+from .crustdata import OUT_OF_CREDITS, out_of_credits_since
 from .agents.graph import Graph
 from .agents.guard import check_send
 from .agents.models import Passport, Verdict
@@ -97,6 +98,7 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: 
         return
 
     passport = Passport.model_validate(rec["passport"])
+    started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     client = client if client is not None else crustdata()
     graph = Graph(client)
     yield AgentStep(step="passport", message=f"Checking {passport.agent_name}'s passport live against Crustdata...").model_dump()
@@ -105,6 +107,9 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: 
                "ledger_entry": pv.ledger_entry}
     if pv.decision != "allow":
         yield AgentStep(step="passport", message=f"Blocked: {_failures(pv)}", data=pv_data).model_dump()
+        if out_of_credits_since(started):
+            yield _err("passport", OUT_OF_CREDITS)
+            return
         yield _err("passport", "Run refused: the passport did not pass. Nothing was searched.")
         return
     s = passport.sponsor
@@ -197,6 +202,8 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: 
         "shortlist": [{"id": i, "name": candidates[i].get("name"), "score": candidates[i].get("score")} for i in shortlist if i in candidates],
         "guard": guarded, "sent": sent,
     }, sources[:200])
+    if out_of_credits_since(started):  # lookups failed part-way: the shortlist and checks are incomplete
+        yield _err("crustdata", OUT_OF_CREDITS)
     if done_ev:
         done_ev.setdefault("summary", {})["ledger_entry"] = entry
         done_ev["summary"]["agent_id"] = agent_id

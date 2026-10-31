@@ -3,7 +3,9 @@
 POST /api/auth/lookup   {email}                    -> domain checks + Crustdata Company Identify prefill
 POST /api/auth/signup   {email, password, ...}     -> creates user (+ workspace) and a session
 POST /api/auth/login    {email, password}          -> session
-POST /api/auth/demo                                -> session for the shared demo workspace (DEMO_ACCOUNT=0 disables)
+POST /api/auth/demo     {as?}                      -> a demo session (DEMO_ACCOUNT=0 disables). as = "admin" (default: the
+                                                      demo company's owner), "recruiter" (a member who sees only the
+                                                      agents assigned to them) or "operator" (the platform, every company)
 POST /api/auth/forgot   {email}                    -> emails a one-time reset link (30 min) via app.outbound.mailer
 POST /api/auth/reset    {token, password}          -> sets the password, signs out other sessions, returns a session
 POST /api/auth/logout   Authorization: Bearer <t>  -> revokes the session
@@ -67,8 +69,26 @@ def demo_enabled() -> bool:
     return os.getenv("DEMO_ACCOUNT", "1") != "0"
 
 
+DEMO_RECRUITER_EMAIL = "recruiter@sourced-demo.dev"
+DEMO_PEOPLE = {"admin": DEMO_EMAIL, "recruiter": DEMO_RECRUITER_EMAIL}
+
+
 def _ensure_demo(s: AccountStore) -> None:
-    if not demo_enabled() or s.user_by_email(DEMO_EMAIL):
+    if not demo_enabled():
+        return
+    import secrets
+    from .authz import OPERATOR_DEMO_EMAIL
+    if not s.user_by_email(OPERATOR_DEMO_EMAIL):
+        s.create_account(email=OPERATOR_DEMO_EMAIL, password=secrets.token_urlsafe(24), full_name="Platform Operator",
+                         job_role="Agaxes operator", company={"name": "Agaxes Platform", "verified_via": "demo"})
+    _ensure_demo_company(s)
+    if not s.user_by_email(DEMO_RECRUITER_EMAIL):  # joins the demo company by domain, as a member
+        s.create_account(email=DEMO_RECRUITER_EMAIL, password=secrets.token_urlsafe(24), full_name="Riya Recruiter",
+                         job_role="Recruiter", company={})
+
+
+def _ensure_demo_company(s: AccountStore) -> None:
+    if s.user_by_email(DEMO_EMAIL):
         return
     import secrets
     # Nobody logs in to the demo with a password (the "Use the demo workspace" button does it server-side),
@@ -192,8 +212,15 @@ async def send_reset_email(to: str, name: str, link: str) -> None:
     await send_transactional(to, "Reset your Sourced password", body)
 
 
+def _access(user: dict, company: dict) -> dict:
+    from .authz import RANK, Principal, operator_emails
+    role = "operator" if user["email"].lower() in operator_emails() else user.get("workspace_role") or "member"
+    return Principal(via="session", role=role if role in RANK else "viewer", user=user, company=company).access()
+
+
 def _session_payload(user: dict, company: dict, token: str, expires: str, joined: bool = False) -> dict:
-    return {"token": token, "expires_at": expires, "user": user, "company": company, "joined_existing": joined}
+    return {"token": token, "expires_at": expires, "user": user, "company": company, "joined_existing": joined,
+            "access": _access(user, company)}
 
 
 def _bearer(authorization: str | None) -> str:
@@ -284,7 +311,7 @@ GENERIC_SENT = "If that email has a Sourced account, a reset link is on its way.
 async def forgot(body: ForgotIn):
     s = store()
     row = s.user_by_email(body.email.strip())
-    if row is None or row["email"] == DEMO_EMAIL:
+    if row is None or row["email"] in {DEMO_EMAIL, DEMO_RECRUITER_EMAIL, "operator@agaxes-demo.dev"}:
         return {"ok": True, "message": GENERIC_SENT}  # same answer either way: don't reveal which emails exist
     token = s.create_reset(row["id"])
     if token is None:
@@ -315,12 +342,39 @@ async def reset(body: ResetIn, request: Request):
     return _session_payload(user, s.company(user["company_id"]), token, expires)
 
 
+class DemoIn(BaseModel):
+    as_: str = Field(default="admin", alias="as")
+
+
+def claim_demo_agents(s: AccountStore) -> None:
+    """The demo company's own AI employee is Sourced: give it any Sourced that isn't in a company yet, and assign it
+    to the demo recruiter. The rest of the seeded fleet stays on the platform (operator only)."""
+    try:
+        from ..agents import registry
+        owner, rec = s.user_by_email(DEMO_EMAIL), s.user_by_email(DEMO_RECRUITER_EMAIL)
+        if not owner:
+            return
+        for a in registry.list_agents():
+            if a["name"].lower() == "sourced" and not a.get("workspace_id") and a["status"] != "offboarded":
+                registry.set_workspace(a["agent_id"], owner["company_id"], by="demo setup")
+                if rec:
+                    registry.set_assignees(a["agent_id"], [rec["id"]], by="demo setup")
+    except Exception as e:  # noqa: BLE001  a demo nicety: never block the sign-in
+        log.warning("couldn't give Sourced to the demo company: %s", e)
+
+
 @router.post("/demo")
-async def demo(request: Request):
+async def demo(request: Request, body: DemoIn | None = None):
     if not demo_enabled():
         return _err("demo_disabled", "The demo workspace is turned off on this server.", 404)
+    from .authz import OPERATOR_DEMO_EMAIL
+    who = (body.as_ if body else "admin").lower()
+    email = {"operator": OPERATOR_DEMO_EMAIL, **DEMO_PEOPLE}.get(who)
+    if not email:
+        return _err("invalid", "as is one of admin, recruiter, operator.", field="as")
     s = store()
-    row = s.user_by_email(DEMO_EMAIL)
+    claim_demo_agents(s)
+    row = s.user_by_email(email)
     token, expires = s.create_session(row["id"], request.headers.get("user-agent"))
     return _session_payload(s.user(row["id"]), s.company(row["company_id"]), token, expires)
 
@@ -339,6 +393,6 @@ async def me(authorization: str | None = Header(default=None)):
     if not found:
         return _err("unauthenticated", "Your session has ended. Log in again.", 401)
     user, company, expires = found
-    return {"user": user, "company": company, "expires_at": expires}
+    return {"user": user, "company": company, "expires_at": expires, "access": _access(user, company)}
 
 

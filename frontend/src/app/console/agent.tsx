@@ -1,19 +1,22 @@
 "use client";
-import { brandText } from "@/lib/brand";
+import Link from "next/link";
+import { BRAND, brandText } from "@/lib/brand";
+import { appFor } from "@/lib/apps";
+import { Logo } from "@/components/app-header";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft, Ban, FileClock, IdCard, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
+  ArrowLeft, Ban, Check, Copy, FileClock, IdCard, KeyRound, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, SCOPE_INFO, api, type Agent, type LedgerView, type ReviewDecision, type Role, type Scenario, type Scope, type Sponsor,
+  ApiError, SCOPE_INFO, api, type Access, type Agent, type Member, type LedgerView, type ReviewDecision, type Role, type Scenario, type Scope, type Sponsor,
   type Verdict,
 } from "./api";
 import {
   AgentMark, Button, DecisionBadge, EmptyState, Field, RuntimeBadge, ScopeChip, ScopeToggle, SectionHead, StatusPill, VerdictList, ago, cardCls,
-  checkLabel, day, inputCls, plain
+  checkLabel, day, inputCls, plain, until
 } from "./parts";
-import { LedgerTimeline } from "./ledger";
+import { ExportButtons, LedgerTimeline } from "./ledger";
 import { GuardView } from "./guard";
 import { WorkView } from "./work";
 
@@ -61,11 +64,14 @@ const TABS: { k: Tab; label: string; what: string }[] = [
 ];
 
 export function AgentDetail({
-  agent: a, agents, role, tab, setTab, busy, act, flash, onFlashClose, onBack, onChanged,
+  agent: a, agents, role, tab, setTab, busy, act, flash, onFlashClose, onBack, onChanged, access,
 }: {
   agent: Agent; agents: Agent[]; role?: Role; scenarios: Scenario[]; tab: Tab; setTab: (t: Tab) => void; busy: string | null; act: Act;
-  flash: Flash; onFlashClose: () => void; onBack: () => void; onChanged: () => void;
+  flash: Flash; onFlashClose: () => void; onBack: () => void; onChanged: () => void; access?: Access;
 }) {
+  // A recruiter works with the agent; changing it (sponsor checks, suspend, reviews) and its full history are for admins.
+  const own = access?.level === "own_work";
+  const tabs = own ? TABS.filter((t) => t.k !== "ledger" && t.k !== "reviews") : TABS;
   const [confirm, setConfirm] = useState<"suspend" | "offboard" | null>(null);
   const [reason, setReason] = useState("");
   const gone = a.status === "offboarded";
@@ -99,7 +105,7 @@ export function AgentDetail({
     <main className="mx-auto max-w-[1120px] px-4 pb-20 pt-5 sm:px-8 sm:pt-7">
       <nav className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground" aria-label="Breadcrumb">
         <button onClick={onBack} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-hover hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Agents
+          <ArrowLeft className="size-3.5" /> {own ? "My agents" : "Agents"}
         </button>
         <span className="text-faint">/</span>
         <span className="truncate text-foreground">{a.name}</span>
@@ -121,11 +127,18 @@ export function AgentDetail({
         </div>
         {!gone && (
           <div className="flex flex-wrap items-center gap-1.5">
+            {appFor(a) && (
+              <Link href={appFor(a)!.href} prefetch={false} title={appFor(a)!.what}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-strong bg-panel px-3 text-[13px] font-[510] transition hover:bg-hover">
+                <Logo /> Open {appFor(a)!.name}
+              </Link>
+            )}
             {a.status === "active" && (
               <Button variant="primary" onClick={() => setTab("work")} title="Open its Work tab to assign a task">
                 <Plus className="size-3.5" /> Give it work
               </Button>
             )}
+            {!own && <>
             <Button onClick={recheck} disabled={!!busy} title={`Look up ${s.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}>
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check sponsor
             </Button>
@@ -141,6 +154,7 @@ export function AgentDetail({
             <Button variant="ghost" className="text-contradicted hover:bg-contradicted/10 hover:text-contradicted" onClick={() => setConfirm("offboard")} disabled={!!busy} title="Retire it for good: its passport is revoked permanently">
               <UserMinus className="size-3.5" /> Offboard
             </Button>
+            </>}
           </div>
         )}
       </header>
@@ -174,7 +188,7 @@ export function AgentDetail({
       {flash && <FlashBar flash={flash} onClose={onFlashClose} />}
 
       <nav className="mt-7 flex gap-5 overflow-x-auto border-b border-border" role="tablist">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.k}
             role="tab"
@@ -194,7 +208,7 @@ export function AgentDetail({
       <p className="mt-3 text-[12.5px] text-muted-foreground">{TABS.find((t) => t.k === tab)?.what}.</p>
 
       <div className="mt-6 animate-fade" key={tab}>
-        {tab === "overview" && <OverviewTab agent={a} busy={busy} onRecheck={recheck} setTab={setTab} />}
+        {tab === "overview" && <OverviewTab agent={a} busy={busy} onRecheck={recheck} setTab={setTab} own={own} canAssign={access?.level === "company"} onChanged={onChanged} />}
         {tab === "passport" && (
           <div className="space-y-10">
             <PassportTab agent={a} />
@@ -215,7 +229,9 @@ export function AgentDetail({
 }
 
 /** The one-screen answer to "can I trust this agent, and what can I do with it". */
-function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy: string | null; onRecheck: () => void; setTab: (t: Tab) => void }) {
+function OverviewTab({
+  agent: a, busy, onRecheck, setTab, own, canAssign, onChanged,
+}: { agent: Agent; busy: string | null; onRecheck: () => void; setTab: (t: Tab) => void; own?: boolean; canAssign?: boolean; onChanged: () => void }) {
   const s = a.passport.sponsor;
   const v = a.last_verdict;
   const trusted = a.status === "active" && v?.decision !== "block";
@@ -226,7 +242,7 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
     { t: "messages", title: "See its messages", body: "Every message it tried to send and why Send Guard let it through or stopped it.", stat: card ? `${card.messages_checked} checked · ${card.blocked} blocked` : undefined },
     { t: "work", title: "Give it work", body: "Assign a task, approve what it drafts before anything is sent, set a daily budget.", stat: card?.work_filed ? `${card.work_filed} pieces of work filed` : undefined },
     { t: "ledger", title: "Read its history", body: "The tamper-evident record of everything about it, with sources.", stat: `${a.ledger_entries.length} ledger entries` },
-  ];
+  ].filter((n) => !own || n.t !== "ledger") as typeof next;
   return (
     <div className="space-y-8">
       <section className={cn("rounded-xl border p-5", trusted ? "border-verified/30 bg-verified/[0.05]" : "border-contradicted/30 bg-contradicted/[0.05]")}>
@@ -255,6 +271,10 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
 
+      {appFor(a) && <AppCard agent={a} />}
+
+      {canAssign && <Assignees agent={a} onChanged={onChanged} />}
+
       <section>
         <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
           <Fact k="Vouched for by" v={s.name} sub={[s.title, s.company].filter(Boolean).join(", ")} />
@@ -270,7 +290,12 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
               ))}
             </dd>
           </div>
-          <Fact k="Runs" v={a.runtime === "external" ? "Outside, over MCP" : "Inside Agaxes"} sub={`Connected ${day(a.onboarded_at)}`} />
+          <Fact k="Runs" v={a.runtime === "external" ? "On its own machine" : `Inside ${BRAND.name}`} sub={`Connected ${day(a.onboarded_at)}`} />
+          <Fact
+            k="Signing key"
+            v={a.key_custody === "agent" ? "Held by the agent" : `Held by ${BRAND.name}`}
+            sub={a.key_custody === "agent" ? `${BRAND.name} only has the public half` : `${BRAND.name} signs for it`}
+          />
         </dl>
       </section>
 
@@ -289,6 +314,93 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
     </div>
+  );
+}
+
+/** Who at the company works with this agent. A recruiter sees only the agents assigned to them. */
+function Assignees({ agent: a, onChanged }: { agent: Agent; onChanged: () => void }) {
+  const [members, setMembers] = useState<Member[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    api.members().then(setMembers).catch(() => setMembers([]));
+  }, []);
+  const ids = a.assignees ?? [];
+  const toggle = async (m: Member) => {
+    setBusy(m.id);
+    setErr(null);
+    try {
+      await api.setAssignees(a.agent_id, ids.includes(m.id) ? ids.filter((x) => x !== m.id) : [...ids, m.id]);
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  // Admins and owners already see every agent; this is for the people who only see what they're given.
+  const people = (members ?? []).filter((m) => m.workspace_role === "member" || m.workspace_role === "viewer");
+  return (
+    <section>
+      <SectionHead title="Who works with it">
+        People who see {a.name} under My agents, give it tasks and approve its sends. Admins see every agent anyway.
+      </SectionHead>
+      {members === null ? (
+        <p className="mt-3 flex items-center gap-2 text-[12.5px] text-faint"><Loader2 className="size-3.5 animate-spin" /> Loading people</p>
+      ) : people.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {people.map((m) => {
+            const on = ids.includes(m.id);
+            return (
+              <button key={m.id} type="button" onClick={() => toggle(m)} disabled={!!busy} aria-pressed={on}
+                title={on ? `Take ${a.name} away from ${m.email}` : `Give ${a.name} to ${m.email}`}
+                className={cn("inline-flex h-8 items-center gap-2 rounded-full border pl-1 pr-3 text-[12.5px] transition",
+                  on ? "border-foreground/40 bg-elevated font-[510]" : "border-border-strong text-muted-foreground hover:bg-hover")}>
+                <span className={cn("grid size-6 place-items-center rounded-full text-[10.5px] font-[590]", on ? "bg-foreground text-background" : "bg-elevated")}>
+                  {busy === m.id ? <Loader2 className="size-3 animate-spin" /> : on ? <Check className="size-3" /> : (m.full_name || m.email)[0]?.toUpperCase()}
+                </span>
+                {m.full_name || m.email}
+                <span className="text-[11px] font-normal text-faint">{m.job_role ?? m.workspace_role}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-3 text-[12.5px] text-muted-foreground">No recruiters in your company yet. People who sign up with your email domain join as members.</p>
+      )}
+      {err && <p className="mt-2 text-[12px] text-contradicted">{err}</p>}
+    </section>
+  );
+}
+
+/** The agent's own app, opened from Agaxes. Everything it does there is still checked and logged here. */
+function AppCard({ agent: a }: { agent: Agent }) {
+  const app = appFor(a)!;
+  return (
+    <section className={cn(cardCls, "overflow-hidden")}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <Logo />
+          <div className="min-w-0">
+            <p className="text-[14px] font-[590]">{app.name}&apos;s dashboard</p>
+            <p className="text-[12.5px] text-muted-foreground">{app.what} Every message it sends from there still passes Send Guard and lands on this page&apos;s history.</p>
+          </div>
+        </div>
+        <Link href={app.href} prefetch={false} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-foreground px-3 text-[13px] font-[510] text-background transition hover:opacity-90">
+          Open {app.name} <span aria-hidden>→</span>
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {app.pages.map((pg) => (
+          <Link key={pg.href} href={pg.href} prefetch={false} className="group px-5 py-3.5 transition hover:bg-elevated">
+            <span className="flex items-center justify-between text-[13px] font-[510]">
+              {pg.label} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{pg.what}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -637,7 +749,11 @@ function AgentHistory({ agent: a }: { agent: Agent }) {
   if (!view.entries.length) return <EmptyState icon={FileClock} title="No history yet">Entries appear here as soon as {a.name} is checked or does any work.</EmptyState>;
   return (
     <div className="max-w-[760px]">
-      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12.5px] text-muted-foreground">{view.entries.length} entries about {a.name}, newest first.</p>
+        <ExportButtons agentId={a.agent_id} />
+      </div>
+      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} names={new Map([[a.agent_id, a.name]])} />
     </div>
   );
 }
@@ -656,7 +772,11 @@ export function OnboardForm({
   const [sponsor, setSponsor] = useState<Sponsor>(scenarios[0]?.sponsor ?? { name: "", profile_url: "", company: "", company_domain: "", title: "" });
   const [days, setDays] = useState(30);
   const [job, setJob] = useState(first ? "Sources candidates for open roles and drafts outreach" : "");
-  const [runtime, setRuntime] = useState<"in-house" | "external">("in-house");
+  // "own": it runs on its own machine and makes its own key; Agaxes issues a one-time command instead of a key.
+  const [runtime, setRuntime] = useState<"in-house" | "own">("in-house");
+  const [ttl, setTtl] = useState(60);
+  const [invite, setInvite] = useState<{ command: string; expires_at: string; note?: string }>();
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<{ agent: Agent; verdict: Verdict }>();
@@ -674,8 +794,15 @@ export function OnboardForm({
   const submit = async () => {
     setBusy(true);
     setError(undefined);
+    const sp = { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null };
     try {
-      const r = await api.onboard({ name, role: roleKey, sponsor: { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null }, scopes, days, job: job.trim() || undefined, runtime });
+      if (runtime === "own") {
+        const r = await api.enroll({ name, role: roleKey, sponsor: sp, scopes, days, job: job.trim() || undefined, ttl_minutes: ttl });
+        setInvite({ command: r.command, expires_at: r.enrollment.expires_at, note: r.note });
+        onDone("");
+        return;
+      }
+      const r = await api.onboard({ name, role: roleKey, sponsor: sp, scopes, days, job: job.trim() || undefined, runtime: "in-house" });
       setResult(r);
       onDone(r.agent.agent_id);
     } catch (err) {
@@ -684,6 +811,42 @@ export function OnboardForm({
       setBusy(false);
     }
   };
+
+  if (invite) {
+    const copy = () => {
+      navigator.clipboard?.writeText(invite.command).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      }).catch(() => {});
+    };
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex-1 overflow-y-auto p-6">
+          <span className="grid size-10 place-items-center rounded-full bg-elevated"><KeyRound className="size-5 text-foreground" /></span>
+          <h2 className="mt-4 text-[19px] font-[620] tracking-[-0.01em]">Run this on {name}&apos;s machine</h2>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+            The command makes {name} its own signing key, proves it holds it, and collects its passport. {BRAND.name} only ever sees the public half.
+            Then {sponsor.name} is checked in Crustdata, the same as any other agent.
+          </p>
+          <div className="mt-4 rounded-lg border border-border-strong bg-elevated">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+              <span className="text-[11.5px] text-muted-foreground">Works once · expires {until(invite.expires_at)}</span>
+              <button type="button" onClick={copy} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11.5px] font-[510] text-secondary hover:bg-hover">
+                {copied ? <Check className="size-3.5 text-verified" /> : <Copy className="size-3.5" />} {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-all px-3 py-2.5 font-mono text-[11.5px] leading-relaxed">{invite.command}</pre>
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-faint">
+            This is the only time the command is shown. If it&apos;s lost or expires, cancel the invite from Agents and make a new one.
+          </p>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+          <Button variant="primary" onClick={() => onOpen("")}>Done</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     const ok = result.agent.status === "active";
@@ -757,8 +920,8 @@ export function OnboardForm({
               <span className="mb-1.5 block text-[12px] font-[510] text-muted-foreground">Where it runs</span>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {([
-                  ["in-house", "Inside Agaxes", "Agaxes runs its tasks for you."],
-                  ["external", "Outside, over MCP", "It runs on its own machine, like Claude Code, and calls Agaxes for every check."],
+                  ["in-house", `Inside ${BRAND.name}`, `${BRAND.name} runs its tasks for you and holds its signing key.`],
+                  ["own", "On its own machine", `Like Claude Code on a laptop. It makes and keeps its own key; you get a one-time command to run there.`],
                 ] as const).map(([k, t, d]) => (
                   <button type="button" key={k} onClick={() => setRuntime(k)}
                     className={cn("rounded-lg border px-3 py-2.5 text-left transition", runtime === k ? "border-foreground/40 bg-elevated" : "border-border-strong hover:bg-hover")}>
@@ -822,6 +985,15 @@ export function OnboardForm({
                 <span className="text-[12.5px] text-muted-foreground">days</span>
               </span>
             </Field>
+            {runtime === "own" && (
+              <Field label="The command works for" hint="It works once. After this it expires and you'd make a new one.">
+                <select value={ttl} onChange={(e) => setTtl(Number(e.target.value))} className={cn(inputCls, "w-40")}>
+                  <option value={60}>1 hour</option>
+                  <option value={24 * 60}>1 day</option>
+                  <option value={7 * 24 * 60}>7 days</option>
+                </select>
+              </Field>
+            )}
             <div className="rounded-lg border border-border bg-elevated px-3.5 py-3 text-[12.5px] leading-relaxed text-secondary">
               <b className="font-[590]">{name || "This agent"}</b> will act for <b className="font-[590]">{sponsor.name || "…"}</b> at {sponsor.company || "…"} as a {role?.title ?? roleKey},
               and may {scopes.length ? scopes.map((s) => SCOPE_INFO[s].label.toLowerCase()).join(", ") : "do nothing yet"}.
@@ -837,7 +1009,8 @@ export function OnboardForm({
           <Button variant="primary" onClick={() => setStep((s) => s + 1)} disabled={!canNext}>Continue</Button>
         ) : (
           <Button variant="primary" onClick={submit} disabled={busy || !canNext}>
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <IdCard className="size-3.5" />} Issue passport and check sponsor
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : runtime === "own" ? <KeyRound className="size-3.5" /> : <IdCard className="size-3.5" />}
+            {runtime === "own" ? "Make the one-time command" : "Issue passport and check sponsor"}
           </Button>
         )}
       </div>

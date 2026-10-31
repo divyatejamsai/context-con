@@ -25,9 +25,40 @@ manages them.
 - `interview_scheduling` checks each candidate on Crustdata and proposes two slots per candidate from the list you give, spreading candidates across the slots. It drafts the invite (Gemini when live) and sends it through Send Guard and the approval inbox. It returns tentative calendar holds as an .ics artifact and files the plan on the ledger. A candidate who has left the company on file gets blocked by the guard.
 - When a sourcing task finishes, its drawer shows **Schedule interviews**, which pre-fills the Scheduler task with the shortlist.
 
+## Hiring flow (agents handing work to each other)
+**Start hiring flow** in the Work tab (`POST /api/runtime/flows {brief, compensation}`) runs one brief through four AI
+employees (`app/runtime/flow.py`):
+1. **Shortlist** (`data.read`): Sourced searches, verifies and ranks candidates.
+2. **Verify records** (`data.read`): a different agent re-checks the top five. Separation of duties means Sourced is refused. Each candidate gets a verdict (clear, flag or unverified) plus a report.
+3. **Schedule interviews** (`outreach.hiring`): the Scheduler proposes real slots (an .ics file with DTSTART/DTEND in IST) and drafts invites, which wait for your approval.
+4. **Offer letter** (`contract.sign`): the Scheduler is asked first and **refused**, because its passport has no contract.sign. The Offer agent drafts the letter. It's signed only after you approve it, and at that moment the passport is re-checked for contract.sign.
+
+At each handoff, Agaxes runs a live `verify_agent` for the stage's scope on each candidate agent until one is allowed.
+Every allow and deny is shown on the flow and written to the ledger (`flow.handoff`). Missing agents (Scheduler, Offer)
+are hired from templates on first use. The flow ends with a hiring-committee packet (Markdown).
+
+## Verify links (the receiving end)
+Every message Agaxes lets out (the outbox) and every signed offer ends with
+`Sent by <agent>, AI agent for <company>, vouched for by <sponsor>. Verify: <AGAXES_PUBLIC_URL>/verify/<seal>`.
+The page needs no login (`/verify/<seal>`). So does the API (`GET /api/verify/<seal>`, `POST /api/verify {text}` for receiving agents). They check:
+- that Agaxes issued the passport
+- the agent's signature over the content
+- that the content wasn't altered (paste what you received)
+- that the agent is in good standing now
+- that the action is in scope
+- the sponsor's live checks
+
+A suspended agent's links turn red. When email is configured (`OUTBOUND_TEST_TO` is your own inbox, see docs/OUTBOUND.md), approving a message or signing an offer also emails a copy to that inbox. `scripts/send_signed_email.py` sends one signed test note.
+
 ## Reliability
 - A transient failure (network, model) is retried once (`RUNTIME_MAX_ATTEMPTS`, default 2). Bad input fails immediately.
 - An outside agent that goes silent for `AGAXES_AGENT_LEASE_S` (600s) loses its claim, and the task goes back in the queue.
+- **Data provider out of credits (Crustdata 402).** The client raises `OutOfCredits` at once and doesn't retry. Any task that
+  hit it fails with "Data provider out of credits", and it isn't retried. The Work tab shows a banner (`runtime.provider` in
+  `/api/runtime/state`, and `/api/health` reports it too), and any route that lets the error escape answers 402 with the
+  same message. The payroll run doesn't suspend or revoke an agent whose check only couldn't run because of it. A
+  definite failure, such as the sponsor leaving, still suspends. Sends still fail closed at the guard. The banner clears
+  on the next successful live call.
 - If a launched Claude Code exits with an error before finishing (for example, an expired login), the task fails with the reason instead of sitting in the queue.
 
 ## Outside agents (Claude Code), governed the same way

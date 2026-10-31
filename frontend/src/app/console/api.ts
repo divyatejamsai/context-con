@@ -1,6 +1,8 @@
 // Client for the AI Employee registry (backend/app/agents/registry_api.py) and WS6's passport/ledger routes.
 // Everything shown comes from these calls: there is no offline or seeded data.
-import { API_URL } from "@/lib/stream";
+// Calls go through the console's same-origin proxy (app/api/backend), which adds the signed-in user's session, so
+// the backend answers as that person and shows only their workspace. API_URL is still where that proxy points.
+export const BASE = "/api/backend";
 import type { Source } from "@/lib/types";
 
 export type Scope = "outreach.hiring" | "outreach.sales" | "data.read" | "contract.sign" | "payment.send";
@@ -92,6 +94,11 @@ export interface Agent {
   reviews: Review[];
   ledger_entries: string[];
   scorecard?: Scorecard;
+  /** "agent": it made its own key and Agaxes holds only the public half. "agaxes" (or missing): Agaxes holds it. */
+  key_custody?: "agent" | "agaxes";
+  workspace_id?: string | null;
+  /** User ids of the people (recruiters) who work with it. They see only the agents assigned to them. */
+  assignees?: string[];
 }
 
 export interface Role {
@@ -119,6 +126,8 @@ export interface LedgerEntry {
   sources: Source[];
   prev_hash: string;
   hash: string;
+  /** Who caused the entry, from their session or the admin token, covered by the hash. Missing in open mode. */
+  actor?: { via: string; email?: string; role?: string; user_id?: string; [k: string]: unknown } | null;
 }
 
 export interface LedgerView {
@@ -159,7 +168,7 @@ export function setAdminToken(t: string) {
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAdminToken();
-  const res = await fetch(`${API_URL}/api${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(token ? { "x-admin-token": token } : {}), ...(init?.headers ?? {}) },
   });
@@ -178,7 +187,7 @@ export const api = {
   scenarios: () => req<{ scenarios: Scenario[] }>("/passport/scenarios").then((r) => r.scenarios),
   /** The full ledger as the exact text the server sent, so the browser can re-hash it byte for byte. */
   ledgerText: async () => {
-    const res = await fetch(`${API_URL}/api/ledger`);
+    const res = await fetch(`${BASE}/ledger`);
     if (!res.ok) throw new ApiError(`Backend returned ${res.status}`, res.status);
     return res.text();
   },
@@ -196,7 +205,90 @@ export const api = {
   verify: (passport: Passport, scope?: Scope) => post<Verdict>("/passport/verify", { passport, scope: scope ?? null }),
   review: (id: string, b: { reviewer: string; decision: ReviewDecision; notes: string; scopes?: Scope[] }) =>
     post<Agent>(`/agents/${id}/reviews`, b),
+  health: () => req<Health>("/health"),
+  /** Who is signed in and what they may see (the Next auth route reads the session cookie). */
+  me: async () => {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    if (!res.ok) throw new ApiError(`Not signed in (${res.status})`, res.status);
+    return (await res.json()) as Me;
+  },
+  companies: () => req<{ companies: Company[]; unassigned_agents: AgentStub[] }>("/platform/companies"),
+  moveAgent: (id: string, workspace_id: string | null) => post<Agent>(`/platform/agents/${id}/workspace`, { workspace_id }, "PUT"),
+  setAssignees: (id: string, user_ids: string[]) => post<Agent>(`/agents/${id}/assignees`, { user_ids }, "PUT"),
+  workspace: () => req<Workspace>("/workspace"),
+  members: () => req<{ members: Member[] }>("/workspace/members").then((r) => r.members),
+  setRole: (id: string, role: WorkspaceRole) => post<Member>(`/workspace/members/${id}`, { role }, "PUT"),
+  enrollments: () => req<Enrollment[]>("/agents/enrollments"),
+  enroll: (b: { name: string; role: string; sponsor: Sponsor; scopes?: Scope[]; days?: number; job?: string; ttl_minutes?: number }) =>
+    post<{ enrollment: Enrollment; token: string; command: string; note?: string }>("/agents/enrollments", b),
+  revokeEnrollment: (id: string) => post<Enrollment>(`/agents/enrollments/${id}/revoke`),
+  /** Signed audit export as a file download. JSONL is the evidence (signed manifest + entries); CSV is for reading. */
+  exportLedger: async (format: "jsonl" | "csv", agentId?: string) => {
+    const token = getAdminToken();
+    const q = new URLSearchParams({ format, ...(agentId ? { agent_id: agentId } : {}) });
+    const res = await fetch(`${BASE}/ledger/export?${q}`, { headers: token ? { "x-admin-token": token } : {} });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(body?.detail ?? `Backend returned ${res.status}`, res.status);
+    }
+    const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? `agaxes-ledger.${format}`;
+    const url = URL.createObjectURL(await res.blob());
+    const a = Object.assign(document.createElement("a"), { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return name;
+  },
 };
+
+export interface Access {
+  level: "platform" | "company" | "own_work";
+  role: "operator" | "owner" | "admin" | "member" | "viewer";
+  views: string[];
+  summary: string;
+}
+export interface Me {
+  user: { id: string; email: string; full_name: string; job_role: string | null; workspace_role: string; company_id: string };
+  company: { id: string; name: string; domain: string } | null;
+  access?: Access;
+}
+export interface AgentStub { agent_id: string; name: string; status: AgentStatus }
+export interface Company {
+  id: string;
+  name: string;
+  domain: string;
+  verified_via?: string;
+  created_at?: string;
+  members: Member[];
+  agents: AgentStub[];
+}
+
+export type AuthMode = "open" | "writes_protected" | "login_required";
+export interface Health { ok: boolean; auth_mode?: AuthMode; llm_mode?: string; crustdata_mode?: string }
+export type WorkspaceRole = "viewer" | "member" | "admin" | "owner";
+export interface Workspace {
+  auth_mode: AuthMode;
+  via: "session" | "admin_token" | "open" | string;
+  role: WorkspaceRole;
+  company?: { id?: string; name?: string; domain?: string } | null;
+  roles: { role: WorkspaceRole; can: string }[];
+}
+export interface Member { id: string; email: string; full_name?: string | null; job_role?: string | null; workspace_role: WorkspaceRole; created_at?: string; last_login_at?: string | null }
+export interface Enrollment {
+  enrollment_id: string;
+  name: string;
+  role: string;
+  sponsor: Sponsor;
+  scopes: Scope[] | null;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+  agent_id: string | null;
+  status: "pending" | "used" | "expired" | "revoked";
+}
 
 // ---- Agent runtime (backend/app/runtime, docs/RUNTIME.md): tasks, approvals, budgets, schedules -------------
 
@@ -265,17 +357,26 @@ export interface Approval {
   task_id: string;
   agent_id: string;
   agent_name: string;
-  action: "send";
+  action: "send" | "sign_offer";
   to: Recipient;
   body: string;
   scope: Scope;
-  status: "pending" | "sending" | "sent" | "rejected" | "blocked_at_send" | "expired";
-  preview: { decision: "allow" | "block"; checks: Check[]; ledger_entry?: string | null };
+  status: "pending" | "sending" | "sent" | "signed" | "rejected" | "blocked_at_send" | "expired";
+  preview: { decision: "allow" | "block"; checks: Check[]; ledger_entry?: string | null; note?: string };
   created_at: string;
   decided_at?: string | null;
   decided_by?: string | null;
   note?: string | null;
-  result?: { sent: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string } | null;
+  result?: { sent?: boolean; signed?: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string;
+    verify_url?: string | null; email?: { emailed: boolean; why?: string; delivered_to?: string } | null } | null;
+}
+
+export interface FlowCheck { agent: string; scope: string; decision: "allow" | "deny"; why: string; ledger_entry?: string | null }
+export interface FlowStage { key: string; label: string; scope: Scope; status: string; task_id: string | null; agent: string | null; checks: FlowCheck[] }
+export interface Flow {
+  flow_id: string; status: "running" | "done" | "stopped"; created_at: string; finished_at: string | null; by: string;
+  input: { brief: string; role: string; compensation: string; start_date: string; interviewer: string; slots: string };
+  stage: number; stages: FlowStage[]; hired: string[]; error: string | null; packet: string;
 }
 
 export interface Budget {
@@ -353,18 +454,20 @@ export interface Schedule {
 
 export interface RuntimeState {
   version: number;
-  runtime: { alive: boolean; started_at: string | null; running: number; max_concurrent: number; modes: { crustdata: string; llm: string } };
+  runtime: { alive: boolean; started_at: string | null; running: number; max_concurrent: number; modes: { crustdata: string; llm: string };
+    provider?: { out_of_credits: boolean; since: string | null; endpoint: string | null; message: string | null } };
   totals: { agents: number; working: number; queued: number; done_today: number; failed_today: number; pending_approvals: number; sent_today: number; blocked_today: number };
   agents: LiveAgent[];
   tasks: Task[];
   approvals: { pending: Approval[]; decided: Approval[] };
   schedules: Schedule[];
+  flows?: Flow[];
   payroll: { enabled: boolean; every_minutes: number; last_run_at?: string | null; next_run_at?: string | null; running?: boolean;
     last_result?: { at: string; by: string; checked: number; suspended: string[]; error?: string; ledger_entry?: string } | null };
   ledger: { chain_ok: boolean; first_bad_seq: number | null };
 }
 
-export const receiptUrl = (hash: string) => `${API_URL}/api/runtime/receipts/${hash}`;
+export const receiptUrl = (hash: string) => `${BASE}/runtime/receipts/${hash}`;
 
 export interface Template { key: string; name: string; role: string; scopes: Scope[]; job: string; hired: boolean; jobs: string[] }
 
@@ -387,5 +490,6 @@ export const runtime = {
   toggleSchedule: (id: string) => post<Schedule>(`/runtime/schedules/${id}/toggle`),
   deleteSchedule: (id: string) => post<{ deleted: string }>(`/runtime/schedules/${id}`, undefined, "DELETE"),
   setPayroll: (b: { enabled?: boolean; every_minutes?: number }) => post<RuntimeState["payroll"]>("/runtime/payroll", b, "PUT"),
+  startFlow: (b: { brief: string; compensation?: string; start_date?: string }) => post<Flow>("/runtime/flows", b),
   runPayroll: () => post<NonNullable<RuntimeState["payroll"]["last_result"]>>("/runtime/payroll/run"),
 };

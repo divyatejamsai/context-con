@@ -488,3 +488,154 @@ async def test_agent_holding_its_own_key_never_runs_in_house_work(slow_kind):
         assert "outside-agent task" in store.get_task(queued["task_id"])["error"]
     finally:
         await rt.stop()
+
+
+# ---- data provider out of credits (Crustdata 402) ---------------------------------------------------
+
+@pytest.fixture
+def broke(monkeypatch):
+    """A live Crustdata client whose key has no credits: every call answers 402 insufficient_credits."""
+    import httpx
+    from app.crustdata import client as cd
+    monkeypatch.setattr(cd, "_PROVIDER", {"out_of_credits_at": None, "endpoint": None})
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        return httpx.Response(402, json={"error": {"type": "insufficient_credits", "message": "Not enough credits"}})
+
+    c = cd.CrustdataClient(mode="live", api_key="k", transport=httpx.MockTransport(handler))
+    c.calls = calls
+    return c
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_is_one_clear_error_and_clears_after_a_top_up(broke, monkeypatch):
+    import httpx
+    from app.crustdata import OUT_OF_CREDITS, OutOfCredits, client as cd, provider_status
+    with pytest.raises(OutOfCredits) as e:
+        await broke.company_identify(domain="grewon.com")
+    assert str(e.value) == OUT_OF_CREDITS and e.value.status == 402 and broke.calls["n"] == 1  # no retry storm
+    st = provider_status()
+    assert st["out_of_credits"] and "out of credits" in st["message"] and st["endpoint"]
+    topped_up = cd.CrustdataClient(mode="live", api_key="k",
+                                   transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    await topped_up.company_identify(domain="grewon.com")
+    assert provider_status()["out_of_credits"] is False
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_never_revokes_passports_on_payroll(broke):
+    ags = fleet()
+    rt = Runtime(broke, tick=0.05, payroll=False, today=TODAY)
+    res = await rt.run_payroll("test")
+    assert res["checked"] >= 5 and res["suspended"] == [] and "out of credits" in res["note"]
+    assert all(registry.get_agent(a["agent_id"])["status"] == "active" for a in ags.values())
+    assert ledger.entries(kind="passport.revoked") == []
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_fails_the_task_with_a_clear_reason(broke):
+    from app.crustdata import OUT_OF_CREDITS
+    aid = fleet()["diligence"]["agent_id"]
+    rt = Runtime(broke, tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(aid, "vendor_diligence", {"company": "Grewon", "domain": "grewon.com"}, by="test")
+        await until(lambda: status(t["task_id"]) in ("failed", "done", "refused"), 60)
+        got = store.get_task(t["task_id"])
+        assert got["status"] == "failed" and got["error"] == OUT_OF_CREDITS and got["attempts"] == 1
+        assert state(rt)["runtime"]["provider"]["out_of_credits"] is True
+    finally:
+        await rt.stop()
+
+
+def test_out_of_credits_route_answers_402_with_the_message(broke):
+    from app.crustdata import OUT_OF_CREDITS, OutOfCredits
+    from app.main import app
+    if not any(getattr(r, "path", "") == "/api/_test_out_of_credits" for r in app.routes):
+        async def boom():
+            raise OutOfCredits(OUT_OF_CREDITS, status=402)
+        app.add_api_route("/api/_test_out_of_credits", boom)
+    r = TestClient(app).get("/api/_test_out_of_credits")
+    assert r.status_code == 402 and r.json() == {"detail": OUT_OF_CREDITS, "code": "out_of_credits"}
+
+
+@pytest.mark.asyncio
+async def test_hiring_flow_hands_work_between_agents_with_passport_checks():
+    from app.runtime import flow
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        f = await flow.start(rt, {"brief": "Senior backend engineer, payments, Bangalore, 5+ years",
+                                  "compensation": "₹42 LPA fixed + ESOPs"}, by="test")
+        assert set(f["hired"]) == {"Scheduler", "Offer"}
+        await until(lambda: flow.get(f["flow_id"])["status"] != "running", 240)
+        f = flow.get(f["flow_id"])
+        print(flow.packet(f))
+        assert f["status"] == "done", f
+        st = {s["key"]: s for s in f["stages"]}
+        assert st["shortlist"]["agent"] == "Sourced"
+        assert st["verify"]["agent"] != "Sourced" and st["verify"]["checks"][0]["decision"] == "deny"  # separation of duties
+        assert st["schedule"]["agent"] == "Scheduler"
+        assert st["offer"]["agent"] == "Offer"
+        deny = st["offer"]["checks"][0]
+        assert deny["agent"] == "Scheduler" and deny["decision"] == "deny" and "contract.sign" in deny["why"]
+        offer = store.get_task(st["offer"]["task_id"])["output"]["offer"]
+        assert offer["state"] == "waiting for your approval"
+        a = rt.approve if False else None
+        from app.runtime.worker import execute_approval
+        res = await execute_approval(offer["approval_id"], "employer", rt.mcp)
+        assert res["status"] == "signed", res
+        assert store.get_task(st["offer"]["task_id"])["output"]["offer"]["state"] == "signed"
+        assert "signed" in flow.packet(flow.get(f["flow_id"]))
+        ics = next(x for x in store.get_task(st["schedule"]["task_id"])["output"]["artifacts"] if x["kind"] == "interview_holds")
+        assert "DTSTART:" in ics["content"]
+
+        # the receiving end: the signed letter carries a verify link anyone can check, and tampering is caught
+        from app.agents import seal
+        letter = store.get_task(st["offer"]["task_id"])["output"]["offer"]["letter"]
+        assert "Verify: http" in letter and "vouched for by" in letter
+        from app.main import app
+        c = TestClient(app)
+        sid = seal.split(letter)[1]
+        r = c.get(f"/api/verify/{sid}").json()
+        assert r["verdict"] == "genuine", r
+        assert {"issued_by_agaxes", "agent_signature", "in_scope", "agent_in_good_standing"} <= {x["name"] for x in r["checks"]}
+        assert c.post("/api/verify", json={"text": letter}).json()["verdict"] == "genuine"
+        forged = letter.replace("₹42 LPA", "₹92 LPA")
+        bad = c.post("/api/verify", json={"text": forged}).json()
+        assert bad["verdict"] == "invalid"
+        assert {x["name"] for x in bad["checks"] if x["status"] == "fail"} == {"agent_signature", "content_untampered"}
+        registry.suspend(registry.get_agent(store.get_task(st["offer"]["task_id"])["agent_id"])["agent_id"], "test")
+        assert c.get(f"/api/verify/{sid}").json()["verdict"] == "invalid"  # a suspended agent's letters stop verifying
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_signed_email_reaches_the_test_inbox_and_verifies_from_the_mail(monkeypatch):
+    """The demo: an agent's signed note is emailed to our own inbox; pasting the email as received verifies."""
+    from app.agents import seal
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    from app.outbound import mailer
+    got = {}
+
+    async def fake_send(env):
+        got["text"] = mailer._text(env, "me@example.com")
+        return mailer.Delivery(provider="smtp", mode="test", delivered_to="me@example.com", provider_id=None,
+                               message_id="<x@y>", status="sent", from_addr="me@example.com")
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("SMTP_USER", "me@example.com")
+    monkeypatch.setenv("OUTBOUND_TEST_TO", "me@example.com")
+    monkeypatch.setattr(mailer, "send", fake_send)
+    rec = fleet()["sourced"]
+    p = Passport.model_validate(rec["passport"])
+    body = "Hi Divya,\n\nA signed note from Sourced.\n\nSourced"
+    sid, _ = seal.issue(p, sign_message(p, registry.private_key(rec["agent_id"]), body), body, "outreach.hiring")
+    res = await seal.email_copy(seal.get(sid), "please verify me")
+    assert res["emailed"] and f"/verify/{sid}" in got["text"] and "vouched for by" in got["text"]
+    v = await seal.verify(text=got["text"].replace("\n", "\r\n"))  # as a mail client hands it back
+    assert v["verdict"] == "genuine", v

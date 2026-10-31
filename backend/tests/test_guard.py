@@ -124,7 +124,9 @@ async def test_send_writes_outbox_only_on_allow(tmp_path):
     _, sent = await send_if_allowed(p, sign_message(p, key, ok_body), VINOD, ok_body, "outreach.hiring", today=TODAY, graph=g)
     _, blocked = await send_if_allowed(p, sign_message(p, key, bad_body), VINOD, bad_body, "outreach.hiring", today=TODAY, graph=g)
     rows = [json.loads(line) for line in (tmp_path / "outbox.jsonl").read_text().splitlines()]
-    assert sent and not blocked and [r["body"] for r in rows] == [ok_body]
+    from app.agents import seal
+    assert sent and not blocked and [seal.split(r["body"])[0] for r in rows] == [ok_body]
+    assert "Verify: " in rows[0]["body"] and seal.get(rows[0]["seal_id"])["sha256"] == seal.sha(ok_body)
 
 
 @pytest.mark.parametrize("body,expect", [
@@ -327,3 +329,30 @@ async def test_mcp_by_agent_id_no_key_on_the_wire(fake_registry):
 
     text, err = await _mcp_call("check_before_send", {**args, "agent_id": "agt_nope"})
     assert err and "agt_nope" in text
+
+
+class _OneGraph(Graph):
+    def __init__(self, url, rec):
+        super().__init__(None, mode="replay")
+        self.url, self.rec = url, rec
+
+    async def person(self, profile_url):
+        return self.rec if profile_url == self.url else await super().person(profile_url)
+
+
+@pytest.mark.asyncio
+async def test_non_latin_company_names_match():
+    # Live regression: "no role at 群益金鼎證券股份有限公司 ... now Quantitative Trader at 群益金鼎證券股份有限公司"
+    import copy
+
+    co = "群益金鼎證券股份有限公司"
+    rec = copy.deepcopy(Graph(None, mode="replay")._fx()["linkedin.com/in/vinod-sonagara"])
+    jobs = rec["experience"]["employment_details"]["current"]
+    for j in jobs:
+        for k in ("name", "employer_name", "company_name"):
+            if k in j:
+                j[k] = co
+    url = "https://www.linkedin.com/in/cjk-test"
+    v = await guard("Hi, open to a quick chat?", to={"name": "Vinod Sonagara", "profile_url": url, "company": co},
+                    graph=_OneGraph(url, rec))
+    assert check(v, "recipient_still_at_company")[0].status == "pass", [c.model_dump() for c in v.checks]

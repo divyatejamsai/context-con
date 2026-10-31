@@ -6,7 +6,8 @@ import { BadgeCheck, LogOut, Plus } from "lucide-react";
 import type { AuthCompany, AuthUser } from "@/lib/auth";
 
 /** Avatar button in the app header: who's signed in, which workspace, and log out. */
-export function AccountMenu() {
+/** `up`: in a sidebar footer, open upward and anchor to the nearest positioned parent (the footer row) so it stays on screen. */
+export function AccountMenu({ up }: { up?: boolean } = {}) {
   const router = useRouter();
   const [me, setMe] = useState<{ user: AuthUser; company: AuthCompany } | null>(null);
   const [open, setOpen] = useState(false);
@@ -32,13 +33,13 @@ export function AccountMenu() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={up ? undefined : "relative"}>
       <button onClick={() => setOpen((o) => !o)} aria-label="Account" aria-expanded={open}
         className="grid size-7 place-items-center rounded-full border border-border-strong bg-elevated text-[11px] font-semibold hover:bg-hover">
         {initials}
       </button>
       {open && (
-        <div className="absolute right-0 top-9 z-50 w-64 rounded-lg border border-border bg-panel p-1 shadow-[var(--shadow)] animate-fade">
+        <div className={`${up ? "absolute inset-x-0 bottom-9" : "absolute right-0 top-9 w-64"} z-50 rounded-lg border border-border bg-panel p-1 shadow-[var(--shadow)] animate-fade`}>
           <div className="px-2.5 py-2">
             <p className="truncate text-[13px] font-medium">{me.user.full_name}</p>
             <p className="truncate text-[12px] text-muted-foreground">{me.user.email}</p>
