@@ -134,21 +134,32 @@ def _text_evidence(pr: Profile, k: str) -> tuple[str, str] | None:
     return None
 
 
-def _domain_evidence(pr: Profile, cf: CompanyFacts | None, skill: str) -> tuple[str, str, str] | None:
-    """(evidence, field, endpoint) when a domain-type skill (e.g. payments) is backed by employer industry or name."""
+def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[str, str, str]]:
+    """Every (evidence, field, endpoint) backing a domain-type skill (e.g. payments), at most one per employer.
+    Current employer first, so the ranker can tell a current domain role from a past one."""
     terms = domain_terms(skill) or (norm(skill),)
+    hits: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    cur_key = company_key(pr.current[0].company) if pr.current else None
     if cf and cf.industry and any(_has(cf.industry, t) for t in terms):
-        return f"employer {cf.name} is in {cf.industry}", "taxonomy.professional_network_industry", cf.endpoint
+        hits.append((f"current employer {cf.name} is in {cf.industry}", "taxonomy.professional_network_industry", cf.endpoint))
+        seen.add(company_key(cf.name) if cf.name else cur_key or "")
     for j in pr.current + pr.past:
+        key = company_key(j.company)
+        if key in seen:
+            continue
         when = "current" if j in pr.current else "past"
         if j.company_industry and any(_has(j.company_industry, t) for t in terms):
-            return f"{when} employer {j.company} is in {j.company_industry}", f"{j.path}.company_professional_network_industry", pr.endpoint
-        if any(_has(j.company, t) for t in terms):
-            return f"{when} employer name {j.company}", f"{j.path}.name", pr.endpoint
-    for j in pr.current + pr.past:
-        if j.company_description and any(_has(j.company_description, t) for t in terms):
-            return f"{j.company} describes itself as {j.company_description[:80].strip()}...", f"{j.path}.company_description", pr.endpoint
-    return None
+            hits.append((f"{when} employer {j.company} is in {j.company_industry}", f"{j.path}.company_professional_network_industry", pr.endpoint))
+        elif any(_has(j.company, t) for t in terms):
+            hits.append((f"{when} employer name {j.company}", f"{j.path}.name", pr.endpoint))
+        elif j.company_description and any(_has(j.company_description, t) for t in terms):
+            hits.append((f"{when} employer {j.company} describes itself as '{j.company_description[:60].strip()}...'",
+                         f"{j.path}.company_description", pr.endpoint))
+        else:
+            continue
+        seen.add(key)
+    return hits
 
 
 async def verify_candidate(
@@ -323,13 +334,23 @@ async def verify_candidate(
         listed = next((g for g in pr.skills if skill_matches(skill, g)), None)
         if listed:
             ev = "listed in profile skills" + (f" as '{listed}'" if norm(listed) != k else "")
+            dom = domain_hits(pr, cf, skill) if domain_terms(skill) else []
+            if dom:
+                ev += f"; also: {'; '.join(h[0] for h in dom[:3])}"
             out.add(f"Skill: {skill}", "verified", ev, ep, pr.skills_field)
-        elif hit := _text_evidence(pr, k):
-            out.add(f"Skill: {skill}", "verified", hit[0], ep, hit[1])
-        elif hit := _domain_evidence(pr, cf, skill):
-            out.add(f"Skill: {skill}", "verified", hit[0], hit[2], hit[1])
         else:
-            missing.append(skill)
+            hit = _text_evidence(pr, k)
+            dom = domain_hits(pr, cf, skill) if domain_terms(skill) else []
+            if hit:
+                primary, rest = (hit[0], hit[1], ep), dom
+            elif dom:
+                primary, rest = dom[0], dom[1:]
+            else:
+                missing.append(skill)
+                continue
+            ev = primary[0] + (f"; also: {'; '.join(h[0] for h in rest[:3])}" if rest else "")
+            out.add(f"Skill: {skill}", "verified", ev, primary[2], primary[1])
+            continue
     if missing:
         out.add(f"Skills not evidenced: {', '.join(missing)}", "unverifiable",
                 "not found in profile skills, headline, titles or employer industries", ep, pr.skills_field or "skills")
