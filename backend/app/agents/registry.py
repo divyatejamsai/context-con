@@ -26,7 +26,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from . import ledger, passport as pp
+from . import guard, ledger, passport as pp
+from .graph import Graph
 from .models import SCOPES, Passport, Scope, Sponsor, Verdict
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -423,3 +424,16 @@ async def add_review(agent_id: str, reviewer: str, decision: ReviewDecision, not
         rec["ledger_entries"].append(review["ledger_entry"])
         _save(agents)
         return public(rec)
+
+
+# ---- sending (through the Send Guard) --------------------------------------------------------
+
+async def send(agent_id: str, to: dict, body: str, scope: Scope, client, *, signed_body: str | None = None,
+               today=None) -> tuple[Verdict, bool]:
+    """The agent signs its draft with its own key and hands it to the Send Guard. `signed_body` lets the demo sign
+    one text and send another (a message altered after signing). Returns (verdict, written to outbox)."""
+    with _lock:
+        rec = _get(_load(), agent_id)
+    p = Passport(**rec["passport"])
+    sig = pp.sign_message(p, base64.b64decode(rec["private_key"]), signed_body if signed_body is not None else body)
+    return await guard.send_if_allowed(p, sig, to, body, scope, today=today, graph=Graph(client))
