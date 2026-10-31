@@ -1,319 +1,569 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Play, Radio, RotateCcw, ShieldCheck, Square, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { PipelineBar, StepFeed, type FeedItem } from "@/components/step-feed";
-import { CandidateCard, countClaims } from "@/components/candidate-card";
-import { CandidateDrawer } from "@/components/candidate-drawer";
+import { Download, FileText, Keyboard, Radio, Rows3, Table2 } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { BriefInput, EXAMPLES } from "@/components/brief";
+import { Trace } from "@/components/trace";
+import { Dossier } from "@/components/dossier";
+import { CompareTable, ShortlistRows, type Row, type SortKey } from "@/components/shortlist";
 import { API_URL, streamRun, type RunMode } from "@/lib/stream";
-import { canonicalStep, type Candidate, type Criteria, type RunEvent, type Summary } from "@/lib/types";
+import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run-state";
+import { download, toCSV, toMarkdown } from "@/lib/export";
+import type { Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const EXAMPLES = [
-  "need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon",
-  "founding ML engineer for a seed-stage fintech in Mumbai, LLM + ranking experience",
-  "head of growth, B2B SaaS, has scaled 0→1, remote india ok",
-];
-
-interface State {
-  running: boolean;
-  feed: FeedItem[];
-  currentStep?: string;
-  criteria?: Criteria;
-  candidates: Record<string, Candidate>;
-  summary?: Summary;
-  order?: string[];
-  done: boolean;
-  fatal?: string;
+function useWide() {
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
 }
 
-type Action = { type: "start" } | { type: "event"; ev: RunEvent } | { type: "fatal"; message: string } | { type: "stop" };
-
-const initial: State = { running: false, feed: [], candidates: {}, done: false };
-
-function reducer(s: State, a: Action): State {
-  switch (a.type) {
-    case "start":
-      return { ...initial, running: true };
-    case "stop":
-      return { ...s, running: false };
-    case "fatal":
-      return { ...s, running: false, fatal: a.message };
-    case "event": {
-      const ev = a.ev;
-      const at = Date.now();
-      switch (ev.type) {
-        case "step": {
-          const step = canonicalStep(ev.step);
-          return {
-            ...s,
-            currentStep: step,
-            criteria: ev.data?.criteria ?? s.criteria,
-            order: Array.isArray(ev.data?.order) ? ev.data.order : s.order,
-            feed: [...s.feed, { kind: "step", step, message: ev.message, at }],
-          };
-        }
-        case "error":
-          return { ...s, feed: [...s.feed, { kind: "error", step: canonicalStep(ev.step), message: ev.message, at }] };
-        case "criteria":
-          return { ...s, criteria: ev.criteria };
-        case "candidate": {
-          const c = ev.candidate;
-          if (!c?.id) return s;
-          // Later events for the same id (e.g. after verify/rank) merge over earlier ones.
-          return { ...s, candidates: { ...s.candidates, [c.id]: { ...s.candidates[c.id], ...c } } };
-        }
-        case "done":
-          return {
-            ...s,
-            done: true,
-            running: false,
-            summary: ev.summary,
-            feed: [...s.feed, { kind: "done", message: "Done", at }],
-          };
-        default:
-          return s;
-      }
-    }
-  }
-}
+const toggle = (s: Set<string>, id: string) => {
+  const n = new Set(s);
+  if (n.has(id)) n.delete(id);
+  else n.add(id);
+  return n;
+};
 
 export default function Home() {
-  const [brief, setBrief] = useState(EXAMPLES[0]);
+  const [brief, setBrief] = useState(EXAMPLES[0].brief);
+  const [lastBrief, setLastBrief] = useState("");
   const [mode, setMode] = useState<RunMode>(process.env.NEXT_PUBLIC_DEFAULT_MODE === "live" ? "live" : "replay");
-  const [state, dispatch] = useReducer(reducer, initial);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [run, dispatch] = useReducer(runReducer, initialRun);
+  const [selected, setSelected] = useState<string>();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [pinned, setPinned] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [view, setView] = useState<"list" | "compare">("list");
+  const [hideContra, setHideContra] = useState(false);
+  const [sort, setSort] = useState<SortKey>("rank");
+  const [dir, setDir] = useState<1 | -1>(1);
+  const [help, setHelp] = useState(false);
+  const [now, setNow] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const briefRef = useRef<HTMLTextAreaElement>(null);
+  const wide = useWide();
 
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get("mode");
     if (m === "live" || m === "replay") setMode(m);
   }, []);
 
-  const run = useCallback(async () => {
+  useEffect(() => {
+    if (!run.running) return;
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, [run.running]);
+
+  const start = useCallback(async () => {
     if (!brief.trim()) return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    setOpenId(null);
-    dispatch({ type: "start" });
+    setSelected(undefined);
+    setSheetOpen(false);
+    setPinned(new Set());
+    setDismissed(new Set());
+    setDrafts({});
+    setLastBrief(brief);
+    setNow(Date.now());
+    dispatch({ type: "start", at: Date.now() });
     try {
-      for await (const ev of streamRun(brief, mode, ctrl.signal)) dispatch({ type: "event", ev });
-      dispatch({ type: "stop" });
+      for await (const ev of streamRun(brief, mode, ctrl.signal)) dispatch({ type: "event", ev, at: Date.now() });
+      dispatch({ type: "stop", at: Date.now() });
     } catch (e) {
-      if (ctrl.signal.aborted) return dispatch({ type: "stop" });
+      if (ctrl.signal.aborted) return dispatch({ type: "stop", at: Date.now() });
       const msg = e instanceof Error ? e.message : String(e);
-      dispatch({
-        type: "fatal",
-        message: mode === "live" ? `Could not reach the agent at ${API_URL} (${msg}).` : msg,
-      });
+      dispatch({ type: "fatal", at: Date.now(), message: mode === "live" ? `Couldn't reach the agent at ${API_URL}. ${msg}` : msg });
     }
   }, [brief, mode]);
 
   const stop = () => {
     abortRef.current?.abort();
-    dispatch({ type: "stop" });
+    dispatch({ type: "stop", at: Date.now() });
   };
 
-  // Backend's final rank order wins when present; otherwise sort by score.
-  const ranked = useMemo(() => {
-    const pos = new Map((state.order ?? []).map((id, i) => [id, i]));
-    return Object.values(state.candidates).sort(
+  // Rank = backend order if given, else score. Pinned float up, passed sink down.
+  const rows: Row[] = useMemo(() => {
+    const pos = new Map((run.order ?? []).map((id, i) => [id, i]));
+    const base = Object.values(run.candidates).sort(
       (a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9) || (b.score ?? -1) - (a.score ?? -1),
     );
-  }, [state.candidates, state.order]);
-  const totals = useMemo(
-    () =>
-      ranked.reduce(
-        (t, c) => {
-          const k = countClaims(c);
-          return { verified: t.verified + k.verified, contradicted: t.contradicted + k.contradicted, unverifiable: t.unverifiable + k.unverifiable };
-        },
-        { verified: 0, contradicted: 0, unverifiable: 0 },
-      ),
-    [ranked],
+    const ranked = base.map((c, i) => ({ c, rank: i + 1, pinned: pinned.has(c.id), dismissed: dismissed.has(c.id), fresh: false }));
+    const val = (r: Row): number | string => {
+      switch (sort) {
+        case "fit": return r.c.score ?? -1;
+        case "evidence": return evidenceStrength(r.c);
+        case "contradicted": return claimCounts(r.c).contradicted;
+        case "name": return r.c.name.toLowerCase();
+        default: return r.rank;
+      }
+    };
+    const desc = sort === "fit" || sort === "evidence" || sort === "contradicted";
+    return ranked
+      .filter((r) => !(hideContra && claimCounts(r.c).contradicted > 0))
+      .sort((a, b) => {
+        const g = (r: Row) => (r.pinned ? 0 : r.dismissed ? 2 : 1);
+        if (g(a) !== g(b)) return g(a) - g(b);
+        const va = val(a), vb = val(b);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return cmp * (desc ? -1 : 1) * dir;
+      });
+  }, [run.candidates, run.order, pinned, dismissed, hideContra, sort, dir]);
+
+  // Auto-select the top candidate on wide screens so the dossier is never empty.
+  useEffect(() => {
+    if (wide && !selected && rows.length) setSelected(rows[0].c.id);
+  }, [wide, selected, rows]);
+
+  const select = (id: string) => {
+    setSelected(id);
+    if (!wide) setSheetOpen(true);
+  };
+
+  const move = useCallback(
+    (delta: number) => {
+      if (!rows.length) return;
+      const i = rows.findIndex((r) => r.c.id === selected);
+      const next = rows[Math.max(0, Math.min(rows.length - 1, (i < 0 ? -1 : i) + delta))];
+      setSelected(next.c.id);
+      document.querySelector(`[data-row="${next.c.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    },
+    [rows, selected],
   );
-  const open = openId ? state.candidates[openId] ?? null : null;
-  const started = state.running || state.feed.length > 0 || state.fatal;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === "TEXTAREA" || t.tagName === "INPUT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key;
+      if (k === "j" || k === "ArrowDown") { e.preventDefault(); move(1); }
+      else if (k === "k" || k === "ArrowUp") { e.preventDefault(); move(-1); }
+      else if (k === "/") { e.preventDefault(); briefRef.current?.focus(); }
+      else if (k === "?") setHelp((h) => !h);
+      else if (k === "v") setView((v) => (v === "list" ? "compare" : "list"));
+      else if (k === "h") setHideContra((h) => !h);
+      else if (k === "Enter" && selected && !wide) setSheetOpen(true);
+      else if (k === "p" && selected) setPinned((s) => toggle(s, selected));
+      else if (k === "x" && selected) setDismissed((s) => toggle(s, selected));
+      else if (k === "c" && selected) {
+        const txt = drafts[selected] ?? run.candidates[selected]?.outreach_draft;
+        if (txt) navigator.clipboard.writeText(txt).catch(() => {});
+      } else if (k === "Escape") { setHelp(false); setSheetOpen(false); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [move, selected, wide, drafts, run.candidates]);
+
+  const exportRows = () =>
+    rows.filter((r) => !r.dismissed).map((r) => ({ ...r.c, outreach_draft: drafts[r.c.id] ?? r.c.outreach_draft }));
+
+  const onSort = (k: SortKey) => {
+    if (k === sort) setDir((d) => (d === 1 ? -1 : 1));
+    else { setSort(k); setDir(1); }
+  };
+
+  const started = run.running || run.log.length > 0 || !!run.fatal;
+  const elapsed = run.startedAt ? Math.max(0, (run.endedAt ?? (run.running ? now : run.startedAt)) - run.startedAt) / 1000 : 0;
+  const cur = selected ? run.candidates[selected] : undefined;
+  const curRow = rows.find((r) => r.c.id === selected);
+  const totals = rows.reduce(
+    (t, r) => {
+      const k = claimCounts(r.c);
+      return { v: t.v + k.verified, x: t.x + k.contradicted, u: t.u + k.unverifiable };
+    },
+    { v: 0, x: 0, u: 0 },
+  );
+
+  const dossier = cur && curRow && (
+    <Dossier
+      candidate={cur}
+      rank={curRow.rank}
+      pinned={pinned.has(cur.id)}
+      dismissed={dismissed.has(cur.id)}
+      draft={drafts[cur.id]}
+      onDraft={(t) => setDrafts((d) => ({ ...d, [cur.id]: t }))}
+      onPin={() => setPinned((s) => toggle(s, cur.id))}
+      onDismiss={() => setDismissed((s) => toggle(s, cur.id))}
+    />
+  );
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <ShieldCheck className="size-6 text-primary" /> Brief to Shortlist
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Paste any hiring brief. The agent searches Crustdata, checks every claim, and cites a source for each one.
-          </p>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs" role="radiogroup" aria-label="Data source">
-          {(["replay", "live"] as const).map((m) => (
-            <button
-              key={m}
-              role="radio"
-              aria-checked={mode === m}
-              onClick={() => setMode(m)}
-              disabled={state.running}
-              className={cn("rounded-md px-2.5 py-1 font-medium", mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-            >
-              {m === "replay" ? "Replay" : (
-                <span className="inline-flex items-center gap-1">
-                  <Radio className="size-3" /> Live
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </header>
+    <div className="min-h-screen">
+      <TopBar
+        mode={mode}
+        setMode={setMode}
+        running={run.running}
+        done={run.done}
+        elapsed={elapsed}
+        started={started}
+        onHelp={() => setHelp((h) => !h)}
+      />
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 pt-4">
-          <Textarea
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            onKeyDown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && run()}
-            placeholder="e.g. need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon"
-            disabled={state.running}
-            rows={3}
-            className="text-base"
-          />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1.5">
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => setBrief(ex)}
-                  disabled={state.running}
-                  className="max-w-64 truncate rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted"
-                  title={ex}
-                >
-                  {ex}
+      {!started ? (
+        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} />
+      ) : (
+        <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-6">
+          <div className="sticky top-14 z-20 -mx-4 bg-background/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+            <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={start} onStop={stop} running={run.running} compact />
+          </div>
+
+          {run.fatal && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-contradicted/50 bg-contradicted/[0.06] px-4 py-3 text-sm">
+              <span><span className="font-medium text-contradicted">Run failed.</span> {run.fatal}</span>
+              {mode === "live" && (
+                <button onClick={() => setMode("replay")} className="rounded-full border border-rule px-3 py-1 text-xs font-medium hover:border-foreground">
+                  Switch to replay
                 </button>
-              ))}
+              )}
             </div>
-            {state.running ? (
-              <Button variant="outline" onClick={stop}>
-                <Square /> Stop
-              </Button>
-            ) : (
-              <Button onClick={run} disabled={!brief.trim()}>
-                {state.done ? <RotateCcw /> : <Play />} {state.done ? "Run again" : "Find candidates"}
-              </Button>
+          )}
+
+          <div className="mt-4 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,520px)] 2xl:grid-cols-[280px_minmax(0,1fr)_minmax(0,600px)]">
+            <aside className="flex flex-col gap-6 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
+              <Trace run={run} now={now} />
+              {run.criteria && <Understood criteria={run.criteria} />}
+            </aside>
+
+            <section className="min-w-0">
+              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-foreground/80 pb-3">
+                <div>
+                  <h2 className="font-display text-3xl font-medium tracking-tight">
+                    Shortlist <span className="font-light text-muted-foreground">{rows.length}</span>
+                  </h2>
+                  <Funnel summary={run.summary} shortlisted={Object.keys(run.candidates).length} totals={totals} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Seg
+                    value={view}
+                    onChange={setView}
+                    options={[
+                      { v: "list", label: "Dossiers", icon: <Rows3 className="size-3.5" /> },
+                      { v: "compare", label: "Compare", icon: <Table2 className="size-3.5" /> },
+                    ]}
+                  />
+                  <button
+                    onClick={() => setHideContra((h) => !h)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition",
+                      hideContra ? "border-contradicted bg-contradicted text-white" : "border-rule hover:border-foreground",
+                    )}
+                    title="Hide candidates with any contradicted claim (h)"
+                  >
+                    {hideContra ? "Contradicted hidden" : "Hide contradicted"}
+                  </button>
+                  <ExportMenu
+                    disabled={!rows.length}
+                    onMd={() => download("shortlist.md", toMarkdown(lastBrief, run.criteria, exportRows()), "text/markdown")}
+                    onCsv={() => download("shortlist.csv", toCSV(exportRows()), "text/csv")}
+                    onJson={() => download("shortlist.json", JSON.stringify({ brief: lastBrief, criteria: run.criteria, candidates: exportRows() }, null, 2), "application/json")}
+                  />
+                </div>
+              </div>
+
+              {rows.length ? (
+                view === "list" ? (
+                  <ShortlistRows rows={rows} selected={selected} onSelect={select} />
+                ) : (
+                  <CompareTable rows={rows} selected={selected} onSelect={select} sort={sort} dir={dir} onSort={onSort} />
+                )
+              ) : (
+                <Empty running={run.running} done={run.done} filtered={hideContra && Object.keys(run.candidates).length > 0} />
+              )}
+              {rows.length > 0 && (
+                <p className="mt-4 hidden flex-wrap items-center gap-x-4 gap-y-1 whitespace-nowrap font-mono text-[11px] text-muted-foreground sm:flex">
+                  <span><kbd>j</kbd> <kbd>k</kbd> move</span>
+                  <span><kbd>p</kbd> pin</span>
+                  <span><kbd>x</kbd> pass</span>
+                  <span><kbd>c</kbd> copy outreach</span>
+                  <span><kbd>v</kbd> compare</span>
+                  <span><kbd>?</kbd> all shortcuts</span>
+                </p>
+              )}
+            </section>
+
+            {wide && (
+              <aside className="sticky top-32 hidden max-h-[calc(100vh-9rem)] self-start overflow-y-auto rounded-lg border border-rule bg-paper shadow-[0_24px_48px_-32px_rgba(0,0,0,0.35)] xl:block">
+                {dossier ?? <p className="p-8 text-sm text-muted-foreground">{run.running ? "The top candidate's dossier opens here as soon as they're verified." : "Select a candidate to open their dossier."}</p>}
+              </aside>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </main>
+      )}
 
-      {state.fatal && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-contradicted/40 bg-contradicted/5 px-4 py-3 text-sm">
-          <span>{state.fatal}</span>
-          {mode === "live" && (
-            <Button size="sm" variant="outline" onClick={() => setMode("replay")}>
-              Switch to replay
-            </Button>
+      {!wide && (
+        <Sheet open={sheetOpen && !!dossier} onOpenChange={setSheetOpen}>
+          <SheetContent className="bg-paper">
+            <SheetTitle className="sr-only">{cur?.name ?? "Candidate"}</SheetTitle>
+            <div className="h-full overflow-y-auto pt-6">{dossier}</div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {help && <Shortcuts onClose={() => setHelp(false)} />}
+    </div>
+  );
+}
+
+function TopBar({
+  mode, setMode, running, done, elapsed, started, onHelp,
+}: { mode: RunMode; setMode: (m: RunMode) => void; running: boolean; done: boolean; elapsed: number; started: boolean; onHelp: () => void }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-rule bg-background/85 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
+        <Link href="/" className="flex items-baseline gap-2">
+          <span className="font-display text-2xl font-semibold italic tracking-tight">Dossier</span>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">verified shortlists · on Crustdata</span>
+        </Link>
+        <div className="flex items-center gap-3">
+          {started && (
+            <span className="flex items-center gap-2 font-mono text-xs tabular-nums">
+              <span className={cn("size-2 rounded-full", running ? "animate-pulse bg-primary" : done ? "bg-verified" : "bg-unverifiable")} />
+              {running ? "working" : done ? "done" : "stopped"} · {elapsed.toFixed(1)}s
+            </span>
           )}
+          <Seg
+            value={mode}
+            onChange={(m) => !running && setMode(m)}
+            options={[
+              { v: "replay", label: "Replay" },
+              { v: "live", label: "Live", icon: <Radio className="size-3" /> },
+            ]}
+          />
+          <button onClick={onHelp} className="hidden rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:block" aria-label="Keyboard shortcuts">
+            <Keyboard className="size-4" />
+          </button>
         </div>
-      )}
+      </div>
+    </header>
+  );
+}
 
-      {started && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Agent activity</CardTitle>
-                <PipelineBar current={state.currentStep} done={state.done} />
-              </CardHeader>
-              <CardContent className="max-h-[50vh] overflow-y-auto">
-                <StepFeed items={state.feed} running={state.running} />
-              </CardContent>
-            </Card>
-            {state.criteria && <CriteriaCard criteria={state.criteria} />}
-          </aside>
-
-          <section className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 font-semibold">
-                <Users className="size-4" /> Shortlist
-                <span className="text-sm font-normal text-muted-foreground">{ranked.length}</span>
-              </h2>
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                {state.summary &&
-                  Object.entries(state.summary).map(([k, v]) => (
-                    <span key={k}>
-                      <span className="font-semibold tabular-nums text-foreground">{v}</span> {k}
-                    </span>
-                  ))}
-                {ranked.length > 0 && (
-                  <span>
-                    <span className="font-semibold text-verified">{totals.verified}</span> verified ·{" "}
-                    <span className="font-semibold text-contradicted">{totals.contradicted}</span> contradicted ·{" "}
-                    <span className="font-semibold">{totals.unverifiable}</span> unverifiable
-                  </span>
-                )}
-              </div>
-            </div>
-            {ranked.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {ranked.map((c, i) => (
-                  <CandidateCard key={c.id} candidate={c} rank={i + 1} onOpen={() => setOpenId(c.id)} />
-                ))}
-              </div>
-            ) : (
-              <Card className="grid place-items-center p-10 text-center text-sm text-muted-foreground">
-                {state.running
-                  ? "Candidates appear here as soon as they're verified."
-                  : state.done
-                    ? "No candidates matched. Try a broader brief (fewer must-haves, wider location)."
-                    : "No candidates yet."}
-              </Card>
+function Hero({ brief, setBrief, onRun, briefRef }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement> }) {
+  return (
+    <main className="mx-auto flex max-w-3xl flex-col px-4 pb-20 pt-14 sm:px-6 sm:pt-24">
+      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">No human in the loop · every claim cited</p>
+      <h1 className="font-display mt-3 text-5xl font-light leading-[1.02] tracking-tight sm:text-7xl">
+        Who are you <em className="font-normal">hiring?</em>
+      </h1>
+      <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+        Write the brief however it comes out. The agent finds people on Crustdata, checks what their profiles claim, and hands back a ranked shortlist with a source for every line.
+      </p>
+      <div className="mt-8">
+        <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={onRun} onStop={() => {}} running={false} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {EXAMPLES.map((ex) => (
+          <button
+            key={ex.label}
+            onClick={() => setBrief(ex.brief)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-left text-xs transition",
+              brief === ex.brief ? "border-foreground bg-foreground text-background" : "border-rule text-muted-foreground hover:border-foreground hover:text-foreground",
             )}
-          </section>
-        </div>
-      )}
-
-      <CandidateDrawer candidate={open} onClose={() => setOpenId(null)} />
+            title={ex.brief}
+          >
+            {ex.label}
+          </button>
+        ))}
+      </div>
+      <ol className="mt-16 grid gap-6 border-t border-rule pt-8 sm:grid-cols-3">
+        {[
+          ["01", "Search", "Expands your brief into title variants and searches Crustdata's people graph, broadening if it comes up empty."],
+          ["02", "Verify", "Checks employer, tenure, location and company stage against enrich data. Each claim is stamped verified, contradicted or unverifiable."],
+          ["03", "Cite", "Ranks candidates with reasons that footnote the evidence, then drafts outreach. Nothing is ever sent."],
+        ].map(([n, t, d]) => (
+          <li key={n}>
+            <span className="font-mono text-[11px] text-muted-foreground">{n}</span>
+            <h3 className="font-display mt-1 text-xl font-medium">{t}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{d}</p>
+          </li>
+        ))}
+      </ol>
     </main>
   );
 }
 
-function CriteriaCard({ criteria: c }: { criteria: Criteria }) {
+function Funnel({ summary, shortlisted, totals }: { summary?: Record<string, number | undefined>; shortlisted: number; totals: { v: number; x: number; u: number } }) {
+  const steps: [string, number | undefined][] = [
+    ["searched", summary?.searched],
+    ["enriched", summary?.enriched],
+    ["shortlisted", summary?.shortlisted ?? (shortlisted || undefined)],
+  ];
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted-foreground">
+      {steps
+        .filter(([, n]) => n !== undefined)
+        .map(([l, n], i, a) => (
+          <span key={l}>
+            <span className="font-medium tabular-nums text-foreground">{n}</span> {l}
+            {i < a.length - 1 && <span className="ml-2">→</span>}
+          </span>
+        ))}
+      {totals.v + totals.x + totals.u > 0 && (
+        <span className="ml-1">
+          · <span className="text-verified">{totals.v} verified</span> · <span className="text-contradicted">{totals.x} contradicted</span> · {totals.u} unverifiable
+        </span>
+      )}
+    </p>
+  );
+}
+
+function Understood({ criteria: c }: { criteria: Criteria }) {
   const rows: [string, string[] | undefined][] = [
     ["Titles", c.title_variants],
     ["Skills", c.skills],
-    ["Locations", c.locations],
+    ["Where", c.locations],
     ["Companies", c.company_preferences],
-    ["Must have", c.must_haves],
-    ["Nice to have", c.nice_to_haves],
+    ["Must", c.must_haves],
+    ["Nice", c.nice_to_haves],
   ];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">What the agent understood</CardTitle>
-        {c.role && (
-          <p className="text-sm">
-            {c.role}
-            {c.seniority && <span className="text-muted-foreground"> · {c.seniority}</span>}
-          </p>
-        )}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+    <div className="animate-rise">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">What the agent understood</div>
+      {c.role && (
+        <p className="font-display text-lg leading-tight">
+          {c.role}
+          {c.seniority && <span className="text-muted-foreground">, {c.seniority}</span>}
+        </p>
+      )}
+      <dl className="mt-2 flex flex-col gap-1.5">
         {rows
           .filter(([, v]) => v?.length)
           .map(([label, v]) => (
-            <div key={label} className="flex flex-wrap items-center gap-1">
-              <span className="w-24 shrink-0 text-xs text-muted-foreground">{label}</span>
-              {v!.map((x) => (
-                <Badge key={x} variant="outline">
-                  {x}
-                </Badge>
-              ))}
+            <div key={label} className="grid grid-cols-[64px_1fr] gap-2 text-xs">
+              <dt className="pt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
+              <dd className="flex flex-wrap gap-1">
+                {v!.map((x) => (
+                  <span key={x} className="rounded-sm border border-rule bg-paper px-1.5 py-0.5">{x}</span>
+                ))}
+              </dd>
             </div>
           ))}
-      </CardContent>
-    </Card>
+      </dl>
+    </div>
+  );
+}
+
+function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: React.ReactNode }[] }) {
+  return (
+    <div className="inline-flex rounded-full border border-rule bg-paper p-0.5 text-xs" role="radiogroup">
+      {options.map((o) => (
+        <button
+          key={o.v}
+          role="radio"
+          aria-checked={value === o.v}
+          onClick={() => onChange(o.v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition",
+            value === o.v ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {o.icon}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ExportMenu({ disabled, onMd, onCsv, onJson }: { disabled: boolean; onMd: () => void; onCsv: () => void; onJson: () => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+  return (
+    <div className="relative">
+      <button
+        disabled={disabled}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        className="inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1 text-xs font-medium hover:border-foreground disabled:opacity-40"
+      >
+        <Download className="size-3.5" /> Export
+      </button>
+      {open && (
+        <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-md border border-rule bg-paper py-1 text-sm shadow-lg animate-fade">
+          {[
+            ["Markdown report", "every claim with its source", onMd],
+            ["CSV", "for a spreadsheet or ATS", onCsv],
+            ["JSON", "raw shortlist", onJson],
+          ].map(([l, d, fn]) => (
+            <button key={l as string} onClick={fn as () => void} className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-muted">
+              <FileText className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                <span className="block font-medium">{l as string}</span>
+                <span className="block text-xs text-muted-foreground">{d as string}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Empty({ running, done, filtered }: { running: boolean; done: boolean; filtered: boolean }) {
+  return (
+    <div className="py-16 text-center">
+      {running ? (
+        <div className="mx-auto flex max-w-sm flex-col gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-md bg-muted" style={{ animationDelay: `${i * 150}ms` }} />
+          ))}
+          <p className="mt-2 text-sm text-muted-foreground">Candidates appear here as soon as their claims are checked.</p>
+        </div>
+      ) : filtered ? (
+        <p className="text-sm text-muted-foreground">Every candidate has a contradicted claim. Press <kbd>h</kbd> to show them.</p>
+      ) : done ? (
+        <>
+          <p className="font-display text-2xl">No one matched.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Try fewer must-haves or a wider location.</p>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">No candidates yet.</p>
+      )}
+    </div>
+  );
+}
+
+function Shortcuts({ onClose }: { onClose: () => void }) {
+  const keys: [string, string][] = [
+    ["⌘ ↵", "Run the brief"],
+    ["/", "Edit the brief"],
+    ["j / ↓", "Next candidate"],
+    ["k / ↑", "Previous candidate"],
+    ["p", "Pin candidate to top"],
+    ["x", "Pass on candidate"],
+    ["c", "Copy outreach draft"],
+    ["v", "Switch dossiers / compare"],
+    ["h", "Hide contradicted"],
+    ["esc", "Close"],
+  ];
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 animate-fade" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-lg border border-rule bg-paper p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-display text-2xl">Shortcuts</h3>
+        <dl className="mt-4 grid grid-cols-[80px_1fr] gap-y-2 text-sm">
+          {keys.map(([k, d]) => (
+            <div key={k} className="contents">
+              <dt><kbd>{k}</kbd></dt>
+              <dd>{d}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
   );
 }
