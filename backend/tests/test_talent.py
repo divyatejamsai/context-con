@@ -368,3 +368,193 @@ async def test_live_campaign_sends_real_mail_through_outbound_and_routes_replies
     await handlers[0]({"thread_key": f"{camp['id']}:c001"}, {"text": "yes, interested"})
     again = C.load(camp["id"])
     assert again["conversations"]["c001"]["stage"] == "screening"
+
+
+# ---- shift staffing for any mass-hiring role: roles, CSV, duplicates, no double-booking, bench ---------------------
+
+from app.talent.staffing import (Role, Rota, build_shifts, find_duplicates, parse_csv, parse_days, resolve_role, template,
+                                 to_csv, TEMPLATES)
+
+NURSE = Role(title="Staff nurse", cities=["Kochi", "bengaluru"], slots=[{"start": "07:00", "end": "14:00"}, {"start": "21:00", "end": "07:00"}],
+             headcount=2, city_headcount={"Kochi": 3}, min_years=1, keywords=["nurse", "nursing"],
+             certifications=["Registered nurse"], languages=["English", "Malayalam"])
+
+
+def test_role_requirements_and_shifts():
+    assert NURSE.id == "staff-nurse" and NURSE.cities == ["Kochi", "Bangalore"]
+    shifts = build_shifts([NURSE], start=date(2026, 11, 2), days=7)
+    assert len(shifts) == 7 * 2 * (3 + 2)
+    night = next(s for s in shifts if s["slot"] == "21:00-07:00")
+    assert night["start"].endswith("21:00") and night["end"] > night["start"] and night["hours"] == 10
+    assert "Registered nurse" in NURSE.needs() and "speaks Malayalam" in NURSE.needs()
+    # every template builds; together they cover the kinds of mass hiring companies do
+    assert {t["id"] for t in TEMPLATES} >= {"quick-commerce", "bpo", "retail-seasonal", "hospital", "events", "campus"}
+    for t in TEMPLATES:
+        assert build_shifts(template(t["id"]), start=date(2026, 11, 2))
+    roles = template("bpo")
+    assert resolve_role("Customer service voice agent", roles).id == "voice-agent" and resolve_role("chat-agent", roles).id == "chat-agent"
+    assert resolve_role("brain surgeon", roles) is None
+
+
+def test_parse_csv_loose_columns_and_days():
+    text = ("Full Name,LinkedIn,Mobile,E-mail,Applied For,City,Company,Designation,Experience,Languages,Certifications,Days,Max Shifts\n"
+            "Asha Rao,https://linkedin.com/in/asha,+91 98450 12345,asha@x.in,Staff nurse,Bengaluru,Manipal,Staff Nurse,3 yrs,English; Kannada,Registered nurse,Mon-Fri,4\n"
+            ",https://linkedin.com/in/nobody,,,,,,,,,,,\n"
+            "Ravi K,,,,Ward assistant,Kochi,,,,,,weekends,\n")
+    apps, errors = parse_csv(text)
+    assert [a["name"] for a in apps] == ["Asha Rao", "Ravi K"] and errors == [{"row": 3, "error": "no name"}]
+    a = apps[0]
+    assert (a["city"], a["claimed"]["years_experience"], a["languages"], a["availability"], a["max_shifts_per_week"]) == \
+        ("Bangalore", 3.0, ["English", "Kannada"], [0, 1, 2, 3, 4], 4)
+    assert apps[1]["availability"] == [5, 6] and apps[1]["profile_url"] == ""
+    assert parse_days("Sat to Mon") == [0, 5, 6] and parse_days("") == list(range(7))
+    assert parse_csv("foo,bar\n1,2\n")[0] == []
+
+
+def _apps_for(recs, role="delivery", **kw):
+    from app.verify.profile import load_person
+    out = []
+    for i, r in enumerate(recs):
+        pr = load_person(r)
+        out.append({"id": f"a{i + 1}", "name": pr.name, "profile_url": pr.profile_url, "role": role, "city": "Pune",
+                    "email": f"p{i}@example.com", "phone": f"98000000{i:02d}", "claimed": {"employer": pr.current[0].company},
+                    "certifications": ["Two-wheeler driving licence"], "languages": ["English", "Hindi"],
+                    "availability": list(range(7)), "max_shifts_per_week": 5, **kw})
+    return out
+
+
+def test_duplicates_are_merged_before_screening():
+    from tests.talent_factory import person
+    import random as _r
+    rng = _r.Random(1)
+    recs = [person(i, "delivery", "Pune", rng) for i in range(3)]
+    apps = _apps_for(recs)
+    again = {**apps[0], "id": "a9", "profile_url": apps[0]["profile_url"].replace("https://www.", "http://") + "/?utm=x",
+             "email": "", "phone": "+91 " + apps[0]["phone"]}
+    other_role = {**apps[1], "id": "a10", "role": "warehouse", "email": "", "phone": ""}
+    shared = {**apps[2], "id": "a11", "name": "Rohit Kumar", "profile_url": "https://www.linkedin.com/in/rohit-k", "email": apps[2]["email"]}
+    person_of, skip = find_duplicates(apps + [again, other_role, shared])
+    assert skip["a9"][:2] == ("duplicate", "repeat_application") and "a1" in skip["a9"][2]
+    assert "a10" not in skip and person_of["a10"] == person_of["a2"]          # same person, another role: kept, linked
+    assert skip["a11"][1] == "shared_contact" and skip["a3"][1] == "shared_contact"
+    assert "a1" not in skip and "a2" not in skip
+
+
+def test_one_person_never_on_overlapping_shifts_across_roles():
+    roles = [Role(id="delivery", title="Delivery", cities=["Pune"], slots=[{"start": "07:00", "end": "13:00"}], headcount=1),
+             Role(id="warehouse", title="Warehouse", cities=["Pune"], slots=[{"start": "10:00", "end": "18:00"}], headcount=1)]
+    shifts = build_shifts(roles, start=date(2026, 11, 2), days=3)
+    workers = [{"id": "w1", "person": "p1", "role": "delivery", "city": "Pune", "availability": list(range(7)), "max_shifts_per_week": 7},
+               {"id": "w2", "person": "p1", "role": "warehouse", "city": "Pune", "availability": list(range(7)), "max_shifts_per_week": 7}]
+    r = Rota(shifts, workers, rest_hours=0)
+    r.assign()
+    assert len(r.filled) == 3 and r.double_bookings() == []                  # one of the two each day, never both
+    assert all("booked" in w for w in r.why.values())
+    # without the person link the same two applications would double-book
+    loose = Rota(shifts, [{**w, "person": w["id"]} for w in workers], rest_hours=0)
+    loose.assign()
+    assert len(loose.filled) == 6
+
+
+def test_bench_backfills_no_shows():
+    role = Role(id="security", title="Security", cities=["Pune"], slots=[{"start": "08:00", "end": "20:00"}], headcount=2)
+    shifts = build_shifts([role], start=date(2026, 11, 2), days=2)
+    workers = [{"id": f"w{i}", "role": "security", "city": "Pune", "availability": list(range(7)), "max_shifts_per_week": 3, "name": f"W{i}"} for i in range(6)]
+    r = Rota(shifts, workers)
+    r.assign()
+    b = r.fill_bench(0.5)
+    assert len(r.filled) == 4 and b["standby_found"] == b["standby_wanted"] == 2 and b["shift_times_covered"] == 2
+    on_bench = set(r.bench[Rota.group(shifts[0])])
+    assert on_bench.isdisjoint({r.filled[s["id"]] for s in shifts[:2]})
+    out = r.no_show(shifts[0]["id"])
+    assert out["from"] == "bench" and out["backup"] in on_bench and r.filled[shifts[0]["id"]] == out["backup"]
+    assert r.no_shows[shifts[0]["id"]] == out["no_show"] and r.double_bookings() == []
+    row = next(x for x in r.roster() if x["id"] == shifts[0]["id"])
+    assert row["no_show"] == out["no_show"] and row["worker"] == out["backup"]
+
+
+@pytest.mark.asyncio
+async def test_requirements_decide_fit():
+    from tests.talent_factory import person
+    import random as _r
+    rec = person(1, "delivery", "Pune", _r.Random(2))
+    graph = PoolGraph([rec])
+    roles = template("quick-commerce")
+    base = _apps_for([rec])[0]
+    s = await screen(base, graph, TODAY, roles[0])
+    assert s.outcome == "cleared" and any("licence" in c for c in s.checks)
+    s = await screen({**base, "certifications": []}, graph, TODAY, roles[0])
+    assert (s.outcome, s.kind) == ("not_qualified", "missing_requirement") and "licence" in s.reason
+    s = await screen(base, graph, TODAY, roles[0].model_copy(update={"min_years": 30}))
+    assert s.kind == "under_experience"
+    s = await screen({**base, "city": "Jaipur"}, graph, TODAY, roles[0])
+    assert s.outcome in ("flagged", "not_qualified")                          # lives in Pune: never staffed in Jaipur
+    s = await screen(base, graph, TODAY, NURSE)
+    assert s.kind in ("role_not_open", "role_mismatch")
+
+
+@pytest.mark.asyncio
+async def test_template_run_in_test_mode_catches_fakes_and_repeats():
+    pool = shift_pool(1200)
+    roles = template("quick-commerce")
+    apps, key = seed_applications(pool, roles=roles, fake_rate=0.15, seed=7, today=TODAY, duplicate_rate=0.03)
+    shifts = build_shifts(roles, start=TODAY + timedelta(days=1))
+    out = await run_staffing(apps, shifts, PoolGraph(pool), roles=roles, today=TODAY, answer_key=key, no_show_rate=0.08)
+    r, fc = out["report"], out["report"]["fake_catch"]
+    assert fc["precision"] >= 0.95 and fc["recall"] >= 0.95 and fc["fakes_staffed"] == []
+    assert fc["duplicates_planted"] > 20 and fc["duplicates_caught"] == fc["duplicates_planted"]
+    assert r["double_bookings"] == 0 and r["fill_rate"] >= 0.9 and r["bench"]["standby_found"] > 0
+    assert r["no_show_drill"]["no_shows"] > 0 and r["no_show_drill"]["double_bookings_after"] == 0
+    assert r["no_show_drill"]["from_bench"] >= r["no_show_drill"]["no_shows"] * 0.5
+    assert set(r["roles"]) == {x.id for x in roles} and all(v["needs"] for v in r["roles"].values())
+    # nobody staffed is a fake, a duplicate, or outside their role, city or days
+    by_app = {a["id"]: a for a in apps}
+    scr = {s["app_id"]: s for s in out["screenings"]}
+    for row in out["roster"]:
+        if row["worker"]:
+            s = scr[row["worker"]]
+            assert s["outcome"] == "cleared" and (s["role"], s["city"]) == (row["role"], row["city"])
+            assert date.fromisoformat(row["date"]).weekday() in by_app[row["worker"]]["availability"]
+    # test mode off: the same pool, honest applications, no answer key
+    apps2, _ = seed_applications(pool, roles=roles, fake_rate=0.0, seed=7, today=TODAY)
+    out2 = await run_staffing(apps2, shifts, PoolGraph(pool), roles=roles, today=TODAY)
+    assert "fake_catch" not in out2["report"] and out2["report"]["screening"]["flagged"] == 0
+
+
+def test_staffing_api_csv_upload_holds_unknown_profiles(monkeypatch, tmp_path):
+    from app.main import app
+    import app.talent.api as api
+    pool = shift_pool(300)
+    monkeypatch.setattr(api, "load_pool", lambda name: (pool, {}))
+    monkeypatch.setenv("STAFFING_DIR", str(tmp_path / "staffing"))
+    monkeypatch.setattr(api, "crustdata", lambda: (_ for _ in ()).throw(AssertionError("no live Crustdata calls")))
+    cl = TestClient(app)
+    t = cl.get("/api/staffing/templates").json()
+    assert t["default"] == "quick-commerce" and len(t["templates"]) >= 6 and "name" in t["csv_columns"]
+    sample = cl.get("/api/staffing/sample.csv?n=120&lies=0.1").text
+    apps, errors = parse_csv(sample)
+    assert len(apps) >= 120 and not errors
+    sample += "Ghost Person,https://www.linkedin.com/in/not-recorded-123,,,delivery,Pune,,,,,,,,,,\n"
+    up = cl.post("/api/staffing/applications", json={"csv": sample, "name": "apps.csv"}).json()
+    assert up["applications"] == len(apps) + 1 and up["in_recorded_data"] >= len(apps) - 15
+    with cl.stream("POST", "/api/staffing/run/stream", json={"source": "upload", "upload_id": up["upload_id"], "today": "2026-10-31"}) as s:
+        evs = [json.loads(line[6:]) for line in s.iter_lines() if line.startswith("data: ")]
+    done = evs[-1]
+    assert done["type"] == "done", evs[-1]
+    r = done["report"]
+    assert r["screening"]["held"] >= 1 and r["lookups"]["live"] == 0 and r["filled"] > 0 and "fake_catch" not in r
+    held = cl.get("/api/staffing/screenings?outcome=held").json()["rows"]
+    assert any(h["name"] == "Ghost Person" and h["kind"] == "needs_lookup" for h in held)
+    assert r["screening"]["flagged"] > 0                                   # the sample's planted lies are still caught
+    roster = cl.get("/api/staffing/roster?status=filled&limit=5").json()
+    sid = roster["rows"][0]["id"]
+    ns = cl.post("/api/staffing/no-show", json={"shift_id": sid}).json()
+    assert ns["no_show"] and ns["double_bookings"] == 0
+    assert cl.get("/api/staffing/roster.csv").text.startswith("shift,role,city")
+    # custom roles in the body, test mode on
+    nurse = NURSE.model_dump()
+    j = cl.post("/api/staffing/run", json={"roles": [template("quick-commerce")[0].model_dump(), nurse], "test_mode": True,
+                                           "today": "2026-10-31"}).json()
+    assert j["report"]["test_mode"] and j["report"]["roles"]["staff-nurse"]["applied"] == 0
+    assert any("staff nurse" in k for k in j["report"]["open_reasons"])
+    assert (tmp_path / "staffing" / "uploads" / f"{up['upload_id']}.json").exists()

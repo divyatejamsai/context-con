@@ -105,25 +105,68 @@ export type CampaignEvent =
 
 // ---- staffing -----------------------------------------------------------------------------------------------------
 
-export interface FillRow { filled: number; fill_rate: number; shifts?: number }
+export interface FillRow { filled: number; fill_rate: number; open?: number; shifts?: number }
 
 export interface LieType { planted: number; caught: number; recall: number | null }
 
+export interface Slot { start: string; end: string }
+
+/** One role the company is hiring for at volume, with its own requirements (backend: app/talent/staffing.py Role). */
+export interface Role {
+  id: string; title: string; cities: string[]; slots: Slot[]; days: number[]; headcount: number; city_headcount?: Record<string, number>;
+  min_years: number; max_years?: number | null; related_experience: boolean; keywords: string[];
+  skills: string[]; certifications: string[]; languages: string[];
+}
+
+export interface RoleTemplate { id: string; label: string; blurb: string; roles: Role[] }
+
+export interface StaffingTemplates { templates: RoleTemplate[]; default: string; cities: string[]; csv_columns: string[]; recorded_roles: string[] }
+
+export interface Upload {
+  upload_id: string; name?: string | null; applications: number; errors: { row: number; error: string }[]; error_count: number;
+  roles: Record<string, number>; cities: Record<string, number>; in_recorded_data: number; no_profile_url: number;
+}
+
+export interface Bench {
+  rate: number; shift_times: number; standby_wanted: number; standby_found: number; shift_times_covered: number;
+  coverage: number | null; people_on_standby: number;
+}
+
 export interface StaffingReport {
-  today?: string; screening: { cleared: number; flagged: number; not_qualified?: number }; flag_kinds?: Record<string, number>;
-  shifts: number; filled: number; fill_rate: number; workers_used?: number; workers_cleared?: number;
+  today?: string; screening: { cleared: number; flagged: number; not_qualified?: number; duplicate?: number; held?: number };
+  flag_kinds?: Record<string, number>; not_qualified_kinds?: Record<string, number>; held_kinds?: Record<string, number>;
+  shifts: number; filled: number; fill_rate: number; workers_used?: number; workers_cleared?: number; people?: number;
+  duplicates?: { repeat_applications: number; shared_contact: number }; double_bookings?: number; rest_hours?: number;
+  bench?: Bench; lookups?: { recorded: number; live: number };
+  onboarding_checks?: { workers: number; top: Record<string, number> };
+  roles?: Record<string, { title: string; cities: string[]; slots: string[]; needs: string[]; seats: number; filled: number; applied: number; cleared: number }>;
   by_city: Record<string, FillRow>; by_role: Record<string, FillRow>; open_reasons: Record<string, number>;
   fake_catch?: {
     applications: number; fakes_planted: number; flagged: number; true_positives: number; false_positives: number;
     false_negatives: number; precision: number | null; recall: number | null; by_lie_type: Record<string, LieType>;
     fakes_staffed: unknown[]; missed?: unknown[]; false_alarms?: unknown[];
+    duplicates_planted?: number; duplicates_caught?: number;
   } | null;
-  pool?: { records: number; source: string };
+  no_show_drill?: { rate: number; no_shows: number; from_bench: number; from_pool: number; uncovered: number; double_bookings_after: number };
+  pool?: { records: number; source: string; file?: string | null; rows?: number };
+  test_mode?: boolean; horizon?: { start: string; days: number };
 }
 
 export interface Screening {
-  app_id: string; name: string; profile_url: string; role: string; city: string; outcome: "cleared" | "flagged" | "not_qualified" | string;
-  reason?: string; kind?: string; record_name?: string | null; home_city?: string | null; claims?: Claim[];
+  app_id: string; name: string; profile_url: string; role: string; city: string; outcome: "cleared" | "flagged" | "not_qualified" | "duplicate" | "held" | string;
+  reason?: string; kind?: string; record_name?: string | null; home_city?: string | null; claims?: Claim[]; checks?: string[]; person?: string | null;
+}
+
+export interface RosterRow {
+  id: string; role: string; role_label: string; city: string; date: string; weekday: string; slot?: string; start?: string; end?: string;
+  worker: string | null; worker_name: string | null; person?: string | null; open_reason?: string | null; no_show?: string | null;
+  bench?: { worker: string; name?: string | null }[];
+}
+
+export interface StaffingRunRequest {
+  roles?: Role[]; template?: string; start?: string; days?: number; source: "recorded" | "upload" | "live"; upload_id?: string;
+  test_mode?: boolean; fake_rate?: number; duplicate_rate?: number; no_show_rate?: number; seed?: number;
+  bench_rate?: number; rest_hours?: number; live_lookups?: number;
 }
 
 export type StaffingEvent =
@@ -148,6 +191,16 @@ export const FLAG_LABEL: Record<string, string> = {
   identity_unverifiable: "Identity can't be confirmed",
   identity_mismatch: "Name doesn't match the profile",
   false_claim: "Claim contradicted by the record",
+  shared_contact: "One phone or email, several people",
+  role_mismatch: "No related work on the record",
+  under_experience: "Not enough experience",
+  over_experience: "More experience than the role is for",
+  missing_requirement: "Missing a requirement",
+  role_not_open: "Role isn't open there",
+  wrong_city: "Lives in another city",
+  repeat_application: "Applied twice",
+  needs_lookup: "Not in the recorded data",
+  lookup_failed: "Lookup failed",
 };
 
 export const label = (map: Record<string, string>, k: string) => map[k] ?? k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -162,7 +215,9 @@ export class TalentError extends Error {
 
 /** The backend's own reason when it gives one; a bare 404 means this backend doesn't have the hiring-at-volume routes yet. */
 const detail = (body: { detail?: unknown } | null, status: number) =>
-  typeof body?.detail === "string" && body.detail !== "Not Found"
+  Array.isArray(body?.detail)
+    ? ((body?.detail ?? []) as { loc?: (string | number)[]; msg?: string }[]).map((d) => `${(d.loc ?? []).slice(1).join(" ")}: ${d.msg}`).join("; ")
+    : typeof body?.detail === "string" && body.detail !== "Not Found"
     ? body.detail
     : status === 404
       ? "This backend doesn't have campaigns and shift staffing yet. They arrive with the brief-to-offer backend (PR #18)."
@@ -195,16 +250,37 @@ export const talent = {
   reply: (id: string, cid: string, text: string) => post<{ read_as: Message["read_as"]; conversation: ConversationRow }>(`/campaigns/${id}/conversations/${cid}/reply`, { text }),
   feedback: (id: string, cid: string, passed: boolean, notes = "") => post<ConversationRow>(`/campaigns/${id}/conversations/${cid}/feedback`, { passed, notes }),
   staffingLast: () => req<{ report: StaffingReport }>("/staffing/last"),
+  staffingTemplates: () => req<StaffingTemplates>("/staffing/templates"),
+  staffingUpload: (csv: string, name?: string) => post<Upload>("/staffing/applications", { csv, name }),
+  staffingRoster: (p: { role?: string; city?: string; status?: string; q?: string; offset?: number; limit?: number }) =>
+    req<{ total: number; rows: RosterRow[] }>(`/staffing/roster?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]))}`),
+  staffingScreenings: (outcome: string, limit = 2000) => req<{ total: number; rows: Screening[] }>(`/staffing/screenings?outcome=${outcome}&limit=${limit}`),
+  staffingNoShow: (shift_id: string) => post<{ no_show: string | null; backup: string | null; from: "bench" | "pool" | null; shift: RosterRow; double_bookings: number }>("/staffing/no-show", { shift_id }),
 };
+
+export const staffingUrl = (path: string) => `${API_URL}/api${path}`;
 
 /** GET an SSE route and yield each `data:` frame as JSON. The token goes in the query because EventSource-style GETs carry no headers. */
 export async function* sse<T>(path: string, params: Record<string, string | number>, signal: AbortSignal): AsyncGenerator<T> {
   const q = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
   const token = getAdminToken();
   if (token) q.set("token", token);
+  yield* sseFetch<T>(`${API_URL}/api${path}?${q}`, { headers: { Accept: "text/event-stream" }, signal });
+}
+
+/** POST a JSON body to an SSE route (the staffing run carries its roles in the body) and yield each frame. */
+export async function* ssePost<T>(path: string, body: unknown, signal: AbortSignal): AsyncGenerator<T> {
+  const token = getAdminToken();
+  yield* sseFetch<T>(`${API_URL}/api${path}`, {
+    method: "POST", body: JSON.stringify(body), signal,
+    headers: { Accept: "text/event-stream", "Content-Type": "application/json", ...(token ? { "x-admin-token": token } : {}) },
+  });
+}
+
+async function* sseFetch<T>(url: string, init: RequestInit): AsyncGenerator<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/api${path}?${q}`, { headers: { Accept: "text/event-stream" }, signal });
+    res = await fetch(url, init);
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
     throw new TalentError(`Can't reach the backend at ${API_URL}`, 0);
