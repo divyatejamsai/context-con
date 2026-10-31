@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, FileClock, Loader2, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api, type Agent, type LedgerEntry, type LedgerView, type Scope } from "./api";
-import { Button, DecisionBadge, PageHead, ScopeChip, SourceChip, cardCls, inputCls } from "./parts";
+import { Button, DecisionBadge, EmptyState, PageHead, ScopeChip, SourceChip, cardCls, inputCls } from "./parts";
 
 const KIND_LABEL: Record<string, string> = {
   "passport.issued": "Passport issued",
@@ -20,6 +20,9 @@ const KIND_LABEL: Record<string, string> = {
   "work.outreach_run": "Work filed: outreach run",
   "work.vendor_brief": "Work filed: vendor brief",
   "work.resume_check": "Work filed: resume check",
+  "run.started": "Hiring run started",
+  "run.finished": "Hiring run finished",
+  "resume.verified": "Resume checked",
 };
 
 const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work filed: ${k.slice(5).replace(/_/g, " ")}` : k);
@@ -28,7 +31,62 @@ const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work
 // Mirrors backend/app/agents/ledger.py: hash = sha256(canonical JSON of every field except "hash"),
 // canonical = sorted keys, no spaces, UTF-8. Re-deriving it here means the console doesn't just trust the server.
 
+// Python writes 55.0 where JavaScript would write 55, so numbers keep the exact text the server sent. The ledger is
+// re-parsed with a small JSON reader that leaves each number as its original lexeme.
+class Num {
+  constructor(public raw: string) {}
+}
+
+function parseLossless(text: string): unknown {
+  let i = 0;
+  const ws = () => {
+    while (i < text.length && " \t\n\r".includes(text[i])) i++;
+  };
+  const value = (): unknown => {
+    ws();
+    const c = text[i];
+    if (c === "{") {
+      i++;
+      const o: Record<string, unknown> = {};
+      ws();
+      if (text[i] === "}") return i++, o;
+      while (true) {
+        ws();
+        const k = value() as string;
+        ws();
+        i++; // :
+        o[k] = value();
+        ws();
+        if (text[i++] === "}") return o;
+      }
+    }
+    if (c === "[") {
+      i++;
+      const a: unknown[] = [];
+      ws();
+      if (text[i] === "]") return i++, a;
+      while (true) {
+        a.push(value());
+        ws();
+        if (text[i++] === "]") return a;
+      }
+    }
+    if (c === '"') {
+      const start = i++;
+      while (text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+      i++;
+      return JSON.parse(text.slice(start, i));
+    }
+    const m = /^(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/.exec(text.slice(i, i + 64));
+    if (!m) throw new Error(`Unexpected ${c} at ${i}`);
+    i += m[0].length;
+    return m[0] === "true" ? true : m[0] === "false" ? false : m[0] === "null" ? null : new Num(m[0]);
+  };
+  return value();
+}
+
 function canonical(v: unknown): string {
+  if (v instanceof Num) return v.raw;
   if (v === null || typeof v !== "object") return JSON.stringify(v);
   if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
   const o = v as Record<string, unknown>;
@@ -41,20 +99,23 @@ async function sha256(s: string): Promise<string> {
 }
 
 /** First seq whose hash or link doesn't hold, or null if the whole chain checks out. */
-async function verifyInBrowser(entries: LedgerEntry[]): Promise<number | null> {
+async function verifyInBrowser(raw: string): Promise<number | null> {
+  const entries = (parseLossless(raw) as { entries: Record<string, unknown>[] }).entries;
   let prev = "0".repeat(64);
   for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const { hash, ...body } = e;
-    if (e.seq !== i || e.prev_hash !== prev || (await sha256(canonical(body))) !== hash) return i;
-    prev = hash;
+    const { hash, ...body } = entries[i];
+    const seq = body.seq instanceof Num ? Number(body.seq.raw) : NaN;
+    if (seq !== i || body.prev_hash !== prev || (await sha256(canonical(body))) !== hash) return Number.isNaN(seq) ? i : seq;
+    prev = hash as string;
   }
   return null;
 }
 
 // ---- views -----------------------------------------------------------------------------------
 
-export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: (c: { chain_ok: boolean; first_bad_seq: number | null; count: number }) => void }) {
+export function LedgerExplorer({
+  agents, onChain, onOnboard,
+}: { agents: Agent[]; onChain: (c: { chain_ok: boolean; first_bad_seq: number | null; count: number }) => void; onOnboard: () => void }) {
   const [view, setView] = useState<LedgerView | null>(null);
   const [browserBad, setBrowserBad] = useState<number | null | undefined>();
   const [agentId, setAgentId] = useState("");
@@ -62,15 +123,21 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
   const [follow, setFollow] = useState(true);
   const [loading, setLoading] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date>();
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const v = await api.ledger();
+      const raw = await api.ledgerText();
+      const v = JSON.parse(raw) as LedgerView;
       setView(v);
-      setBrowserBad(await verifyInBrowser(v.entries));
+      setFailed(false);
+      setBrowserBad(await verifyInBrowser(raw).catch(() => 0));
       setCheckedAt(new Date());
       onChain({ chain_ok: v.chain_ok, first_bad_seq: v.first_bad_seq, count: v.entries.length });
+    } catch (e) {
+      setFailed(true);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -93,33 +160,34 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
     .reverse();
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-6">
+    <main className="mx-auto max-w-[1100px] px-4 py-6 sm:px-8 sm:py-8">
       <PageHead title="Ledger">
-        An append-only record of every passport, check, verdict and suspension, with the Crustdata sources behind each one. Every entry
-        includes the hash of the one before it, so editing, deleting or reordering any line breaks the chain from that point on.
+        The permanent record of every passport, check, verdict and suspension, with the Crustdata sources behind each one. Use it to
+        prove later why an agent was trusted or stopped. Each entry includes the hash of the one before it, so editing, deleting or
+        reordering any line breaks the chain from that point on, and both checks below turn red.
       </PageHead>
 
       {view && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <Integrity label="Server check" detail="backend verify_chain()" bad={view.chain_ok ? null : view.first_bad_seq} />
-          <Integrity label="Browser check" detail="re-hashed here with Web Crypto" bad={browserBad} />
+          <Integrity label="Server check" detail="The backend re-hashed every entry (verify_chain)." bad={view.chain_ok ? null : view.first_bad_seq} />
+          <Integrity label="Browser check" detail="This page re-hashed every entry itself, so you don't have to trust the server." bad={browserBad} />
         </div>
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={cn(inputCls, "w-auto min-w-[180px]")}>
+        <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={cn(inputCls, "w-full sm:w-auto sm:min-w-[180px]")} aria-label="Filter by agent" title="Show entries about one agent">
           <option value="">All agents</option>
           {agents.map((a) => <option key={a.agent_id} value={a.agent_id}>{a.name}</option>)}
         </select>
-        <select value={kind} onChange={(e) => setKind(e.target.value)} className={cn(inputCls, "w-auto min-w-[180px]")}>
+        <select value={kind} onChange={(e) => setKind(e.target.value)} className={cn(inputCls, "w-full sm:w-auto sm:min-w-[180px]")} aria-label="Filter by event type" title="Show one kind of event">
           <option value="">All events</option>
           {kinds.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
         </select>
-        <label className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground">
+        <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground sm:ml-auto" title="Re-read and re-hash the ledger every 3 seconds, so tampering shows up live">
           <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} className="accent-[var(--primary)]" />
           Re-check every 3s
         </label>
-        <Button onClick={() => load()} disabled={loading}>
+        <Button onClick={() => load().catch(() => {})} disabled={loading} title="Re-read the ledger and re-hash every entry now">
           {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check now
         </Button>
       </div>
@@ -129,10 +197,20 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
       </p>
 
       <div className={cn(cardCls, "mt-4 px-5 py-4")}>
-        {shown.length ? (
+        {failed && !view ? (
+          <EmptyState icon={ShieldAlert} tone="bad" title="Couldn't read the ledger" action={<Button onClick={() => load().catch(() => {})}><RefreshCw className="size-3.5" /> Try again</Button>}>
+            The backend didn&apos;t answer. Check that it is running, then try again.
+          </EmptyState>
+        ) : !view ? (
+          <p className="inline-flex items-center gap-2 py-6 text-[12.5px] text-faint"><Loader2 className="size-3.5 animate-spin" /> Reading the ledger…</p>
+        ) : shown.length ? (
           <LedgerTimeline entries={shown} firstBad={browserBad ?? (view?.chain_ok ? null : view?.first_bad_seq ?? null)} names={names} />
+        ) : view.entries.length ? (
+          <EmptyState icon={FileClock} title="No entries match these filters" action={<Button onClick={() => { setAgentId(""); setKind(""); }}>Clear filters</Button>} />
         ) : (
-          <p className="text-[12.5px] text-faint">No entries yet.</p>
+          <EmptyState icon={FileClock} title="The ledger is empty" action={<Button variant="primary" onClick={onOnboard}><Plus className="size-3.5" /> Onboard an agent</Button>}>
+            Onboarding an AI employee writes the first entry: its passport being issued.
+          </EmptyState>
         )}
       </div>
     </main>

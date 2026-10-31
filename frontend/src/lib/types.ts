@@ -35,6 +35,76 @@ export interface Candidate {
   flags?: string[];
   outreach_draft?: string | null;
   guard?: Guard | null; // Send Guard verdict on the outreach draft (agent runs only)
+  outreach_subject?: string | null;
+  contact?: Contact | null; // email Crustdata has on record (agent runs, shortlisted candidates)
+  outreach?: { status: string; detail: string; message?: OutboundMessage | null } | null; // set when the run auto-sent
+}
+
+// Email address from Crustdata Person Enrich (contact field). Never guessed.
+export interface Contact {
+  profile_url: string;
+  email?: string | null;
+  kind?: "business" | "personal" | string | null;
+  status?: string | null; // Crustdata's status, e.g. "deliverable"
+  last_updated?: string | null;
+  options?: { email: string; kind: string; status?: string | null }[];
+  source?: Source | null;
+  note?: string;
+  error?: string | null;
+}
+
+export interface MessageEvent {
+  ts: string;
+  status: string;
+  detail?: string;
+}
+
+export interface Reply {
+  message_id: string;
+  from: string;
+  subject?: string;
+  date?: string;
+  text: string;
+}
+
+// A real email sent (or refused) through Send Guard. backend/app/outbound/messages.py
+export interface OutboundMessage {
+  id: string;
+  created_at: string;
+  status: "sent" | "delivered" | "opened" | "clicked" | "replied" | "bounced" | "complained" | "blocked" | "failed" | "delivery_delayed" | string;
+  detail?: string;
+  to: { name?: string; profile_url?: string; company?: string };
+  subject: string;
+  body: string;
+  intended_to?: string;
+  delivered_to?: string;
+  mode?: "test" | "live";
+  provider?: string;
+  guard?: Guard;
+  contact?: Contact;
+  events: MessageEvent[];
+  replies: Reply[];
+  ledger_entry?: string;
+}
+
+export interface OutboundConfig {
+  provider: string;
+  mode: "test" | "live" | string;
+  ready: boolean;
+  reason: string;
+  test_to?: string | null;
+  from?: string | null;
+  reply_to?: string | null;
+  replies: boolean;
+}
+
+export interface SendResult {
+  ok: boolean;
+  status: string;
+  detail: string;
+  message?: OutboundMessage | null;
+  verdict?: Guard | null;
+  contact?: Contact | null;
 }
 
 // Countersign checks: the passport check before a run, and Send Guard on each draft.
@@ -86,6 +156,7 @@ export type RunEvent =
 export const PIPELINE_STEPS = ["parse", "search", "enrich", "verify", "rank", "outreach"] as const;
 // Agent runs (/api/agents/{id}/run) wrap the pipeline in a passport check and Send Guard.
 export const AGENT_STEPS = ["passport", ...PIPELINE_STEPS, "guard"] as const;
+export const AUTOSEND_STEPS = [...AGENT_STEPS, "send"] as const;
 
 // Accept older/alternate step names from fixtures.
 export const STEP_ALIASES: Record<string, string> = { parse_brief: "parse" };

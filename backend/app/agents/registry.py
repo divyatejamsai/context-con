@@ -42,9 +42,9 @@ ALL_SCOPES: list[str] = list(SCOPES)
 ROLES: dict[str, dict[str, Any]] = {
     "recruiter": {
         "title": "AI Recruiter",
-        "summary": "Sources candidates and drafts hiring outreach. Sourced is the first one.",
+        "summary": "Sources candidates, runs hiring conversations and, with a senior sponsor, sends offers. Sourced is the first one.",
         "default_scopes": ["outreach.hiring", "data.read"],
-        "ceiling": ["outreach.hiring", "data.read"],
+        "ceiling": ["outreach.hiring", "data.read", "contract.sign"],  # contract.sign = offer letters (needs an authority title)
     },
     "sdr": {
         "title": "AI Sales Rep",

@@ -28,5 +28,5 @@ curl -s localhost:8000/api/health; echo
 
 cd "$ROOT/frontend"
 [[ -d node_modules ]] || npm install
-echo "== web UI on http://localhost:3000 (Sourced)  and  http://localhost:3000/console (Countersign)"
+echo "== web UI on http://localhost:3000 (Sourced)  and  http://localhost:3000/console (Agaxes)"
 NEXT_PUBLIC_DEFAULT_MODE=live NEXT_PUBLIC_AGENT_ID=sourced npm run dev

@@ -1,13 +1,15 @@
-"""Sourced as a Countersign AI employee: the hiring pipeline run under a passport, with ledger entries and Send Guard.
+"""Sourced as a Agaxes AI employee: the hiring pipeline run under a passport, with ledger entries and Send Guard.
 
     GET/POST /api/agents/{agent_id}/run?brief=...   same SSE stream as /api/run, plus:
         step "passport"  live verify_passport(data.read) before any Crustdata search; a block ends the run
         step "guard"     Send Guard verdict on each shortlisted outreach draft (signed with the agent's key)
+        step "send"      with ?autosend=1: the email that went out (or why not) for each cleared draft
         candidate        re-sent with a "guard" field {decision, checks, ledger_entry} once its draft is checked
     POST /api/verify_resume                        check a resume's claims against Crustdata (seeded-fakes beat)
 
 The run is recorded on the hash-chained ledger: run.started, run.finished (with every candidate's claim sources)
-and one guard.verdict per draft. Drafts are never sent (event rule); "allow" means cleared to send.
+and one guard.verdict per draft. Shortlisted candidates get their email from Crustdata (contact field), and with
+autosend=1 (or AUTO_SEND=1) every cleared draft is emailed through app/outbound (test mode redirects to your inbox).
 The agent must be onboarded first (console, POST /api/agents, scripts/onboard_sourced.py or scripts/run_fleet.py).
 agent_id "sourced" means the newest active agent named Sourced (else the newest Sourced, so a suspension still shows),
 so the UI can use NEXT_PUBLIC_AGENT_ID=sourced without copying ids around.
@@ -32,6 +34,8 @@ from .agents.guard import check_send
 from .agents.models import Passport, Verdict
 from .agents.passport import sign_message, verify_passport
 from .orchestrator import run
+from .outbound.contacts import find_emails
+from .outbound.send import finalize_body, guarded_send
 from .schemas import Claim, Criteria, RunRequest
 
 log = logging.getLogger(__name__)
@@ -39,11 +43,12 @@ router = APIRouter(prefix="/api", tags=["sourced"])
 
 GUARD_MAX = int(os.getenv("GUARD_MAX", "5"))            # drafts checked per run (each check costs a Person Enrich)
 GUARD_TIMEOUT = float(os.getenv("GUARD_TIMEOUT", "30"))
+AUTO_SEND = os.getenv("AUTO_SEND", "").lower() in ("1", "true", "yes")
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 
 
 class AgentStep(BaseModel):
-    """StepEvent with Countersign step names (passport, guard). Same wire shape as schemas.StepEvent."""
+    """StepEvent with Agaxes step names (passport, guard). Same wire shape as schemas.StepEvent."""
     type: str = "step"
     step: str
     message: str
@@ -60,6 +65,12 @@ def _failures(v: Verdict) -> str:
     return "; ".join(bad) or "no checks ran"
 
 
+def _subject(c: dict, passport: Passport, role: str | None) -> str:
+    first = (c.get("name") or "").split(" ")[0]
+    what = role or "a role"
+    return f"{first + ', ' if first else ''}{what} at {passport.sponsor.company}"
+
+
 def resolve_agent_id(agent_id: str) -> str:
     if agent_id.lower() != "sourced":
         return agent_id
@@ -69,8 +80,10 @@ def resolve_agent_id(agent_id: str) -> str:
     return pick["agent_id"] if pick else agent_id
 
 
-async def run_as_agent(brief: str, agent_id: str, client: Any = None) -> AsyncIterator[dict]:
-    """Yields event dicts. Never raises: problems come back as error events."""
+async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: bool | None = None) -> AsyncIterator[dict]:
+    """Yields event dicts. Never raises: problems come back as error events.
+    autosend: email every draft Send Guard clears, with no one at the keyboard (default AUTO_SEND env, else off)."""
+    autosend = AUTO_SEND if autosend is None else autosend
     agent_id = resolve_agent_id(agent_id)
     try:
         rec = registry.get_agent(agent_id)
@@ -104,8 +117,11 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None) -> AsyncIt
     shortlist: list[str] = []
     summary: dict = {}
     done_ev: dict | None = None
+    brief_role: dict = {}
     async for ev in run(brief, client=client):
         d = ev.model_dump(mode="json")
+        if d["type"] == "step" and d.get("step") == "parse" and (d.get("data") or {}).get("criteria"):
+            brief_role = d["data"]["criteria"]
         if d["type"] == "candidate":
             candidates[d["candidate"]["id"]] = d["candidate"]
         elif d["type"] == "step" and d.get("step") == "rank" and d.get("data"):
@@ -116,45 +132,68 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None) -> AsyncIt
         yield d
 
     guarded: dict[str, str] = {}
+    sent: dict[str, str] = {}
+    todo = [candidates[i] for i in shortlist if i in candidates and candidates[i].get("outreach_draft")][:GUARD_MAX]
+    for c in todo:  # the email says who is hiring and who signs it
+        c["outreach_draft"] = finalize_body(c["outreach_draft"], passport)
+        c["outreach_subject"] = _subject(c, passport, brief_role.get("role"))
+    contacts_task = asyncio.create_task(find_emails(client, [c.get("profile_url") for c in todo])) if todo else None
     if "outreach.hiring" not in passport.scopes:
         yield AgentStep(step="guard", message="No outreach.hiring scope: drafts kept, none cleared to send").model_dump()
-    else:
-        todo = [candidates[i] for i in shortlist if i in candidates and candidates[i].get("outreach_draft")][:GUARD_MAX]
-        if todo:
-            yield AgentStep(step="guard", message=f"Send Guard checking {len(todo)} shortlisted draft(s) before anything could leave...").model_dump()
-            key = registry.private_key(agent_id)
+    elif todo:
+        yield AgentStep(step="guard", message=f"Send Guard checking {len(todo)} shortlisted draft(s) and finding their emails on Crustdata...").model_dump()
+        key = registry.private_key(agent_id)
 
-            async def one(c: dict) -> tuple[dict, Verdict | None]:
-                body = c["outreach_draft"]
+        async def one(c: dict) -> tuple[dict, Verdict | None]:
+            body = c["outreach_draft"]
+            to = {"name": c.get("name"), "profile_url": c.get("profile_url"), "company": c.get("company")}
+            try:
+                v = await asyncio.wait_for(
+                    check_send(passport, sign_message(passport, key, body), to, body, "outreach.hiring", client, graph=graph),
+                    timeout=GUARD_TIMEOUT)
+                return c, v
+            except Exception as e:  # noqa: BLE001 - a guard failure blocks, it never allows
+                log.warning("guard failed for %s: %s", c.get("id"), e)
+                return c, None
+
+        found = await contacts_task if contacts_task else {}
+        for c in todo:
+            info = found.get(c.get("profile_url"))
+            if info is not None:
+                c["contact"] = info.model_dump(mode="json")
+        n_email = sum(1 for c in todo if (c.get("contact") or {}).get("email"))
+        yield AgentStep(step="guard", message=f"Crustdata has an email for {n_email} of {len(todo)} shortlisted candidates",
+                        data={"emails_found": n_email, "checked": len(todo)}).model_dump()
+
+        for fut in asyncio.as_completed([one(c) for c in todo]):
+            c, v = await fut
+            if v is None:
+                guarded[c["id"]] = "block"
+                c["guard"] = {"decision": "block", "checks": [], "ledger_entry": None, "error": "guard timed out"}
+                msg = f"{c.get('name')}: blocked (guard could not finish, fail closed)"
+            else:
+                guarded[c["id"]] = v.decision
+                c["guard"] = {"decision": v.decision, "checks": [k.model_dump() for k in v.checks], "ledger_entry": v.ledger_entry}
+                msg = (f"{c.get('name')}: cleared to send" if v.decision == "allow"
+                       else f"{c.get('name')}: blocked, {_failures(v)}")
+            yield AgentStep(step="guard", message=msg, data={"candidate_id": c["id"], **c["guard"]}).model_dump()
+            if autosend and v is not None and v.decision == "allow":
                 to = {"name": c.get("name"), "profile_url": c.get("profile_url"), "company": c.get("company")}
-                try:
-                    v = await asyncio.wait_for(
-                        check_send(passport, sign_message(passport, key, body), to, body, "outreach.hiring", client, graph=graph),
-                        timeout=GUARD_TIMEOUT)
-                    return c, v
-                except Exception as e:  # noqa: BLE001 - a guard failure blocks, it never allows
-                    log.warning("guard failed for %s: %s", c.get("id"), e)
-                    return c, None
-
-            for fut in asyncio.as_completed([one(c) for c in todo]):
-                c, v = await fut
-                if v is None:
-                    guarded[c["id"]] = "block"
-                    c["guard"] = {"decision": "block", "checks": [], "ledger_entry": None, "error": "guard timed out"}
-                    msg = f"{c.get('name')}: blocked (guard could not finish, fail closed)"
-                else:
-                    guarded[c["id"]] = v.decision
-                    c["guard"] = {"decision": v.decision, "checks": [k.model_dump() for k in v.checks], "ledger_entry": v.ledger_entry}
-                    msg = (f"{c.get('name')}: cleared to send (not sent: event rule)" if v.decision == "allow"
-                           else f"{c.get('name')}: blocked, {_failures(v)}")
-                yield AgentStep(step="guard", message=msg, data={"candidate_id": c["id"], **c["guard"]}).model_dump()
-                yield {"type": "candidate", "candidate": c, "ts": datetime.now(timezone.utc).isoformat()}
+                res = await guarded_send(agent_id, to, c["outreach_subject"], c["outreach_draft"], email=c.get("contact"),
+                                         verdict=v, verdict_body=c["outreach_draft"], client=client, graph=graph)
+                sent[c["id"]] = res.status
+                c["outreach"] = {"status": res.status, "detail": res.detail, "message": res.message}
+                yield AgentStep(step="send", message=f"{c.get('name')}: {res.detail}",
+                                data={"candidate_id": c["id"], "status": res.status}).model_dump()
+            yield {"type": "candidate", "candidate": c, "ts": datetime.now(timezone.utc).isoformat()}
+    if contacts_task and not contacts_task.done():
+        contacts_task.cancel()
 
     sources = [cl.get("source") for c in candidates.values() for cl in c.get("claims") or [] if cl.get("source")]
     entry = ledger.append("run.finished", {
         "agent_id": agent_id, "brief_sha256": brief_sha, "summary": summary,
         "shortlist": [{"id": i, "name": candidates[i].get("name"), "score": candidates[i].get("score")} for i in shortlist if i in candidates],
-        "guard": guarded,
+        "guard": guarded, "sent": sent,
     }, sources[:200])
     if done_ev:
         done_ev.setdefault("summary", {})["ledger_entry"] = entry
@@ -162,20 +201,20 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None) -> AsyncIt
         yield done_ev
 
 
-async def _sse(brief: str, agent_id: str):
+async def _sse(brief: str, agent_id: str, autosend: bool | None = None):
     import json
-    async for d in run_as_agent(brief, agent_id):
+    async for d in run_as_agent(brief, agent_id, autosend=autosend):
         yield f"data: {json.dumps(d, default=str)}\n\n"
 
 
 @router.post("/agents/{agent_id}/run")
-async def run_post(agent_id: str, req: RunRequest):
-    return StreamingResponse(_sse(req.brief, agent_id), media_type="text/event-stream", headers=SSE_HEADERS)
+async def run_post(agent_id: str, req: RunRequest, autosend: bool | None = None):
+    return StreamingResponse(_sse(req.brief, agent_id, autosend), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 @router.get("/agents/{agent_id}/run")
-async def run_get(agent_id: str, brief: str = Query(..., min_length=1)):
-    return StreamingResponse(_sse(brief, agent_id), media_type="text/event-stream", headers=SSE_HEADERS)
+async def run_get(agent_id: str, brief: str = Query(..., min_length=1), autosend: bool | None = None):
+    return StreamingResponse(_sse(brief, agent_id, autosend), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 # ---- resume verification (seeded fakes) ---------------------------------------------------------

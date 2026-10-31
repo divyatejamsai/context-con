@@ -4,9 +4,15 @@ POST /api/run            {"brief": "..."}  -> text/event-stream of events (CONTE
 GET  /api/run?brief=...                     -> same, for browser EventSource (GET only)
 GET  /api/replay?delay=0.6                  -> streams fixtures/run.jsonl (demo safety net)
 GET  /api/health
-GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Countersign AI employee (app/sourced_agent.py)
+GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Agaxes AI employee (app/sourced_agent.py)
 POST /api/verify_resume                     -> check a resume's claims against Crustdata
+POST /api/auth/{lookup,signup,login,demo,logout}, GET /api/auth/me -> company accounts (app/accounts/)
 GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
+/api/runtime/*                              -> the agent runtime: tasks, approvals, budgets, schedules (app/runtime/)
+/api/campaigns/*                            -> brief to signed offer, ~100 conversations over weeks (app/talent/api.py)
+/api/staffing/*                             -> staff 1000 shifts from applications seeded with fakes (app/talent/api.py)
+POST /api/agents/{agent_id}/email            -> find the email on Crustdata, Send Guard, send for real (app/outbound/)
+GET  /api/messages, POST /api/messages/refresh -> sent emails with delivery status and replies
 """
 from __future__ import annotations
 
@@ -28,9 +34,13 @@ load_dotenv(ROOT / "backend" / ".env")
 from . import llm  # noqa: E402  (after dotenv so LLM_MODE is set)
 from .orchestrator import run  # noqa: E402
 from .schemas import RunRequest  # noqa: E402
-from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
+from .agents.api import router as agents_router  # noqa: E402  (Agaxes, docs/COUNTERSIGN.md)
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
+from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
+from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
+from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
+from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -39,6 +49,28 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(agents_router)
 app.include_router(sourced_router)
 app.include_router(demo_router)
+app.include_router(runtime_api.router)
+app.include_router(outbound_router)
+app.include_router(auth_router)
+app.include_router(talent_router)
+
+
+@app.on_event("startup")
+async def start_runtime():
+    """The agent runtime runs inside the API server (RUNTIME_ENABLED=0 turns it off)."""
+    if os.getenv("RUNTIME_ENABLED", "1") == "0":
+        return
+    from .agents.api import crustdata
+    from .runtime.supervisor import Runtime
+    runtime_api.RUNTIME = Runtime(crustdata())
+    await runtime_api.RUNTIME.start()
+
+
+@app.on_event("shutdown")
+async def stop_runtime():
+    if runtime_api.RUNTIME is not None:
+        await runtime_api.RUNTIME.stop()
+        runtime_api.RUNTIME = None
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 

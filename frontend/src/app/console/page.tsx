@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, BadgeCheck, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send, ShieldAlert,
-  ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
+  Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send,
+  ShieldAlert, ShieldCheck, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
@@ -13,23 +13,35 @@ import {
   type Verdict,
 } from "./api";
 import {
-  AgentMark, Button, DecisionBadge, Field, RuntimeBadge, ScopeChip, ScopeToggle, StatusPill, VerdictList, ago, cardCls, checkLabel, day, inputCls,
+  AgentMark, Button, DecisionBadge, EmptyState, Field, PageHead, RuntimeBadge, ScopeChip, ScopeToggle, SectionHead, StatusPill, TERMS, Term, VerdictList, ago, cardCls,
+  checkLabel, day, inputCls,
 } from "./parts";
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
+import { DemoView } from "./demo";
+import { WorkView } from "./work";
+import { AccountMenu } from "@/components/account-menu";
+import { BrandMark } from "@/components/brand-mark";
+import { BRAND } from "@/lib/brand";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "verify" | "guard" | "ledger";
+type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
 type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
-const VIEWS: { v: View; label: string; icon: React.ElementType }[] = [
-  { v: "employees", label: "AI employees", icon: Users },
-  { v: "verify", label: "Verify passport", icon: ShieldCheck },
-  { v: "guard", label: "Send Guard", icon: Send },
-  { v: "ledger", label: "Ledger", icon: Link2 },
+type Group = "Workforce" | "Checks" | "Audit" | "Learn";
+const GROUPS: Group[] = ["Workforce", "Checks", "Audit", "Learn"];
+
+// The sidebar renders this list, grouped. Add a view here and it shows up in the nav.
+const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; group: Group }[] = [
+  { v: "employees", label: "Agents", icon: Users, desc: "Onboard agents, see their passports, and suspend or retire them", group: "Workforce" },
+  { v: "work", label: "Work", icon: Activity, desc: "Live work: assign tasks, approve sends, pause or stop agents, budgets and report cards", group: "Workforce" },
+  { v: "guard", label: "Send Guard", icon: Send, desc: "Check a drafted message before an agent can send it", group: "Checks" },
+  { v: "verify", label: "Verify a passport", icon: ShieldCheck, desc: "Check whether an agent that contacts you can be trusted", group: "Checks" },
+  { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
+  { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six agents go through seven situations, with every decision and its source", group: "Learn" },
 ];
 const ALL_SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -46,6 +58,7 @@ export default function Console() {
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
   const [onboarding, setOnboarding] = useState(false);
+  const wide = useWide();
 
   const setView = (v: View) => {
     setViewState(v);
@@ -78,10 +91,6 @@ export default function Console() {
     connect();
   }, [connect]);
 
-  useEffect(() => {
-    if (!selected && agents.length) setSelected(agents[0].agent_id);
-  }, [agents, selected]);
-
   const cur = agents.find((a) => a.agent_id === selected);
   const counts = useMemo(
     () => agents.reduce((c, a) => ({ ...c, [a.status]: (c[a.status] ?? 0) + 1 }), {} as Record<string, number>),
@@ -109,6 +118,11 @@ export default function Console() {
     }
   };
 
+  const startOnboarding = () => {
+    setView("employees");
+    setOnboarding(true);
+  };
+
   const runPayroll = async () => {
     const before = new Map(agents.map((a) => [a.agent_id, a.status]));
     setBusy("payroll");
@@ -119,119 +133,112 @@ export default function Console() {
       const suspended = list.filter((a) => a.status === "suspended" && before.get(a.agent_id) === "active").map((a) => a.agent_id);
       setPayroll({ verdicts, suspended });
     } catch (e) {
-      setFlash({ tone: "bad", title: "Payroll check failed", body: e instanceof Error ? e.message : String(e) });
+      setFlash({ tone: "bad", title: "Sponsor re-check failed", body: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(null);
     }
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-12 max-w-[1680px] items-center justify-between gap-3 px-4">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <Link href="/" className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12.5px] text-muted-foreground hover:bg-elevated hover:text-foreground">
-              <ArrowLeft className="size-3.5" /> Sourced
-            </Link>
-            <span className="text-faint">/</span>
-            <span className="flex items-center gap-2 px-1">
-              <IdCard className="size-4 text-primary" />
-              <span className="text-[14px] font-[620] tracking-[-0.01em]">Countersign</span>
-            </span>
-            <nav className="ml-4 hidden items-center gap-0.5 md:flex" aria-label="Countersign">
-              {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <AdminToken />
-            <ThemeToggle />
-            {chain && (
-              <button onClick={() => setView("ledger")} title="Hash-chained ledger of every passport, check and decision">
-                <ChainPill {...chain} />
-              </button>
-            )}
-            <span
-              className={cn(
-                "inline-flex h-6 items-center gap-1.5 rounded-full border px-2 font-mono text-[10.5px]",
-                mode === "live" ? "border-verified/30 text-verified" : mode === "offline" ? "border-contradicted/30 text-contradicted" : "border-border-strong text-faint",
-              )}
-              title={mode === "live" ? `Connected to ${API_URL}` : `Can't reach ${API_URL}`}
-            >
-              <span className={cn("size-1.5 rounded-full", mode === "live" ? "bg-verified" : mode === "offline" ? "bg-contradicted" : "bg-faint")} />
-              {mode === "loading" ? "connecting" : mode === "live" ? "live" : "offline"}
-            </span>
-          </div>
-        </div>
-        <nav className="flex gap-0.5 overflow-x-auto px-3 pb-2 md:hidden" aria-label="Countersign">
-          {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
-        </nav>
-      </header>
+    <div className="min-h-screen lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents.length} />
 
-      {mode === "offline" ? (
-        <Offline onRetry={connect} />
-      ) : mode === "loading" ? (
-        <div className="grid min-h-[60vh] place-items-center text-[13px] text-faint">
-          <Loader2 className="size-4 animate-spin" />
-        </div>
-      ) : view === "verify" ? (
-        <VerifyView agents={agents} scenarios={scenarios} />
-      ) : view === "guard" ? (
-        <GuardView agents={agents} onSent={refresh} />
-      ) : view === "ledger" ? (
-        <LedgerExplorer agents={agents} onChain={setChain} />
-      ) : (
-        <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(360px,440px)_minmax(0,1fr)]">
-          <section className="min-w-0 border-border lg:sticky lg:top-12 lg:h-[calc(100vh-3rem)] lg:overflow-y-auto lg:border-r">
-            <div className="px-4 pb-4 pt-6">
-              <h1 className="text-[22px] font-[620] tracking-[-0.02em]">AI employees</h1>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                Each one acts for a named person. Countersign checks that person against Crustdata before the agent is trusted, and again on
-                every payroll check.
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button variant="primary" onClick={() => setOnboarding(true)}>
-                  <Plus className="size-3.5" /> Onboard
-                </Button>
-                <Button onClick={runPayroll} disabled={busy === "payroll" || !agents.length} title="Re-check every sponsor against Crustdata">
-                  {busy === "payroll" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-                  Run payroll check
-                </Button>
-                <span className="ml-auto flex items-center gap-3 text-[11.5px] text-muted-foreground tabular-nums">
-                  <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-verified" />{counts.active ?? 0} active</span>
-                  {!!counts.suspended && <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-contradicted" />{counts.suspended} suspended</span>}
-                </span>
+      <div className="min-w-0">
+        {mode === "offline" ? (
+          <Offline onRetry={connect} />
+        ) : mode === "loading" ? (
+          <div className="grid min-h-[70vh] place-items-center text-[13px] text-faint">
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" /> Connecting to {BRAND.name}…
+            </span>
+          </div>
+        ) : view === "work" ? (
+          <WorkView onChanged={refresh} />
+        ) : view === "verify" ? (
+          <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
+        ) : view === "guard" ? (
+          <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
+        ) : view === "demo" ? (
+          <DemoView onChanged={refresh} onOpen={setView} />
+        ) : view === "ledger" ? (
+          <LedgerExplorer agents={agents} onChain={setChain} onOnboard={startOnboarding} />
+        ) : (
+          <main className={cn("min-w-0", cur && "xl:grid xl:grid-cols-[minmax(340px,1fr)_minmax(0,760px)]")}>
+            <section className={cn("min-w-0 px-4 pb-10 pt-6 sm:px-8 sm:pt-8", cur && "xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto xl:border-r xl:border-border xl:px-6")}>
+              <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+                <PageHead title="Agents">
+                  {!cur && <>The AI agents that act for your company. Each one carries a <Term tip={TERMS.passport}>passport</Term> naming the real person it works
+                  for, and is trusted only while Crustdata confirms that <Term tip={TERMS.sponsor}>sponsor</Term> still works here and can delegate the job.</>}
+                </PageHead>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    onClick={runPayroll}
+                    disabled={busy === "payroll" || !agents.length}
+                    title="Looks up every sponsor in Crustdata again and suspends any agent whose sponsor has left or lost authority"
+                  >
+                    {busy === "payroll" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                    Re-check sponsors
+                  </Button>
+                  <Button variant="primary" onClick={() => setOnboarding(true)} title="Issue a passport for a new agent and check its sponsor in Crustdata">
+                    <Plus className="size-3.5" /> New agent
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {payroll && <PayrollBanner run={payroll} agents={agents} onClose={() => setPayroll(null)} onPick={setSelected} />}
-
-            <ul className="border-t border-border">
-              {!agents.length && (
-                <li className="px-4 py-12 text-center">
-                  <p className="text-[13px] text-secondary">No AI employees yet.</p>
-                  <p className="mt-1 text-[12px] text-faint">Onboard Sourced, the hiring agent, as employee #1.</p>
-                </li>
+              {agents.length > 0 && (
+                <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted-foreground tabular-nums">
+                  <Count dot="bg-verified" n={counts.active ?? 0} label="active" />
+                  <Count dot="bg-contradicted" n={counts.suspended ?? 0} label="suspended" />
+                  <Count dot="bg-faint" n={counts.offboarded ?? 0} label="offboarded" />
+                  {!cur && <span className="ml-auto text-[12px] text-faint">Click an agent to open its passport</span>}
+                </div>
               )}
-              {agents.map((a) => (
-                <AgentRow key={a.agent_id} agent={a} selected={a.agent_id === selected} onClick={() => setSelected(a.agent_id)} />
-              ))}
-            </ul>
-          </section>
 
-          <section className="min-w-0">
-            {flash && <FlashBar flash={flash} onClose={() => setFlash(null)} />}
-            {cur ? (
-              <AgentDetail key={cur.agent_id} agent={cur} role={roles.find((r) => r.title === cur.role)} tab={tab} setTab={setTab} busy={busy} act={act} />
-            ) : (
-              <div className="grid min-h-[50vh] place-items-center p-8 text-center text-[13px] text-faint">Select an AI employee.</div>
+              {payroll && <PayrollBanner run={payroll} agents={agents} onClose={() => setPayroll(null)} onPick={setSelected} />}
+
+              <div className={cn(cardCls, "mt-3 overflow-hidden")}>
+                {!agents.length ? (
+                  <EmptyState
+                    icon={Users}
+                    title="No agents yet"
+                    action={
+                      <Button variant="primary" onClick={() => setOnboarding(true)}>
+                        <Plus className="size-3.5" /> Onboard Sourced as your first agent
+                      </Button>
+                    }
+                  >
+                    Onboarding issues the agent a passport and checks its sponsor in Crustdata straight away. Start with Sourced, the hiring agent.
+                  </EmptyState>
+                ) : (
+                  <AgentTable agents={agents} selected={selected} compact={!!cur} onPick={(id) => setSelected(id === selected ? undefined : id)} />
+                )}
+              </div>
+            </section>
+
+            {cur && (
+              <section className="hidden min-w-0 xl:block">
+                {flash && <FlashBar flash={flash} onClose={() => setFlash(null)} />}
+                <AgentDetail key={cur.agent_id} agent={cur} role={roles.find((r) => r.title === cur.role)} tab={tab} setTab={setTab} busy={busy} act={act} onClose={() => setSelected(undefined)} />
+              </section>
             )}
-          </section>
-        </main>
-      )}
+          </main>
+        )}
+      </div>
+
+      {/* Below xl the detail opens as a sheet over the table. */}
+      <Sheet open={!!cur && !wide && view === "employees"} onOpenChange={(o) => !o && setSelected(undefined)}>
+        <SheetContent className="border-border bg-panel sm:max-w-2xl">
+          <SheetTitle className="sr-only">{cur?.name ?? "Agent"}</SheetTitle>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {flash && <FlashBar flash={flash} onClose={() => setFlash(null)} />}
+            {cur && <AgentDetail key={cur.agent_id} agent={cur} role={roles.find((r) => r.title === cur.role)} tab={tab} setTab={setTab} busy={busy} act={act} />}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={onboarding} onOpenChange={setOnboarding}>
         <SheetContent className="border-border bg-panel">
-          <SheetTitle className="sr-only">Onboard an AI employee</SheetTitle>
+          <SheetTitle className="sr-only">Onboard an agent</SheetTitle>
           <OnboardForm
             roles={roles}
             scenarios={scenarios}
@@ -246,6 +253,96 @@ export default function Console() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+function Count({ dot, n, label }: { dot: string; n: number; label: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5", !n && "text-faint")}>
+      <span className={cn("size-1.5 rounded-full", n ? dot : "bg-border-strong")} />
+      <b className="font-[590] text-foreground">{n}</b> {label}
+    </span>
+  );
+}
+
+function useWide() {
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 1280px)");
+    const on = () => setWide(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
+// ---- shell -----------------------------------------------------------------------------------
+
+function Sidebar({
+  view, setView, mode, chain, counts, agents,
+}: { view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: number }) {
+  const badge = (v: View) =>
+    v === "employees" ? (agents ? String(agents) : undefined) : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
+  return (
+    <aside className="sticky top-0 z-30 flex flex-col border-b border-border bg-elevated/70 backdrop-blur-xl lg:h-screen lg:border-b-0 lg:border-r lg:bg-elevated/40">
+      <div className="flex h-12 items-center justify-between gap-2 px-4 lg:h-14">
+        <span className="flex min-w-0 items-center gap-2" title={`${BRAND.name}: ${BRAND.tagline.toLowerCase()}. Checks that every AI agent is vouched for by a real person before anyone trusts it.`}>
+          <BrandMark />
+          <span className="min-w-0 leading-none">
+            <span className="block text-[14px] font-[620] tracking-[-0.01em]">{BRAND.name}</span>
+            <span className="mt-0.5 hidden text-[11px] text-faint lg:block">{BRAND.tagline}</span>
+          </span>
+        </span>
+        <div className="flex items-center gap-1 lg:hidden">
+          <AdminToken />
+          <ThemeToggle />
+          <AccountMenu />
+        </div>
+      </div>
+
+      <nav className="flex gap-0.5 overflow-x-auto px-3 pb-2 lg:mt-2 lg:flex-1 lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pb-4" aria-label={BRAND.name}>
+        {GROUPS.map((g) => (
+          <div key={g} className="flex gap-0.5 lg:flex-col">
+            <p className="hidden px-2 pb-1 text-[11px] font-[510] text-faint lg:block">{g}</p>
+            {VIEWS.filter((x) => x.group === g).map((x) => (
+              <NavItem key={x.v} {...x} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false} alert={x.v === "employees" && !!counts.suspended ? `${counts.suspended} suspended` : undefined} active={view === x.v} onClick={() => setView(x.v)} />
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div className="hidden border-t border-border p-3 lg:block">
+        <Link
+          href="/"
+          prefetch={false}
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-muted-foreground transition hover:bg-hover hover:text-foreground"
+          title={`${BRAND.agent}, the hiring agent that runs under ${BRAND.name}: shortlists, campaigns and shift staffing`}
+        >
+          <ArrowUpRight className="size-3.5" /> Open {BRAND.agent}
+        </Link>
+        <div className="mt-2 flex items-center justify-between gap-2 px-1">
+          <BackendDot mode={mode} />
+          <div className="flex items-center gap-0.5">
+            <AdminToken up />
+            <ThemeToggle />
+            <AccountMenu />
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function BackendDot({ mode }: { mode: Mode }) {
+  return (
+    <span
+      className="inline-flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground"
+      title={mode === "live" ? `Connected to the backend at ${API_URL}. Everything here is real data.` : `Can't reach the backend at ${API_URL}`}
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", mode === "live" ? "bg-verified" : mode === "offline" ? "bg-contradicted" : "animate-pulse bg-faint")} />
+      <span className="truncate">{mode === "loading" ? "Connecting" : mode === "live" ? "Connected" : "Offline"}</span>
+    </span>
   );
 }
 
@@ -268,7 +365,7 @@ function ThemeToggle() {
   );
 }
 
-function AdminToken() {
+function AdminToken({ up }: { up?: boolean }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [has, setHas] = useState(false);
@@ -278,7 +375,7 @@ function AdminToken() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn("grid size-7 place-items-center rounded-md hover:bg-elevated", has ? "text-foreground" : "text-muted-foreground")}
-        title={has ? "Admin token set" : "Set admin token"}
+        title={has ? "Admin token set. Changes to agents are sent with it." : "Set the admin token (only needed if the backend asks for one)"}
         aria-label="Admin token"
       >
         <KeyRound className="size-3.5" />
@@ -292,7 +389,7 @@ function AdminToken() {
             setValue("");
             setOpen(false);
           }}
-          className={cn(cardCls, "absolute right-0 top-9 z-40 w-72 p-3 shadow-lg animate-fade")}
+          className={cn(cardCls, up ? "absolute bottom-9 right-0 z-40 w-72 p-3 shadow-lg animate-fade" : "absolute right-0 top-9 z-40 w-72 p-3 shadow-lg animate-fade")}
         >
           <p className="text-[12.5px] font-[510]">Admin token</p>
           <p className="mt-0.5 text-[11.5px] text-muted-foreground">Needed to change agents when the backend sets COUNTERSIGN_ADMIN_TOKEN. Stored in this browser only.</p>
@@ -309,97 +406,122 @@ function AdminToken() {
   );
 }
 
-function NavItem({ label, icon: I, active, onClick }: { label: string; icon: React.ElementType; active: boolean; onClick: () => void }) {
+function NavItem({
+  label, icon: I, desc, active, onClick, badge, bad,
+  alert,
+}: { label: string; icon: React.ElementType; desc: string; active: boolean; onClick: () => void; badge?: string; bad?: boolean; alert?: string }) {
   return (
     <button
       onClick={onClick}
+      title={desc}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] transition",
-        active ? "bg-elevated text-foreground shadow-[0_0_0_1px_var(--border-strong)]" : "text-muted-foreground hover:text-foreground",
+        "group inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-[13px] transition lg:w-full",
+        active ? "bg-panel font-[510] text-foreground shadow-[var(--shadow)]" : "text-muted-foreground hover:bg-hover hover:text-foreground",
       )}
     >
-      <I className="size-3.5" /> {label}
+      <I className={cn("size-4 shrink-0", active ? "text-foreground" : "text-faint group-hover:text-muted-foreground")} />
+      <span className="truncate">{label}</span>
+      {alert && <span className="size-1.5 shrink-0 rounded-full bg-contradicted" title={alert} aria-label={alert} />}
+      {badge && (
+        <span className={cn("ml-auto hidden font-mono text-[10.5px] tabular-nums lg:inline", bad ? "text-contradicted" : "text-faint")}>{badge}</span>
+      )}
     </button>
   );
 }
 
 function Offline({ onRetry }: { onRetry: () => void }) {
   return (
-    <main className="mx-auto max-w-[600px] px-4 py-20">
-      <div className={cn(cardCls, "p-6")}>
-        <ShieldAlert className="size-5 text-contradicted" />
-        <h1 className="mt-3 text-[18px] font-[600]">The Countersign backend is offline</h1>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-          The console only shows real state. Every passport, check and ledger entry comes from the backend at{" "}
-          <span className="font-mono text-secondary">{API_URL}</span>. Start it, then retry.
-        </p>
-        <pre className="mt-4 overflow-x-auto rounded-lg border border-border bg-background p-3 font-mono text-[12px] leading-relaxed text-secondary">
-          {"cd backend\nuvicorn app.main:app --reload --port 8000"}
-        </pre>
-        <Button variant="primary" onClick={onRetry} className="mt-4">
-          <RefreshCw className="size-3.5" /> Retry
-        </Button>
-      </div>
+    <main className="mx-auto max-w-[560px] px-4 py-24">
+      <ShieldAlert className="size-5 text-contradicted" />
+      <h1 className="mt-3 text-[20px] font-[620] tracking-[-0.02em]">Can&apos;t reach the {BRAND.name} backend</h1>
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+        This console only shows real state: every passport, check and ledger entry comes from the backend at{" "}
+        <span className="font-mono text-[12.5px] text-secondary">{API_URL}</span>. Start it, then retry.
+      </p>
+      <pre className="mt-5 overflow-x-auto rounded-lg border border-border bg-elevated p-3 font-mono text-[12px] leading-relaxed text-secondary">
+        {"cd backend\nuvicorn app.main:app --reload --port 8000"}
+      </pre>
+      <Button variant="primary" onClick={onRetry} className="mt-4">
+        <RefreshCw className="size-3.5" /> Retry
+      </Button>
     </main>
   );
 }
 
 // ---- list ------------------------------------------------------------------------------------
 
-function AgentRow({ agent: a, selected, onClick }: { agent: Agent; selected: boolean; onClick: () => void }) {
-  const s = a.passport.sponsor;
+/** Suspension reasons arrive as "check_name: detail"; show the check's plain name instead of its id. */
+const reasonText = (r?: string | null) => (r ?? "").replace(/^([a-z_]+):\s*/, (_, k: string) => `${checkLabel(k)}: `);
+
+function AgentTable({ agents, selected, compact, onPick }: { agents: Agent[]; selected?: string; compact: boolean; onPick: (id: string) => void }) {
   return (
-    <li>
-      <button
-        onClick={onClick}
-        className={cn(
-          "relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 border-b border-border px-4 py-3.5 text-left transition",
-          selected ? "bg-elevated" : "hover:bg-hover/60",
-          a.status === "offboarded" && "opacity-60",
-        )}
-      >
-        {selected && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
-        <AgentMark agent={a} />
-        <span className="min-w-0">
-          <span className="flex items-baseline gap-2">
-            <span className="truncate text-[14px] font-[590]">{a.name}</span>
-            <span className="font-mono text-[10.5px] text-faint">#{a.employee_no}</span>
-            <RuntimeBadge runtime={a.runtime} />
-          </span>
-          {a.job && <span className="block truncate text-[12px] text-secondary">{a.job}</span>}
-          <span className="block truncate text-[12px] text-muted-foreground">
-            {a.role} · for <span className="text-secondary">{s.name}</span>, {s.company}
-          </span>
-          {a.status !== "active" && a.reason ? (
-            <span className={cn("mt-1 line-clamp-2 text-[11.5px] leading-snug", a.status === "suspended" ? "text-contradicted" : "text-faint")}>{a.reason}</span>
-          ) : (
-            <span className="mt-1.5 flex flex-wrap gap-1">{a.passport.scopes.map((sc) => <ScopeChip key={sc} scope={sc} />)}</span>
-          )}
-        </span>
-        <span className="flex flex-col items-end gap-1.5">
-          <StatusPill status={a.status} />
-          <span className="text-[10.5px] text-faint">checked {ago(a.last_checked)}</span>
-        </span>
-      </button>
-    </li>
+    <table className="w-full table-fixed text-left">
+      <thead>
+        <tr className="border-b border-border text-[11.5px] text-faint">
+          <th className="px-4 py-2 font-[510]">Agent</th>
+          {!compact && <th className="hidden w-[24%] px-3 py-2 font-[510] md:table-cell">Acts for</th>}
+          {!compact && <th className="hidden w-[22%] px-3 py-2 font-[510] 2xl:table-cell">Permissions</th>}
+          <th className="w-[104px] px-3 py-2 font-[510]">Status</th>
+          {!compact && <th className="hidden w-[112px] px-4 py-2 text-right font-[510] sm:table-cell">Last check</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {agents.map((a) => {
+          const s = a.passport.sponsor;
+          const on = a.agent_id === selected;
+          return (
+            <tr
+              key={a.agent_id}
+              onClick={() => onPick(a.agent_id)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onPick(a.agent_id))}
+              tabIndex={0}
+              aria-selected={on}
+              className={cn(
+                "group cursor-pointer border-b border-border outline-none transition-colors last:border-0 focus-visible:bg-hover",
+                on ? "bg-primary/[0.05]" : "hover:bg-hover",
+                a.status === "offboarded" && "text-muted-foreground",
+              )}
+            >
+              <td className="relative px-4 py-3">
+                {on && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
+                <div className="flex min-w-0 items-center gap-3">
+                  <AgentMark agent={a} />
+                  <div className="min-w-0">
+                    <p className="flex items-baseline gap-1.5">
+                      <span className="truncate text-[13.5px] font-[590]">{a.name}</span>
+                      <RuntimeBadge runtime={a.runtime} />
+                    </p>
+                    <p className="truncate text-[12px] text-muted-foreground">
+                      {a.status !== "active" && a.reason ? (
+                        <span className={a.status === "suspended" ? "text-contradicted" : undefined}>{reasonText(a.reason)}</span>
+                      ) : (
+                        a.job || a.role
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              {!compact && (
+                <td className="hidden px-3 py-3 md:table-cell">
+                  <p className="truncate text-[13px]">{s.name}</p>
+                  <p className="truncate text-[12px] text-muted-foreground">{[s.title, s.company].filter(Boolean).join(", ")}</p>
+                </td>
+              )}
+              {!compact && (
+                <td className="hidden px-3 py-3 2xl:table-cell">
+                  <span className="flex flex-wrap gap-1">{a.passport.scopes.map((sc) => <ScopeChip key={sc} scope={sc} muted={a.status === "offboarded"} />)}</span>
+                </td>
+              )}
+              <td className="px-3 py-3"><StatusPill status={a.status} /></td>
+              {!compact && <td className="hidden px-4 py-3 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">{ago(a.last_checked)}</td>}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
-
-function ChainPill({ chain_ok, first_bad_seq, count }: Chain) {
-  return (
-    <span
-      className={cn(
-        "hidden h-6 items-center gap-1.5 rounded-full border px-2 text-[11px] font-[510] sm:inline-flex",
-        chain_ok ? "border-border-strong text-muted-foreground hover:text-foreground" : "border-contradicted/40 bg-contradicted/10 text-contradicted",
-      )}
-    >
-      <Link2 className="size-3" />
-      {chain_ok ? `Ledger intact · ${count}` : `Ledger broken at #${first_bad_seq}`}
-    </span>
-  );
-}
-
 function PayrollBanner({
   run, agents, onClose, onPick,
 }: { run: { verdicts: Verdict[]; suspended: string[] }; agents: Agent[]; onClose: () => void; onPick: (id: string) => void }) {
@@ -409,7 +531,7 @@ function PayrollBanner({
     <div className={cn(cardCls, "mx-4 mb-4 overflow-hidden animate-rise")}>
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <span className="flex items-center gap-2 text-[12.5px] font-[590]">
-          <ClipboardCheck className="size-3.5 text-primary" /> Payroll check
+          <ClipboardCheck className="size-3.5 text-primary" /> Sponsor re-check
           <span className="font-normal text-muted-foreground">
             {run.verdicts.length} checked, {blocked.length} blocked{run.suspended.length ? `, ${run.suspended.length} suspended now` : ""}
           </span>
@@ -418,6 +540,9 @@ function PayrollBanner({
           <X className="size-3.5" />
         </button>
       </div>
+      <p className="border-b border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+        Every sponsor was looked up in Crustdata again. Agents whose sponsor left or lost authority are suspended. Click one to see why.
+      </p>
       <ul className="divide-y divide-border">
         {run.verdicts.map((v) => {
           const a = byId.get(v.subject);
@@ -469,8 +594,8 @@ function FlashBar({ flash, onClose }: { flash: NonNullable<Flash>; onClose: () =
 type Act = <T>(key: string, fn: () => Promise<T>, ok?: (r: T) => Flash) => Promise<T | undefined>;
 
 function AgentDetail({
-  agent: a, role, tab, setTab, busy, act,
-}: { agent: Agent; role?: Role; tab: Tab; setTab: (t: Tab) => void; busy: string | null; act: Act }) {
+  agent: a, role, tab, setTab, busy, act, onClose,
+}: { agent: Agent; role?: Role; tab: Tab; setTab: (t: Tab) => void; busy: string | null; act: Act; onClose?: () => void }) {
   const [confirm, setConfirm] = useState<"suspend" | "offboard" | null>(null);
   const [reason, setReason] = useState("");
   const gone = a.status === "offboarded";
@@ -500,7 +625,15 @@ function AgentDetail({
   };
 
   return (
-    <div className="px-4 pb-16 pt-6 sm:px-6">
+    <div className="px-5 pb-16 pt-6 sm:px-8 sm:pt-8">
+      {onClose && (
+        <div className="mb-4 flex items-center justify-between text-[12px] text-faint">
+          <span>Agent #{a.employee_no}</span>
+          <button onClick={onClose} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-hover hover:text-foreground" aria-label="Close" title="Close (back to the full table)">
+            <X className="size-3.5" /> Close
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <AgentMark agent={a} size="lg" />
@@ -518,19 +651,23 @@ function AgentDetail({
         </div>
         {!gone && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button onClick={recheck} disabled={!!busy}>
+            <Button
+              onClick={recheck}
+              disabled={!!busy}
+              title={`Look up ${a.passport.sponsor.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}
+            >
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />} Re-check sponsor
             </Button>
             {a.status === "suspended" ? (
-              <Button onClick={reinstate} disabled={!!busy}>
+              <Button onClick={reinstate} disabled={!!busy} title="Run a fresh sponsor check. If it passes, the passport is valid again.">
                 {busy === "reinstate" ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reinstate
               </Button>
             ) : (
-              <Button onClick={() => setConfirm("suspend")} disabled={!!busy}>
+              <Button onClick={() => setConfirm("suspend")} disabled={!!busy} title="Pause this agent: its passport is revoked until you reinstate it">
                 <Ban className="size-3.5" /> Suspend
               </Button>
             )}
-            <Button variant="danger" onClick={() => setConfirm("offboard")} disabled={!!busy}>
+            <Button variant="danger" onClick={() => setConfirm("offboard")} disabled={!!busy} title="Retire this agent for good: its passport is revoked permanently">
               <UserMinus className="size-3.5" /> Offboard
             </Button>
           </div>
@@ -542,46 +679,61 @@ function AgentDetail({
           <ShieldAlert className={cn("mt-0.5 size-4 shrink-0", a.status === "suspended" ? "text-contradicted" : "text-faint")} />
           <p className="text-[13px]">
             <span className="font-[590]">{a.status === "suspended" ? `Suspended${a.suspended_by ? ` by ${a.suspended_by}` : ""}.` : "Offboarded."}</span>{" "}
-            <span className="text-secondary">{a.reason}</span>
+            <span className="text-secondary">{reasonText(a.reason)}</span>
           </p>
         </div>
       )}
 
       {confirm && (
-        <div className={cn(cardCls, "mt-4 p-3 animate-rise")}>
-          <p className="text-[13px] font-[510]">{confirm === "suspend" ? `Suspend ${a.name}?` : `Offboard ${a.name}? This can't be undone.`}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (recorded on the ledger)" className={cn(inputCls, "min-w-[240px] flex-1")} />
+        <div className={cn(cardCls, "mt-4 p-4 animate-rise", confirm === "offboard" && "border-contradicted/35")}>
+          <p className="text-[13.5px] font-[590]">{confirm === "suspend" ? `Suspend ${a.name}?` : `Offboard ${a.name}? This can't be undone.`}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+            {confirm === "suspend"
+              ? `Its passport is revoked right away, so anyone who checks it, and the Send Guard, will refuse it. You can reinstate it later after a fresh sponsor check.`
+              : `Its passport is revoked permanently and it leaves the active roster. Its history stays on the ledger.`}{" "}
+            Your reason is recorded on the ledger.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={confirm === "suspend" ? "Reason, e.g. sponsor on leave" : "Reason, e.g. project finished"}
+              className={cn(inputCls, "min-w-0 flex-1 sm:min-w-[240px]")}
+            />
             <Button variant={confirm === "offboard" ? "danger" : "primary"} onClick={doConfirm} disabled={!!busy}>
-              {confirm === "suspend" ? "Suspend" : "Offboard"}
+              {busy === confirm && <Loader2 className="size-3.5 animate-spin" />}
+              {confirm === "suspend" ? "Suspend and revoke passport" : "Offboard permanently"}
             </Button>
             <Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
           </div>
         </div>
       )}
 
-      <nav className="mt-6 flex gap-1 border-b border-border" role="tablist">
+      <nav className="mt-7 flex gap-5 overflow-x-auto border-b border-border" role="tablist">
         {([
-          ["passport", "Passport", IdCard],
-          ["permissions", "Permissions", SlidersHorizontal],
-          ["reviews", "Reviews", BadgeCheck],
-          ["ledger", "History", FileClock],
-        ] as const).map(([k, label, I]) => (
+          ["passport", "Passport", null],
+          ["permissions", "Permissions", null],
+          ["reviews", "Reviews", null],
+          ["ledger", "History", null],
+        ] as const).map(([k, label]) => (
           <button
             key={k}
             role="tab"
             aria-selected={tab === k}
             onClick={() => setTab(k)}
             className={cn(
-              "-mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 pb-2 pt-1 text-[12.5px] font-[510] transition",
-              tab === k ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+              "-mb-px inline-flex h-9 shrink-0 items-center gap-1.5 border-b-[1.5px] px-1 text-[13px] transition",
+              tab === k ? "border-foreground font-[510] text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            <I className="size-3.5" /> {label}
+            {label}
             {k === "reviews" && a.reviews.length > 0 && <span className="font-mono text-[10.5px] text-faint">{a.reviews.length}</span>}
           </button>
         ))}
       </nav>
+
+      <p className="mt-4 text-[12.5px] text-muted-foreground">{TAB_DESC[tab](a)}</p>
 
       <div className="mt-5">
         {tab === "passport" && <PassportTab agent={a} />}
@@ -593,77 +745,72 @@ function AgentDetail({
   );
 }
 
+const TAB_DESC: Record<Tab, (a: Agent) => string> = {
+  passport: (a) => `The signed ID ${a.name} shows to anyone it contacts, and what Crustdata said about its sponsor at the last check.`,
+  permissions: (a) => `What ${a.name} is allowed to do. Adding a permission checks ${a.passport.sponsor.name}'s authority in Crustdata first.`,
+  reviews: (a) => `${a.name}'s track record from the ledger, and human reviews where you keep, restrict or offboard it.`,
+  ledger: (a) => `Every ledger entry about ${a.name}, newest first. Each one lists the Crustdata sources behind it.`,
+};
+
 function PassportTab({ agent: a }: { agent: Agent }) {
   const p = a.passport;
   const s = p.sponsor;
-  const mrz = `P<CSN<${p.agent_name}<<${s.company}<<${p.agent_id}`.toUpperCase().replace(/[^A-Z0-9<]/g, "<").padEnd(60, "<").slice(0, 60);
+  const revoked = a.status !== "active";
   return (
-    <div className="grid gap-6 2xl:grid-cols-[minmax(0,500px)_minmax(0,1fr)]">
-      <div className={cn(cardCls, "relative overflow-hidden")}>
-        <div className="flex items-center justify-between border-b border-border px-5 py-2.5">
-          <span className="font-mono text-[10.5px] tracking-[0.16em] text-muted-foreground">AGENT PASSPORT</span>
-          <span className="font-mono text-[10.5px] text-faint">No. {String(a.employee_no).padStart(3, "0")}</span>
-        </div>
-        <div className="p-5">
-          <div className="text-[20px] font-[620] leading-tight tracking-[-0.02em]">{p.agent_name}</div>
-          <div className="text-[12.5px] text-muted-foreground">{p.role}</div>
-          <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-[12.5px]">
-            <PField k="Acts for" v={s.name} />
-            <PField k="Sponsor title" v={s.title ?? "–"} />
-            <PField k="Company" v={s.company} />
-            <PField k="Domain" v={s.company_domain ?? "–"} mono />
-            <PField k="Issued" v={day(p.issued_at)} />
-            <PField k="Expires" v={day(p.expires_at)} />
-            <div className="col-span-2">
-              <dt className="text-[11px] text-faint">Scopes</dt>
-              <dd className="mt-1 flex flex-wrap gap-1">{p.scopes.map((sc) => <ScopeChip key={sc} scope={sc} />)}</dd>
-            </div>
-            <PField k="Agent key" v={`ed25519:${p.public_key.slice(0, 16)}…`} mono />
-            <PField k="Issuer key" v={p.issuer_key_id || "–"} mono />
-          </dl>
-          <div className="mt-5 border-t border-dashed border-border-strong pt-3 font-mono text-[10.5px] leading-relaxed tracking-[0.1em] text-faint">
-            <div className="truncate">{mrz}</div>
-            <div className="truncate">SIG {p.issuer_signature?.slice(0, 48)}</div>
-          </div>
-        </div>
-        {a.status !== "active" && (
-          <span
-            className={cn(
-              "pointer-events-none absolute right-5 top-14 rotate-[-10deg] rounded border-2 px-2.5 py-0.5 font-mono text-[15px] font-semibold tracking-[0.18em]",
-              a.status === "suspended" ? "border-contradicted/70 text-contradicted" : "border-faint text-faint",
-            )}
-          >
-            {a.status === "suspended" ? "REVOKED" : "OFFBOARDED"}
+    <div className="space-y-8">
+      <div className={cn(cardCls, "overflow-hidden")}>
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-elevated/60 px-5 py-3">
+          <span className="flex items-center gap-2 text-[12.5px] font-[510]">
+            <IdCard className="size-4 text-muted-foreground" /> Passport
+            <span className="font-mono text-[11px] font-normal text-faint">{p.agent_id}</span>
           </span>
-        )}
+          <span className={cn("text-[11.5px] font-[510]", revoked ? "text-contradicted" : "text-verified")}>
+            {a.status === "suspended" ? "Revoked while suspended" : a.status === "offboarded" ? "Revoked for good" : `Valid until ${day(p.expires_at)}`}
+          </span>
+        </div>
+        <dl className={cn("grid grid-cols-2 gap-x-6 gap-y-4 px-5 py-5 text-[13px] sm:grid-cols-3", revoked && "opacity-60")}>
+          <PField k="Acts for" v={s.name} />
+          <PField k="Their title" v={s.title ?? "–"} />
+          <PField k="Company" v={s.company} />
+          <PField k="Domain" v={s.company_domain ?? "–"} mono />
+          <PField k="Issued" v={day(p.issued_at)} />
+          <PField k="Expires" v={day(p.expires_at)} />
+          <div className="col-span-2 sm:col-span-3">
+            <dt className="text-[11.5px] text-faint">May do</dt>
+            <dd className="mt-1.5 flex flex-wrap gap-1">{p.scopes.map((sc) => <ScopeChip key={sc} scope={sc} />)}</dd>
+          </div>
+        </dl>
+        <div className="grid gap-x-6 gap-y-1 border-t border-border px-5 py-3 sm:grid-cols-2">
+          <PField k="Agent key" v={`ed25519:${p.public_key}`} mono small />
+          <PField k="Signed by issuer key" v={p.issuer_key_id || "–"} mono small />
+        </div>
       </div>
 
       <div>
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-[14px] font-[590]">Last sponsor check</h3>
-          <span className="text-[11.5px] text-faint">{a.last_checked ? `${ago(a.last_checked)} · ${day(a.last_checked)}` : "not checked yet"}</span>
-        </div>
-        {a.last_verdict ? (
+        <SectionHead
+          title="Last sponsor check"
+          aside={<span className="text-[11.5px] text-faint">{a.last_checked ? `${ago(a.last_checked)} · ${day(a.last_checked)}` : "not checked yet"}</span>}
+        >
+          {a.last_verdict
+            ? `${a.last_verdict.checks.filter((c) => c.status === "pass").length} of ${a.last_verdict.checks.length} checks passed. Each line shows the record it was checked against.`
+            : `Not checked yet. Use Re-check sponsor above to see what Crustdata says about ${s.name}.`}
+        </SectionHead>
+        {a.last_verdict && (
           <>
-            <div className="mt-2 flex items-center gap-2 text-[12px] text-muted-foreground">
-              <DecisionBadge decision={a.last_verdict.decision} />
-              {a.last_verdict.checks.filter((c) => c.status === "pass").length} of {a.last_verdict.checks.length} checks passed, each with its source
-            </div>
-            <VerdictList verdict={a.last_verdict} className="mt-2" />
+            <div className="mt-3"><DecisionBadge decision={a.last_verdict.decision} /></div>
+            <VerdictList verdict={a.last_verdict} className="mt-1" />
           </>
-        ) : (
-          <p className="mt-2 text-[12.5px] text-faint">Run a check to see what Crustdata says about the sponsor.</p>
         )}
       </div>
     </div>
   );
 }
 
-function PField({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+function PField({ k, v, mono, small }: { k: string; v: string; mono?: boolean; small?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-faint">{k}</dt>
-      <dd className={cn("mt-0.5 truncate", mono ? "font-mono text-[11.5px] text-secondary" : "font-[510]")} title={v}>{v}</dd>
+      <dt className="text-[11.5px] text-faint">{k}</dt>
+      <dd className={cn("mt-0.5 truncate", mono ? "font-mono text-[11.5px] text-secondary" : "font-[510]", small && "text-[11px]")} title={v}>{v}</dd>
     </div>
   );
 }
@@ -706,7 +853,7 @@ function PermissionsTab({ agent: a, role, busy, act }: { agent: Agent; role?: Ro
           {widening ? "Check sponsor and grant" : "Save"}
         </Button>
         {dirty && <Button variant="ghost" onClick={() => setScopes(a.passport.scopes)}>Reset</Button>}
-        <span className="text-[11.5px] text-faint">Changing scopes re-issues the passport.</span>
+        <span className="text-[11.5px] text-faint">{widening ? `Adding a permission checks ${a.passport.sponsor.name} in Crustdata, then re-issues the passport.` : "Saving re-issues the passport with these permissions."}</span>
       </div>
     </div>
   );
@@ -735,8 +882,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
   return (
     <div className="grid gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
       <div>
-        <h3 className="text-[14px] font-[590]">Scorecard</h3>
-        <p className="text-[12px] text-faint">Counted from the ledger: what the Send Guard let through and what it stopped, and the work this agent filed.</p>
+        <SectionHead title="Scorecard">Counted from the ledger: what the Send Guard let through, what it stopped, and the work this agent filed.</SectionHead>
         <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-border-strong sm:grid-cols-4">
           <Tile k="Messages checked" v={card?.messages_checked} />
           <Tile k="Allowed" v={card?.allowed} tone="text-verified" />
@@ -764,6 +910,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
         )}
         {!!card?.block_reasons.length && (
           <ul className="mt-3 space-y-1">
+            <li className="text-[11.5px] font-[510] text-muted-foreground">Why messages were blocked</li>
             {card.block_reasons.map(([name, n]) => (
               <li key={name} className="flex items-center justify-between text-[12.5px]">
                 <span className="text-secondary">{checkLabel(name)}</span>
@@ -773,7 +920,9 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
           </ul>
         )}
 
-        <h3 className="mt-8 text-[14px] font-[590]">Past reviews</h3>
+        <div className="mt-8">
+          <SectionHead title="Past reviews">Decisions a person made about this agent, newest first.</SectionHead>
+        </div>
         {a.reviews.length ? (
           <ol className="mt-2 space-y-2">
             {[...a.reviews].reverse().map((r) => (
@@ -796,13 +945,15 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
             ))}
           </ol>
         ) : (
-          <p className="mt-2 text-[12.5px] text-faint">No reviews yet.</p>
+          <p className="mt-2 rounded-lg border border-dashed border-border-strong px-3 py-3 text-[12.5px] text-muted-foreground">
+            No reviews yet. Once {a.name} has done some work, record one with the New review form.
+          </p>
         )}
       </div>
 
       {a.status !== "offboarded" && (
         <div className={cn(cardCls, "h-fit p-4")}>
-          <h3 className="text-[14px] font-[590]">New review</h3>
+          <SectionHead title="New review">Look at the scorecard, then decide what happens next.</SectionHead>
           <div className="mt-3 grid grid-cols-3 gap-0.5 rounded-md border border-border-strong bg-background p-0.5 text-[12px]">
             {(["keep", "restrict", "offboard"] as const).map((d) => (
               <button
@@ -814,6 +965,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
               </button>
             ))}
           </div>
+          <p className="mt-2 text-[12px] text-muted-foreground">{REVIEW_HELP[decision]}</p>
           {decision === "restrict" && (
             <div className="mt-3 space-y-1.5">
               <span className="text-[12px] font-[510] text-muted-foreground">Scopes to keep</span>
@@ -838,7 +990,8 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
               disabled={!!busy || (decision === "restrict" && (!keep.length || keep.length === a.passport.scopes.length))}
               className="w-full"
             >
-              {busy === "review" && <Loader2 className="size-3.5 animate-spin" />} Record review
+              {busy === "review" && <Loader2 className="size-3.5 animate-spin" />}
+              {decision === "keep" ? "Record review" : decision === "restrict" ? "Record review and narrow permissions" : "Record review and offboard"}
             </Button>
           </div>
         </div>
@@ -846,6 +999,12 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
     </div>
   );
 }
+
+const REVIEW_HELP: Record<ReviewDecision, string> = {
+  keep: "No change to the agent. The review is recorded on the ledger.",
+  restrict: "Keep the agent but take away some permissions. The passport is re-issued.",
+  offboard: "Retire the agent and revoke its passport permanently.",
+};
 
 function Tile({ k, v, tone, sub }: { k: string; v?: number; tone?: string; sub?: string }) {
   return (
@@ -859,14 +1018,28 @@ function Tile({ k, v, tone, sub }: { k: string; v?: number; tone?: string; sub?:
 
 function AgentHistory({ agent: a }: { agent: Agent }) {
   const [view, setView] = useState<LedgerView | null>(null);
-  useEffect(() => {
-    api.ledger(a.agent_id).then(setView).catch(() => setView(null));
-  }, [a.agent_id, a.ledger_entries.length]);
-  if (!view) return <p className="text-[12.5px] text-faint">Loading…</p>;
+  const [failed, setFailed] = useState(false);
+  const load = useCallback(() => {
+    setFailed(false);
+    api.ledger(a.agent_id).then(setView).catch(() => setFailed(true));
+  }, [a.agent_id]);
+  useEffect(load, [load, a.ledger_entries.length]);
+  if (failed)
+    return (
+      <EmptyState icon={ShieldAlert} tone="bad" title="Couldn't load the history" action={<Button onClick={load}><RefreshCw className="size-3.5" /> Try again</Button>}>
+        The backend didn&apos;t answer. Check that it is running, then try again.
+      </EmptyState>
+    );
+  if (!view)
+    return (
+      <p className="inline-flex items-center gap-2 text-[12.5px] text-faint">
+        <Loader2 className="size-3.5 animate-spin" /> Loading history…
+      </p>
+    );
+  if (!view.entries.length) return <EmptyState icon={FileClock} title="No history yet">Entries appear here as soon as {a.name} is checked or does any work.</EmptyState>;
   return (
     <div className="max-w-[760px]">
-      <p className="text-[12.5px] text-muted-foreground">Every ledger entry that mentions {a.name}, newest first.</p>
-      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} className="mt-4" />
+      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} />
     </div>
   );
 }
@@ -918,6 +1091,9 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
             ? `Passport issued. ${sponsor.name}'s identity, employment and authority all checked out against Crustdata.`
             : `The passport was issued, but ${sponsor.name} can't vouch for it right now, so it was revoked straight away.`}
         </p>
+        <p className="mt-3 text-[12px] text-faint">
+          {ok ? "Next: close this panel to see its passport, or try it in Verify passport and Send Guard." : "Next: fix the sponsor details and onboard again, or pick a sponsor Crustdata can vouch for."}
+        </p>
         <VerdictList verdict={result.verdict} className="mt-4" />
       </div>
     );
@@ -928,7 +1104,10 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         <div>
           <h2 className="text-[18px] font-[600] tracking-[-0.01em]">Onboard an AI employee</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">It gets a signed passport tied to a real person, who is checked against Crustdata straight away.</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+            Fill this in from top to bottom. The agent gets a signed passport tied to a real person, its sponsor, who is checked in Crustdata
+            as soon as you submit. If the check fails, the agent starts suspended.
+          </p>
         </div>
 
         <Field label="Name">
@@ -940,7 +1119,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </Field>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Runs</span>
+          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Where it runs</span>
           <div className="inline-flex rounded-md border border-border-strong bg-background p-0.5 text-[12px]">
             {(["in-house", "external"] as const).map((r) => (
               <button
@@ -956,7 +1135,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Role</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Role</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Sets the most this agent could ever be allowed to do.</span>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {roles.map((r) => (
               <button
@@ -973,7 +1153,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Sponsor, the person it acts for</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Sponsor, the person it acts for</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Pick a sample person or enter a real one. Their LinkedIn URL is what Crustdata looks up.</span>
           {scenarios.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1">
               {scenarios.map((s) => (
@@ -1006,7 +1187,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Scopes</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Permissions</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Locked ones are outside this role. The sponsor&apos;s title must also allow each one.</span>
           <div className="grid gap-1.5">
             {ALL_SCOPES.map((sc) => (
               <ScopeToggle

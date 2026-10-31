@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { BadgeCheck, Check, ChevronDown, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
+import { BadgeCheck, Check, ChevronDown, Plus, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { BriefInput, EXAMPLES } from "@/components/brief";
 import { Trace } from "@/components/trace";
@@ -10,8 +10,11 @@ import { CompareTable, ShortlistRows, type Row, type SortKey } from "@/component
 import { AGENT_ID, API_URL, streamRun, type RunMode } from "@/lib/stream";
 import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run-state";
 import { download, toCSV, toMarkdown } from "@/lib/export";
-import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
+import { AGENT_STEPS, AUTOSEND_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ProductNav } from "@/components/app-header";
+import { AccountMenu } from "@/components/account-menu";
+import { BRAND } from "@/lib/brand";
 
 function useWide() {
   const [wide, setWide] = useState(true);
@@ -34,6 +37,7 @@ const toggle = (s: Set<string>, id: string) => {
 
 export default function Home() {
   const [brief, setBrief] = useState(EXAMPLES[0].brief);
+  const [autosend, setAutosend] = useState(false);
   const [lastBrief, setLastBrief] = useState("");
   const [mode, setMode] = useState<RunMode>(process.env.NEXT_PUBLIC_DEFAULT_MODE === "replay" ? "replay" : "live");
   const [run, dispatch] = useReducer(runReducer, initialRun);
@@ -48,10 +52,19 @@ export default function Home() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [help, setHelp] = useState(false);
   const [openTiers, setOpenTiers] = useState({ near: false, other: false });
+  const [guideSeen, setGuideSeen] = useState(true);
   const [now, setNow] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const briefRef = useRef<HTMLTextAreaElement>(null);
   const wide = useWide();
+
+  useEffect(() => {
+    try { setGuideSeen(localStorage.getItem("guide-seen") === "1"); } catch { setGuideSeen(false); }
+  }, []);
+  const dismissGuide = () => {
+    setGuideSeen(true);
+    try { localStorage.setItem("guide-seen", "1"); } catch {}
+  };
 
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get("mode");
@@ -79,14 +92,14 @@ export default function Home() {
     setNow(Date.now());
     dispatch({ type: "start", at: Date.now() });
     try {
-      for await (const ev of streamRun(brief, mode, ctrl.signal)) dispatch({ type: "event", ev, at: Date.now() });
+      for await (const ev of streamRun(brief, mode, ctrl.signal, autosend)) dispatch({ type: "event", ev, at: Date.now() });
       dispatch({ type: "stop", at: Date.now() });
     } catch (e) {
       if (ctrl.signal.aborted) return dispatch({ type: "stop", at: Date.now() });
       const msg = e instanceof Error ? e.message : String(e);
       dispatch({ type: "fatal", at: Date.now(), message: mode === "live" ? `Couldn't reach the agent at ${API_URL}. ${msg}` : msg });
     }
-  }, [brief, mode]);
+  }, [brief, mode, autosend]);
 
   const stop = () => {
     abortRef.current?.abort();
@@ -219,20 +232,38 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <TopBar mode={mode} setMode={setMode} running={run.running} done={run.done} elapsed={elapsed} started={started} onHelp={() => setHelp((h) => !h)} />
+      <TopBar
+        mode={mode}
+        setMode={setMode}
+        running={run.running}
+        done={run.done}
+        elapsed={elapsed}
+        started={started}
+        onHelp={() => setHelp((h) => !h)}
+        onNew={() => {
+          abortRef.current?.abort();
+          setSelected(undefined);
+          setSheetOpen(false);
+          dispatch({ type: "reset" });
+          setTimeout(() => briefRef.current?.focus(), 0);
+        }}
+      />
 
       {!started ? (
-        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} mode={mode} />
+        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} mode={mode} autosend={autosend} setAutosend={setAutosend} />
       ) : (
         <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,500px)] 2xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,560px)]">
           <aside className="order-last min-w-0 border-t border-border px-4 py-4 lg:order-none lg:sticky lg:border-t-0 lg:top-12 lg:h-[calc(100vh-3rem)] lg:overflow-y-auto lg:border-r">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[12px] font-[510] text-muted-foreground">Agent run</h2>
-              <span className="rounded-full border border-border-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">
-                {mode === "live" ? (AGENT_ID ? "live · agent" : "live · crustdata") : "replay · sample"}
-              </span>
+            <div className="mb-3">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-[13px] font-[590]">What the agent did</h2>
+                <span className="shrink-0 whitespace-nowrap rounded-full border border-border-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">
+                  {mode === "live" ? (AGENT_ID ? "live · agent" : "live") : "sample run"}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">Every step, with the Crustdata call behind it. Click a step to read its log.</p>
             </div>
-            <Trace run={run} now={now} pipeline={mode === "live" && AGENT_ID ? AGENT_STEPS : PIPELINE_STEPS} />
+            <Trace run={run} now={now} pipeline={mode === "live" && AGENT_ID ? (autosend ? AUTOSEND_STEPS : AGENT_STEPS) : PIPELINE_STEPS} />
           </aside>
 
           <section className="min-w-0">
@@ -243,7 +274,7 @@ export default function Home() {
 
             {run.passport?.decision === "block" && (
               <div className="mx-4 mt-3 rounded-lg border border-contradicted/30 bg-contradicted/[0.06] px-3 py-2.5 text-[13px]">
-                <span className="font-[510] text-contradicted">Run refused by Countersign.</span>{" "}
+                <span className="font-[510] text-contradicted">Run refused by {BRAND.name}.</span>{" "}
                 <span className="text-secondary">{run.passport.error ?? run.passport.message}</span>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">The agent&apos;s passport did not pass its live check, so nothing was searched. Re-onboard it with a sponsor Crustdata can vouch for.</p>
               </div>
@@ -256,17 +287,20 @@ export default function Home() {
                 </span>
                 {mode === "live" && (
                   <button onClick={() => setMode("replay")} className="h-7 rounded-md border border-border-strong bg-elevated px-2.5 text-[12px] font-[510] hover:bg-hover">
-                    Switch to replay
+                    Use the sample run instead
                   </button>
                 )}
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4">
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-[15px] font-[590]">Shortlist</h1>
-                <span className="font-mono text-[12px] text-muted-foreground tabular-nums">{tiers.main.length}</span>
-                <Funnel summary={run.summary} totals={totals} />
+            <div className="flex flex-wrap items-end justify-between gap-2 px-4 pb-3 pt-4">
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <h1 className="text-[15px] font-[590]">Shortlist</h1>
+                  <span className="font-mono text-[12px] text-muted-foreground tabular-nums">{tiers.main.length}</span>
+                  <Funnel summary={run.summary} totals={totals} />
+                </div>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">Ranked by fit to your brief. Click a candidate to see the evidence.</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <Seg
@@ -283,10 +317,11 @@ export default function Home() {
                     "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-[510] transition",
                     hideContra ? "border-contradicted/40 bg-contradicted/10 text-contradicted" : "border-border-strong bg-elevated text-secondary hover:bg-hover",
                   )}
-                  title="Hide candidates with any contradicted claim (H)"
+                  title="Hide anyone with a claim that Crustdata contradicts (H)"
+                  aria-pressed={hideContra}
                 >
                   {hideContra ? <X className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
-                  {hideContra ? "Contradicted hidden" : "Clean records only"}
+                  {hideContra ? "Showing clean records · undo" : "Hide contradicted"}
                 </button>
                 <ExportMenu
                   disabled={!tiers.main.length}
@@ -296,6 +331,8 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            {!guideSeen && run.done && tiers.main.length > 0 && <Guide onClose={dismissGuide} />}
 
             <div className="border-t border-border">
               {tiers.main.length || tiers.near.length || tiers.other.length ? (
@@ -343,7 +380,13 @@ export default function Home() {
                   )}
                 </>
               ) : (
-                <Empty running={run.running} done={run.done} filtered={hideContra && Object.keys(run.candidates).length > 0} />
+                <Empty
+                  running={run.running}
+                  done={run.done}
+                  filtered={hideContra && Object.keys(run.candidates).length > 0}
+                  onEdit={() => briefRef.current?.focus()}
+                  onSample={mode === "live" ? () => setMode("replay") : undefined}
+                />
               )}
             </div>
             {rows.length > 0 && (
@@ -362,7 +405,14 @@ export default function Home() {
             <aside className="sticky top-12 hidden h-[calc(100vh-3rem)] overflow-y-auto border-l border-border bg-panel xl:block">
               {dossier ?? (
                 <div className="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
-                  {run.running ? "The top candidate opens here as soon as their claims are checked." : "Select a candidate."}
+                  {run.running ? (
+                    "The top candidate opens here as soon as their claims are checked."
+                  ) : (
+                    <span className="max-w-[300px]">
+                      <span className="block text-[14px] font-[590] text-secondary">Pick a candidate</span>
+                      <span className="mt-1 block">You&apos;ll see why they were ranked, every claim that was checked with its source, and a draft message you can copy.</span>
+                    </span>
+                  )}
                 </div>
               )}
             </aside>
@@ -409,8 +459,8 @@ function ThemeToggle() {
 }
 
 function TopBar({
-  mode, setMode, running, done, elapsed, started, onHelp,
-}: { mode: RunMode; setMode: (m: RunMode) => void; running: boolean; done: boolean; elapsed: number; started: boolean; onHelp: () => void }) {
+  mode, setMode, running, done, elapsed, started, onHelp, onNew,
+}: { mode: RunMode; setMode: (m: RunMode) => void; running: boolean; done: boolean; elapsed: number; started: boolean; onHelp: () => void; onNew: () => void }) {
   return (
     <header className="sticky top-0 z-30 h-12 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1680px] items-center justify-between gap-3 px-4">
@@ -419,49 +469,66 @@ function TopBar({
           <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
         </Link>
         <span className="hidden text-[14px] text-border-strong sm:inline">/</span>
-        <span className="mr-auto hidden truncate text-[13px] text-muted-foreground sm:inline">{started ? "Shortlist" : "New search"}</span>
+        <div className="mr-auto hidden min-w-0 sm:block">
+          <ProductNav active="/" />
+        </div>
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/console"
-            prefetch={false}
-            className="hidden h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-muted-foreground transition hover:bg-hover hover:text-foreground sm:inline-flex"
-            title="Countersign console: the agent's passport, Send Guard verdicts and the ledger"
-          >
-            <BadgeCheck className="size-3.5" /> Countersign
-          </Link>
           {started && (
-            <span className="hidden items-center gap-1.5 font-mono text-[11px] text-muted-foreground tabular-nums sm:flex">
+            <span className="hidden items-center gap-1.5 text-[12px] text-muted-foreground tabular-nums md:flex">
               <span className={cn("size-1.5 rounded-full", running ? "animate-pulse bg-primary" : done ? "bg-verified" : "bg-faint")} />
-              {running ? "running" : done ? "done" : "stopped"} · {elapsed.toFixed(1)}s
+              {running ? "Searching" : done ? "Finished" : "Stopped"} · <span className="font-mono">{elapsed.toFixed(1)}s</span>
             </span>
           )}
+          {started && !running && (
+            <button
+              onClick={onNew}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-panel px-2.5 text-[12px] font-[510] hover:bg-hover"
+              title="Clear these results and write a new brief"
+            >
+              <Plus className="size-3.5" /> New search
+            </button>
+          )}
+          <span className="hidden text-[12px] text-faint lg:inline">Data</span>
           <Seg
             value={mode}
             onChange={(m) => !running && setMode(m)}
             options={[
-              { v: "replay", label: "Replay" },
-              { v: "live", label: "Live", icon: <Radio className="size-3" /> },
+              { v: "live", label: "Live", icon: <Radio className="size-3" />, title: "Search real people on Crustdata through the backend" },
+              { v: "replay", label: "Sample", title: "Play back a recorded run. Use this when the backend is offline." },
             ]}
           />
+          <Link
+            href="/console"
+            prefetch={false}
+            className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-[510] text-secondary transition hover:bg-hover hover:text-foreground sm:inline-flex"
+            title={`${BRAND.name}: see this agent's passport, the Send Guard verdicts on its drafts, and the audit ledger`}
+          >
+            <BadgeCheck className="size-3.5" /> {BRAND.name} console
+          </Link>
           <button onClick={onHelp} className="hidden size-7 place-items-center rounded-md text-muted-foreground hover:bg-hover hover:text-foreground sm:grid" aria-label="Keyboard shortcuts">
             <Keyboard className="size-4" />
           </button>
           <ThemeToggle />
+          <AccountMenu />
         </div>
       </div>
     </header>
   );
 }
 
-function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement>; mode: RunMode }) {
+function Hero({ brief, setBrief, onRun, briefRef, mode, autosend, setAutosend }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement>; mode: RunMode; autosend: boolean; setAutosend: (b: boolean) => void }) {
   return (
     <main>
       <div className="mx-auto flex max-w-[760px] flex-col px-4 pb-24 pt-16 sm:pt-24">
         <h1 className="text-[28px] font-[590] leading-tight tracking-[-0.025em] sm:text-[32px]">What role are you hiring for?</h1>
-        <p className="mt-2 max-w-[560px] text-[14px] leading-relaxed text-muted-foreground">
-          Write the brief the way you would to a recruiter. Sourced searches Crustdata, checks each candidate&apos;s employer, tenure and location, and returns a shortlist where every claim cites its source.
+        <p className="mt-2 max-w-[580px] text-[14px] leading-relaxed text-muted-foreground">
+          Describe the role and Sourced finds matching people on Crustdata. It checks each person&apos;s employer, tenure and location, and gives you a ranked shortlist where every claim shows its source.
         </p>
-        <div className="mt-6 w-full">
+        <label htmlFor="brief" className="mt-7 block text-[13px] font-[510]">
+          Hiring brief
+        </label>
+        <p className="mb-2 mt-0.5 text-[12px] text-muted-foreground">Role, seniority, location and any must-haves. Plain language is fine, even a messy note.</p>
+        <div className="w-full">
           <BriefInput
             ref={briefRef}
             value={brief}
@@ -472,13 +539,25 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             footer={
               <span className="inline-flex items-center gap-1.5 text-[11.5px] text-faint">
                 <span className={cn("size-1.5 rounded-full", mode === "live" ? "bg-primary" : "bg-faint")} />
-                {mode === "live" ? (AGENT_ID ? "Live: runs under the agent passport, drafts checked by Send Guard" : "Live: searches Crustdata through the backend") : "Replay: a recorded sample run, for when the backend is offline"}
+                {mode === "live" ? (AGENT_ID ? "Live data · runs as a verified AI employee, drafts checked by Send Guard" : "Live data · searches Crustdata through the backend") : "Sample run · plays back a recorded search, no backend needed"}
               </span>
             }
           />
         </div>
+        {mode === "live" && AGENT_ID && (
+          <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2.5 text-[12.5px]">
+            <input type="checkbox" checked={autosend} onChange={(e) => setAutosend(e.target.checked)} className="mt-0.5 accent-[var(--primary)]" />
+            <span>
+              <span className="font-[510]">Email the shortlist for me</span>
+              <span className="block text-muted-foreground">
+                Sourced finds each person&apos;s email on Crustdata and sends every message Send Guard clears, with nobody at the keyboard. They
+                all go to your own test inbox, never to the candidates. Leave it off to review and send each one yourself.
+              </span>
+            </span>
+          </label>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[12px] text-faint">Try</span>
+          <span className="mr-1 text-[12px] text-faint">Or try an example:</span>
           {EXAMPLES.map((ex) => (
             <button
               key={ex.label}
@@ -494,20 +573,46 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
           ))}
         </div>
 
-        <div className="mt-14 grid w-full overflow-hidden rounded-lg border border-border bg-panel sm:grid-cols-3">
+        <h2 className="mt-14 text-[13px] font-[590]">What happens when you click Find candidates</h2>
+        <div className="mt-3 grid w-full overflow-hidden rounded-lg border border-border bg-panel sm:grid-cols-3">
           {[
-            ["Search", "Expands the brief into title variants and searches the people graph. If nothing comes back it broadens the search instead of giving up.", "person/search"],
-            ["Verify", "Checks employer, tenure, location and company stage against enrich data, and marks each claim verified, contradicted or unverifiable.", "person/enrich · company/enrich"],
-            ["Cite", "Ranks candidates with reasons that link to the evidence, then drafts outreach. Nothing is ever sent.", "claim ids → sources"],
-          ].map(([t, d, tool], i) => (
+            ["Search", "The agent turns your brief into search filters and looks for people on Crustdata. If nothing comes back, it widens the search.", "About 5 seconds"],
+            ["Check", "For each person it compares their employer, tenure, location and company against Crustdata records. Each claim is marked verified, contradicted or unverifiable.", "Every claim gets a source"],
+            ["Reach out", "You get a ranked shortlist with each person's email from Crustdata. Send the drafted email (Send Guard checks it first), then watch it get delivered and replied to.", "Sent, delivered, replied"],
+          ].map(([t, d, note], i) => (
             <div key={t} className={cn("p-5", i > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
-              <div className="font-mono text-[10.5px] text-faint">0{i + 1}</div>
-              <h3 className="mt-2 text-[15px] font-[590]">{t}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{d}</p>
-              <p className="mt-3 font-mono text-[10.5px] text-faint">{tool}</p>
+              <span className="grid size-6 place-items-center rounded-full border border-border-strong font-mono text-[11px] text-muted-foreground">{i + 1}</span>
+              <h3 className="mt-3 text-[14px] font-[590]">{t}</h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{d}</p>
+              <p className="mt-3 text-[11.5px] text-faint">{note}</p>
             </div>
           ))}
         </div>
+        <h2 className="mt-12 text-[13px] font-[590]">Hiring more than one person?</h2>
+        <div className="mt-3 grid w-full gap-3 sm:grid-cols-2">
+          {[
+            ["/campaigns", "Campaigns", "Take one brief to a signed offer. Sourced runs about 100 conversations at once: outreach, follow-ups, screening, interviews and the offer."],
+            ["/staffing", "Shift staffing", "Fill 1,000 shifts from applicants. Every application is checked against Crustdata, so the ones who lie are caught before they get a shift."],
+          ].map(([href, t, d]) => (
+            <Link key={href} href={href} prefetch={false} className="group rounded-lg border border-border bg-panel p-4 transition hover:border-border-strong hover:bg-elevated">
+              <span className="flex items-center justify-between text-[14px] font-[590]">
+                {t} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
+              </span>
+              <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">{d}</span>
+            </Link>
+          ))}
+        </div>
+        <p className="mt-6 text-[12.5px] text-muted-foreground">
+          Sourced runs as an AI employee with a passport. To see who it acts for and what it was allowed to send, open the{" "}
+          <Link href="/console" prefetch={false} className="text-primary hover:underline">
+            {BRAND.name} console
+          </Link>
+          , or{" "}
+          <Link href="/console?view=demo" prefetch={false} className="text-primary hover:underline">
+            watch the guided demo
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );
@@ -522,9 +627,9 @@ function Funnel({ summary, totals }: { summary?: Record<string, number | undefin
       {parts.length > 0 && <span>{parts.join(" → ")}</span>}
       {totals.v + totals.x + totals.u > 0 && (
         <span className="inline-flex items-center gap-2">
-          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-verified" />{totals.v}</span>
-          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-contradicted" />{totals.x}</span>
-          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-faint" />{totals.u}</span>
+          <span className="inline-flex items-center gap-1" title="Claims that match Crustdata"><span className="size-1.5 rounded-full bg-verified" />{totals.v} verified</span>
+          <span className="inline-flex items-center gap-1" title="Claims Crustdata says are wrong"><span className="size-1.5 rounded-full bg-contradicted" />{totals.x} contradicted</span>
+          <span className="inline-flex items-center gap-1" title="Claims with no source to check against"><span className="size-1.5 rounded-full bg-faint" />{totals.u} unverifiable</span>
         </span>
       )}
     </span>
@@ -543,7 +648,7 @@ function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
   const more = chips.length - shown.length + extra;
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5 animate-fade">
-      <span className="text-[11.5px] text-faint">Understood as</span>
+      <span className="text-[11.5px] text-faint" title="How the agent read your brief. If it's wrong, edit the brief and run it again.">Understood as</span>
       {shown.map((ch, i) => (
         <span key={i} className="inline-flex h-6 items-center gap-1 rounded-md border border-border-strong bg-panel px-2 text-[12px]">
           <span className="text-faint">{ch.k}</span>
@@ -562,7 +667,7 @@ function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
   );
 }
 
-function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: React.ReactNode }[] }) {
+function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: React.ReactNode; title?: string }[] }) {
   return (
     <div className="inline-flex h-7 items-center rounded-md border border-border-strong bg-panel p-0.5 text-[12px]" role="radiogroup">
       {options.map((o) => (
@@ -571,6 +676,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
           role="radio"
           aria-checked={value === o.v}
           onClick={() => onChange(o.v)}
+          title={o.title}
           className={cn(
             "inline-flex h-full items-center gap-1.5 rounded px-2 font-[510] transition",
             value === o.v ? "bg-elevated text-foreground shadow-[0_0_0_1px_var(--border-strong)]" : "text-muted-foreground hover:text-foreground",
@@ -622,7 +728,7 @@ function ExportMenu({ disabled, onMd, onCsv, onJson }: { disabled: boolean; onMd
   );
 }
 
-function Empty({ running, done, filtered }: { running: boolean; done: boolean; filtered: boolean }) {
+function Empty({ running, done, filtered, onEdit, onSample }: { running: boolean; done: boolean; filtered: boolean; onEdit: () => void; onSample?: () => void }) {
   if (running)
     return (
       <div className="flex flex-col">
@@ -644,12 +750,53 @@ function Empty({ running, done, filtered }: { running: boolean; done: boolean; f
         <p className="text-[13px] text-muted-foreground">Every candidate has at least one contradicted claim. Press <kbd>H</kbd> to show them.</p>
       ) : done ? (
         <>
-          <p className="text-[15px] font-[590]">No one matched.</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">Try fewer must-haves or a wider location.</p>
+          <p className="text-[15px] font-[590]">No one matched this brief</p>
+          <p className="mx-auto mt-1 max-w-[380px] text-[13px] text-muted-foreground">
+            The agent widened the search and still found nobody. Try fewer must-haves or a wider location, then search again. The steps on the left show what it tried.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <button onClick={onEdit} className="h-7 rounded-md bg-foreground px-2.5 text-[12px] font-[510] text-background hover:opacity-85">
+              Edit the brief
+            </button>
+            {onSample && (
+              <button onClick={onSample} className="h-7 rounded-md border border-border-strong bg-panel px-2.5 text-[12px] font-[510] hover:bg-hover" title="Switch to a recorded run so you can see what results look like">
+                Switch to the sample run
+              </button>
+            )}
+          </div>
         </>
       ) : (
         <p className="text-[13px] text-faint">No candidates yet.</p>
       )}
+    </div>
+  );
+}
+
+function Guide({ onClose }: { onClose: () => void }) {
+  const steps = [
+    ["Open a candidate", "Click a row to see why they rank where they do."],
+    ["Check the claims", "Red means Crustdata says the claim is wrong. Grey means there was nothing to check it against."],
+    ["Send the email", "Each draft has the email Crustdata holds for that person. Edit it if you like, then press Send: Send Guard checks it first, and you see it delivered and replied to."],
+  ];
+  return (
+    <div className="mx-4 mb-3 rounded-lg border border-border bg-elevated px-4 py-3 animate-fade">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[13px] font-[590]">How to use this shortlist</p>
+        <button onClick={onClose} className="h-6 shrink-0 rounded-md border border-border-strong bg-panel px-2 text-[12px] font-[510] hover:bg-hover">
+          Got it
+        </button>
+      </div>
+      <ol className="mt-2 grid gap-3 sm:grid-cols-3">
+        {steps.map(([t, d], i) => (
+          <li key={t} className="flex gap-2.5">
+            <span className="grid size-5 shrink-0 place-items-center rounded-full border border-border-strong bg-panel font-mono text-[10.5px] text-muted-foreground">{i + 1}</span>
+            <span className="text-[12.5px] leading-snug">
+              <span className="font-[510]">{t}</span>
+              <span className="block text-muted-foreground">{d}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-"""Sourced run as a Countersign AI employee (app/sourced_agent.py): passport gate, Send Guard on drafts, ledger.
+"""Sourced run as a Agaxes AI employee (app/sourced_agent.py): passport gate, Send Guard on drafts, ledger.
 
 Offline: real verify_passport on WS6's fixture sponsors, synthetic people from DevCrustdataClient, LLM_MODE=mock.
 """

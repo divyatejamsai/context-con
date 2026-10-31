@@ -1,4 +1,4 @@
-# context-con: Countersign + Sourced
+# context-con: Agaxes + Sourced
 
 Built at **ContextCon 03 (IIT Bombay x Crustdata x YC)**.
 
@@ -6,14 +6,14 @@ Built at **ContextCon 03 (IIT Bombay x Crustdata x YC)**.
 candidates from Crustdata's people graph. Every claim about every candidate is labelled **Verified / Contradicted /
 Unverifiable**, with its source attached. Outreach is drafted, never sent.
 
-**Countersign** is trust infrastructure for AI employees, and Sourced is employee #1. Each agent gets an Ed25519
-**passport** tied to a real human sponsor, and Countersign checks live against Crustdata that the sponsor exists, is
+**Agaxes** is trust infrastructure for AI employees, and Sourced is employee #1. Each agent gets an Ed25519
+**passport** tied to a real human sponsor, and Agaxes checks live against Crustdata that the sponsor exists, is
 still employed, and can grant the agent's scopes. **Send Guard** blocks a draft before it goes out if the recipient
 has moved on or the draft makes a false claim. A **payroll check** re-verifies every sponsor and suspends agents whose
 sponsor has left. Every action lands on a **hash-chained ledger** with its citations, so editing any line is detected.
 Any agent, Claude Code included, can reach it over **MCP**.
 
-The **fleet** is six real agents for Countersign to manage: Sourced (hiring), Pipeline (sales), Diligence (vendor
+The **fleet** is six real agents for Agaxes to manage: Sourced (hiring), Pipeline (sales), Diligence (vendor
 briefs), Reference (resume checks), Closer (its sponsor left, so it gets suspended) and Claude Code (an outside
 agent). See [docs/FLEET.md](docs/FLEET.md) and [docs/COUNTERSIGN.md](docs/COUNTERSIGN.md).
 
@@ -24,7 +24,7 @@ agent). See [docs/FLEET.md](docs/FLEET.md) and [docs/COUNTERSIGN.md](docs/COUNTE
 - Frontend: Next.js, Tailwind, shadcn/ui
 - LLM: Gemini on Vertex AI (ADC auth)
 - Data: Crustdata API + Crustdata MCP
-- Countersign: Ed25519 passports (`cryptography`), JSONL hash-chained ledger, MCP server (`backend/mcp_server.py`)
+- Agaxes: Ed25519 passports (`cryptography`), JSONL hash-chained ledger, MCP server (`backend/mcp_server.py`)
 
 ## How to run
 
@@ -45,7 +45,7 @@ backend/scripts/demo_up.sh --no-fleet  # store already seeded: just start the AP
 It runs `backend/scripts/run_fleet.py`, which onboards the six AI employees, runs a payroll check and each agent's real
 job, checks the ledger chain and prints a scorecard. Then it opens:
 - `http://localhost:3000`: **Sourced**, running live under its passport, with drafts checked by Send Guard
-- `http://localhost:3000/console`: the **Countersign console** (roster, passports, payroll check, Send Guard, ledger)
+- `http://localhost:3000/console`: the **Agaxes console** (roster, passports, payroll check, Send Guard, ledger)
 
 The steps below do the same by hand.
 
@@ -61,10 +61,25 @@ uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local   # optional, this is the default
-NEXT_PUBLIC_AGENT_ID=sourced npm run dev   # http://localhost:3000 (Sourced) and /console (Countersign)
+NEXT_PUBLIC_AGENT_ID=sourced npm run dev   # http://localhost:3000 (Sourced) and /console (Agaxes)
 ```
 
-**Countersign and the fleet**
+**Company accounts (login and sign-up)**
+Every page (`/`, `/console`) and the Next.js API routes need a signed-in user; you land on `/login` otherwise.
+- `/signup`: two steps. Work email first (personal domains like gmail are refused, since a workspace is one company
+  domain), then Crustdata Company Identify prefills the company name and size. A second person from the same domain
+  joins the existing workspace instead of making a duplicate.
+- `/login`: email and password, or **Use the demo workspace** (one click, no password; turn it off with `DEMO_ACCOUNT=0`).
+- Backend: `backend/app/accounts/` (SQLite at `backend/data/accounts.db`, scrypt password hashes, hashed session tokens,
+  14-day sliding sessions, 5 wrong passwords lock the account for 10 minutes). Routes: `POST /api/auth/{lookup,signup,login,demo,logout}`, `GET /api/auth/me`.
+- The browser never sees the token: Next.js keeps it in an httpOnly cookie and `src/middleware.ts` checks it against
+  the backend on every request. Set `AUTH_API_URL` if the Next server should reach the backend on a different address.
+- `/forgot` emails a one-time reset link (30 minutes, 3 per hour) through `app.outbound.mailer.send_transactional`
+  (SMTP_* or RESEND_API_KEY, see docs/OUTBOUND.md). `/reset` sets the new password and signs out every other session.
+  Without an email provider it says so instead of pretending. Links point at `PUBLIC_APP_URL` (default http://localhost:3000).
+- Not covered: the FastAPI run endpoints themselves stay open (scripts, MCP and the fleet call them without a login).
+
+**Agaxes and the fleet**
 ```bash
 cd backend
 python scripts/run_fleet.py                  # live: onboard the fleet, payroll check, every agent's job, ledger check
@@ -95,5 +110,5 @@ The UI defaults to **Live**. **Replay** (a recorded `fixtures/run.jsonl`) is an 
 **Tests:** `cd backend && LLM_MODE=mock python -m pytest -q`
 
 **Demo material:** test briefs and edge cases in [`demo/briefs.md`](demo/briefs.md), the video script in
-[`demo/script.md`](demo/script.md) (Countersign + fleet, run live), and seeded-fake resumes (real profiles plus planted lies the verifier must catch) in
+[`demo/script.md`](demo/script.md) (Agaxes + fleet, run live), and seeded-fake resumes (real profiles plus planted lies the verifier must catch) in
 [`demo/seeded_fakes/`](demo/seeded_fakes/README.md). More detail in [`backend/README.md`](backend/README.md) and [`frontend/README.md`](frontend/README.md).

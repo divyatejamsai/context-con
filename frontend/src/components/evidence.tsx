@@ -90,7 +90,7 @@ export function Avatar({ name, size = 28, className }: { name: string; size?: nu
   );
 }
 
-/** Send Guard verdict on a candidate's outreach draft. "Cleared" still means not sent (event rule). */
+/** Send Guard verdict on a candidate's outreach draft. "Cleared" means it may be sent; sending is a separate step. */
 export function GuardBadge({ guard, className }: { guard?: Guard | null; className?: string }) {
   if (!guard) return null;
   const ok = guard.decision === "allow";
@@ -102,7 +102,7 @@ export function GuardBadge({ guard, className }: { guard?: Guard | null; classNa
         ok ? "border-verified/30 bg-verified/10 text-verified" : "border-contradicted/30 bg-contradicted/10 text-contradicted",
         className,
       )}
-      title={ok ? "Send Guard cleared this draft. It is never sent automatically." : guard.error ?? "Send Guard blocked this draft"}
+      title={ok ? "Send Guard cleared this draft. It goes out when you press Send, or automatically if you chose that." : guard.error ?? "Send Guard blocked this draft"}
     >
       <Icon className="size-3" /> {ok ? "Cleared" : "Blocked"}
     </span>

@@ -2,18 +2,19 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, BadgeCheck, Check, ChevronRight, Database, FileSearch, FileText, Mail, ScanSearch, ShieldCheck, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AGENT_STEPS, PIPELINE_STEPS } from "@/lib/types";
+import { AUTOSEND_STEPS, PIPELINE_STEPS } from "@/lib/types";
 import type { RunState, StepState } from "@/lib/run-state";
 
-const META: Record<string, { label: string; todo: string; tool: string; Icon: typeof Database }> = {
-  passport: { todo: "Check passport", label: "Checked passport", tool: "countersign · verify_passport(data.read)", Icon: BadgeCheck },
-  parse: { todo: "Read the brief", label: "Read the brief", tool: "llm · parse_brief", Icon: FileText },
-  search: { todo: "Search people", label: "Searched people", tool: "crustdata · person/search", Icon: ScanSearch },
-  enrich: { todo: "Enrich profiles", label: "Enriched profiles", tool: "crustdata · person/enrich, company/enrich", Icon: Database },
-  verify: { todo: "Verify claims", label: "Verified claims", tool: "crustdata · enrich + web/fetch", Icon: ShieldCheck },
-  rank: { todo: "Rank candidates", label: "Ranked candidates", tool: "llm · rank (cites claim ids)", Icon: Trophy },
-  outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft (never sent)", Icon: Mail },
-  guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send (nothing is sent)", Icon: ShieldCheck },
+const META: Record<string, { label: string; todo: string; tool: string; what?: string; Icon: typeof Database }> = {
+  passport: { todo: "Check passport", label: "Checked passport", tool: "countersign · verify_passport(data.read)", what: "Confirms the person this agent works for still works at their company and can grant it this job. If not, nothing runs.", Icon: BadgeCheck },
+  parse: { todo: "Read the brief", label: "Read the brief", tool: "llm · parse_brief", what: "Turns your brief into a role, location, skills and must-haves.", Icon: FileText },
+  search: { todo: "Search people", label: "Searched people", tool: "crustdata · person/search", what: "Looks for matching people on Crustdata, widening the search if too few come back.", Icon: ScanSearch },
+  enrich: { todo: "Enrich profiles", label: "Enriched profiles", tool: "crustdata · person/enrich, company/enrich", what: "Pulls each person's full work history and their company's details.", Icon: Database },
+  verify: { todo: "Verify claims", label: "Verified claims", tool: "crustdata · enrich + web/fetch", what: "Compares every claim with those records and marks it verified, contradicted or unverifiable.", Icon: ShieldCheck },
+  rank: { todo: "Rank candidates", label: "Ranked candidates", tool: "llm · rank (cites claim ids)", what: "Scores each person against the brief. Every reason points at a checked claim.", Icon: Trophy },
+  outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft", what: "Writes a first message using only verified facts.", Icon: Mail },
+  send: { todo: "Send emails", label: "Sent emails", tool: "outbound · guarded_send (Resend / SMTP)", what: "Emails every draft Send Guard cleared, with nobody at the keyboard. They all go to your own test inbox, never to the candidates.", Icon: Mail },
+  guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send + person/enrich (contact)", what: "Re-checks each draft before it can be sent (the agent's passport, the recipient, every fact in the message) and finds each person's email on Crustdata.", Icon: ShieldCheck },
 };
 
 const CHECK_CLS = { pass: "text-verified", fail: "text-contradicted", unverifiable: "text-unverifiable" } as const;
@@ -27,7 +28,7 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
     endRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [run.log.length]);
 
-  const known = AGENT_STEPS as readonly string[];
+  const known = AUTOSEND_STEPS as readonly string[];
   const extra = Object.keys(run.steps).filter((s) => !known.includes(s));
   const seen = [...known, ...extra].filter((s) => run.steps[s] || run.log.some((l) => l.step === s));
   const pending = run.running ? pipeline.filter((s) => !seen.includes(s)) : [];
@@ -49,6 +50,8 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
           <div key={s} className={cn("animate-rise rounded-lg border bg-panel transition-colors", active ? "border-primary/40" : "border-border")}>
             <button
               onClick={() => setOpen((o) => ({ ...o, [s]: !isOpen }))}
+              title={m.what}
+              aria-expanded={isOpen}
               className="flex w-full items-center gap-2.5 px-3 py-2 text-left"
             >
               <span
@@ -83,6 +86,7 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
                 </span>
               </span>
             </button>
+            {isOpen && m.what && <p className="border-t border-border px-3 py-2 text-[12px] leading-snug text-muted-foreground">{m.what}</p>}
             {isOpen && lines.length > 0 && (
               <ol className="border-t border-border px-3 py-2 font-mono text-[11px] leading-relaxed">
                 {lines.map((l, i) => (
@@ -120,7 +124,7 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
       {pending.map((s) => {
         const m = META[s];
         return (
-          <div key={s} className="flex items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-faint">
+          <div key={s} title={m.what} className="flex items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-faint">
             <span className="grid size-6 place-items-center rounded-md border border-border">
               <m.Icon className="size-3.5" />
             </span>
@@ -128,7 +132,7 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
           </div>
         );
       })}
-      {!seen.length && !run.running && <p className="text-[13px] text-faint">The agent&apos;s tool calls appear here.</p>}
+      {!seen.length && !run.running && <p className="text-[13px] text-faint">The agent&apos;s steps appear here once a search starts.</p>}
       <div ref={endRef} />
     </div>
   );

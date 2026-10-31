@@ -38,7 +38,8 @@ export type RunAction =
   | { type: "start"; at: number }
   | { type: "event"; ev: RunEvent; at: number }
   | { type: "fatal"; message: string; at: number }
-  | { type: "stop"; at: number };
+  | { type: "stop"; at: number }
+  | { type: "reset" };
 
 export const initialRun: RunState = { running: false, log: [], steps: {}, candidates: {}, arrival: [], done: false };
 
@@ -57,6 +58,8 @@ export function runReducer(s: RunState, a: RunAction): RunState {
   switch (a.type) {
     case "start":
       return { ...initialRun, running: true, startedAt: a.at };
+    case "reset":
+      return initialRun;
     case "stop":
       return { ...s, running: false, endedAt: s.endedAt ?? a.at };
     case "fatal":

@@ -20,15 +20,15 @@ into the real store, start the backend, start the UI as Sourced (Live), and the 
 | # | Gap | Owner |
 |---|---|---|
 | **P0-1** | **The demo script is stale.** `demo/script.md` still tells the hiring-only story, records in replay, and shows seeded fakes in a terminal. Nothing covers the passport, Send Guard, console, fleet or ledger | Demo thread: rewrite for the chosen story (see P0-2). Suggested beats are below |
-| **P0-2** | **The submission story isn't decided.** The CONTEXT go/no-go was due 14:00: Hiring (Sourced) or Countersign, or Sourced as Countersign's first AI employee | The user |
+| **P0-2** | **The submission story isn't decided.** The CONTEXT go/no-go was due 14:00: Hiring (Sourced) or Agaxes, or Sourced as Agaxes's first AI employee | The user |
 | **P0-3** | **Nothing has run live since the merges.** In replay, Sourced finds 0 candidates because no search responses are cached in the repo, so the replay backup has nothing to show for Sourced | Mac/main thread: `git pull`, run `backend/scripts/demo_up.sh` live, run the demo brief once, and push the cache for that brief as fixtures (standing approval) so replay is a real backup |
 | **P0-4** | PR #9 and PR #10 are open | The user, to merge. They merge cleanly, and tests and build pass with both |
 | P1-5 | The fleet scorecard marks Sourced "OK" even when its run shortlists nobody and guards no drafts (that's what happens in replay) | Fleet thread: in live mode, require at least 1 guard verdict |
-| P1-6 | README describes only the hiring agent: no Countersign, console, fleet, MCP or `demo_up.sh` | Demo thread (owns the README "How to run") |
+| P1-6 | README describes only the hiring agent: no Agaxes, console, fleet, MCP or `demo_up.sh` | Demo thread (owns the README "How to run") |
 | P1-7 | Agent run routes (`/api/agents/{id}/run`) don't check the admin token, though the passport still gates the agent. Anyone who can reach the API can spend Crustdata credits | Roadmap, unless the API is exposed |
 | P2 | Persistence in JSON files, agent keys stored in the registry, no hosted URL, payroll not scheduled (same as round 1) | Roadmap |
 
-**Suggested 2-minute run of show (if the story is Sourced, managed by Countersign):**
+**Suggested 2-minute run of show (if the story is Sourced, managed by Agaxes):**
 1. Paste an unseen brief, then show the passport check passing live (sponsor, employer and title cited).
 2. Search, enrich and verify, then the shortlist with cited claims.
 3. Send Guard clears a true draft. One edited with a false claim is blocked, with a citation.
@@ -40,9 +40,9 @@ into the real store, start the backend, start the UI as Sourced (Live), and the 
 
 ## Round 1 (~12:00 IST)
 
-Audit of every branch (`main`, `ws/*`, Countersign `claude/project-thread-icv883` passport + ledger,
+Audit of every branch (`main`, `ws/*`, Agaxes `claude/project-thread-icv883` passport + ledger,
 `claude/project-thread-gz8tzg` Send Guard + MCP, `claude/project-thread-kiaijw` AI employee registry + console)
-for mocks, seeded data posing as real, stubbed flows and missing pieces. All three Countersign branches merge
+for mocks, seeded data posing as real, stubbed flows and missing pieces. All three Agaxes branches merge
 cleanly together (only CONTEXT.md conflicted; main's copy kept). With this branch's additions, **108 backend tests pass**.
 
 ## What is already real (checked in code)
@@ -60,7 +60,7 @@ cleanly together (only CONTEXT.md conflicted; main's copy kept). With this branc
 
 | # | Gap | Status / owner |
 |---|---|---|
-| **P0-1** | Countersign was three unmerged branches, and Sourced never ran under a passport: no passport check, no ledger entries for its runs, drafts never went through Send Guard | **Fixed on this branch.** `GET/POST /api/agents/{agent_id}/run` (`backend/app/sourced_agent.py`): live passport check (`data.read`) before any search, a blocked passport stops the run; `run.started` / `run.finished` ledger entries carrying every claim source; each shortlisted draft is signed with the agent's key and checked by Send Guard (`guard` steps, `candidate.guard`). `scripts/onboard_sourced.py` onboards Sourced in the real store. Needs the PR merged |
+| **P0-1** | Agaxes was three unmerged branches, and Sourced never ran under a passport: no passport check, no ledger entries for its runs, drafts never went through Send Guard | **Fixed on this branch.** `GET/POST /api/agents/{agent_id}/run` (`backend/app/sourced_agent.py`): live passport check (`data.read`) before any search, a blocked passport stops the run; `run.started` / `run.finished` ledger entries carrying every claim source; each shortlisted draft is signed with the agent's key and checked by Send Guard (`guard` steps, `candidate.guard`). `scripts/onboard_sourced.py` onboards Sourced in the real store. Needs the PR merged |
 | **P0-2** | Web UI defaults to **Replay** (a recorded `fixtures/run.jsonl`) unless `NEXT_PUBLIC_DEFAULT_MODE=live` | UI thread (PR #5): default to Live, keep Replay as an explicit, labelled fallback. Also: call `/api/agents/{NEXT_PUBLIC_AGENT_ID}/run` when that env is set, render the `passport` and `guard` steps, and show a cleared/blocked badge from `candidate.guard` |
 | **P0-3** | Demo plan says record in replay mode | Main (Mac) thread: record a **live** run (`CRUSTDATA_MODE=cache`, `LLM_MODE=live`), replay only as backup. Show `/api/health` (live modes) on screen |
 | **P0-4** | Live guard cost: each shortlisted draft costs one more Person Enrich (15 req/min). On a rate limit the guard fails closed and shows "blocked" | Main (Mac) thread: do one live run through `/api/agents/{id}/run` before recording; lower `GUARD_MAX` (default 5) if needed |
@@ -75,7 +75,7 @@ cleanly together (only CONTEXT.md conflicted; main's copy kept). With this branc
 | P2-13 | No hosted URL: Vertex ADC only on laptops; cloud sandboxes can't reach api.crustdata.com | Roadmap: Dockerfile + host, Gemini API-key path. Cloud runs need `api.crustdata.com` allowed in the project's cloud environment |
 | P2-14 | Payroll re-check is a button, not scheduled | Roadmap: cron `recheck_all` / Crustdata Watcher |
 | P2-15 | Nothing is ever really sent | By design (event rule): allowed drafts go to the outbox file |
-| **P0-16** | Sourced was the only real agent, so the registry, guard and ledger had almost nothing to manage | **Fixed on `claude/project-thread-6gjqrs`:** a fleet of 5 more agents with different jobs, sponsors and scopes (`backend/app/fleet/`, docs/FLEET.md), all reaching Countersign over MCP, plus a real Claude Code run. `scripts/run_fleet.py` runs it all. New MCP tool `record_work` files each agent's signed work with its sources |
+| **P0-16** | Sourced was the only real agent, so the registry, guard and ledger had almost nothing to manage | **Fixed on `claude/project-thread-6gjqrs`:** a fleet of 5 more agents with different jobs, sponsors and scopes (`backend/app/fleet/`, docs/FLEET.md), all reaching Agaxes over MCP, plus a real Claude Code run. `scripts/run_fleet.py` runs it all. New MCP tool `record_work` files each agent's signed work with its sources |
 
 ## Run it end to end (Mac, live)
 ```bash

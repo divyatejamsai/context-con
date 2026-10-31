@@ -1,4 +1,4 @@
-# Countersign: trust infrastructure for AI employees
+# Agaxes: trust infrastructure for AI employees
 
 > Track 2 of the hackathon, built **alongside** the Sourced hiring agent (which keeps going unchanged).
 > Theme: "Infrastructure for agents", which asks for: *proof of who sent a message, and on whose authority an agent acts*;
@@ -6,7 +6,7 @@
 > Judges want "building blocks that still hold after a crash, a model swap or a lie."
 
 ## One-line pitch
-Companies are hiring AI employees. Countersign gives each one a verifiable identity tied to a real human sponsor,
+Companies are hiring AI employees. Agaxes gives each one a verifiable identity tied to a real human sponsor,
 checks live against Crustdata that the sponsor still has the authority, blocks wrong outbound messages before they are sent,
 and writes every action to a tamper-evident ledger.
 
@@ -42,7 +42,7 @@ class Passport(BaseModel):            # what an agent carries
     sponsor: Sponsor; scopes: list[Scope]
     issued_at: str; expires_at: str   # ISO
     public_key: str                   # agent's Ed25519 public key, base64
-    issuer_signature: str             # Countersign signs the canonical JSON of every other field
+    issuer_signature: str             # Agaxes signs the canonical JSON of every other field
 
 class Check(BaseModel):               # one line of a verdict
     id: str; name: str                # e.g. "sponsor_still_employed"
