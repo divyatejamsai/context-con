@@ -123,14 +123,55 @@ async def test_send_writes_outbox_only_on_allow(tmp_path):
 
 
 @pytest.mark.parametrize("body,expect", [
+    ("Hi Amal, loved what you've been building at YP Club. Got 15 minutes?", {"employer": "YP Club"}),
+    ("you've been at Grewon Technologies Pvt. Ltd. for Ten years now", {"employer": "Grewon Technologies Pvt. Ltd", "tenure_years": 10.0}),
+    ("Hi, as the Head of Engineering at dataZen Labs you'd like this", {"title": "Head of Engineering", "employer": "dataZen Labs"}),
     ("Congrats on 5 years at Razorpay!", {"tenure_years": 5.0, "employer": "Razorpay"}),
     ("You're a Senior Backend Engineer at Fam with 8+ yrs of experience", {"title": "Senior Backend Engineer", "employer": "Fam", "years_experience": 8.0}),
     ("you've been with Fam since 2021 and you are based in Pune", {"employer": "Fam", "start_date": "2021", "location": "Pune"}),
     ("I lead hiring at Razorpay. Would love to chat.", {}),  # the sender's own company is not a claim about the recipient
 ])
 def test_rule_extractor(body, expect):
-    got = {k: v for k, v in extract_claims_rules(body).model_dump().items() if v is not None}
+    got = {k: v for k, v in extract_claims_rules(body).model_dump(exclude={"other"}).items() if v is not None}
     assert got == expect
+
+
+@pytest.mark.asyncio
+async def test_concurrent_role_tenure_checked_against_that_role():
+    # Vinod: Backend Engineer at Fam since 2025-05, and Advisor at Newtral since 2025-04
+    v = await guard("Hi Vinod, as an Advisor at Newtral you'd find this interesting.")
+    assert v.decision == "allow", [c.model_dump() for c in v.checks]
+
+
+@pytest.mark.asyncio
+async def test_year_only_start_date():
+    assert (await guard("Hi Vinod, you've been with Fam since 2025, so you know the space.")).decision == "allow"
+    assert (await guard("Hi Vinod, you've been with Fam since 2023, so you know the space.")).decision == "block"
+
+
+@pytest.mark.asyncio
+async def test_city_alias_passes():
+    assert (await guard("Hi Vinod, you're based in Bangalore, right?")).decision == "allow"
+
+
+@pytest.mark.asyncio
+async def test_former_employer_mention_is_stale():
+    v = await guard("Hi Vinod, hope things are going well over at Trinkerr!")
+    assert v.decision == "block" and any("left" in c.detail and c.status == "fail" for c in check(v, "claims_in_body_true"))
+
+
+@pytest.mark.asyncio
+async def test_unparsed_claim_fails_closed_without_llm():
+    # The rule extractor can't parse this wording; the safety net makes it unverifiable instead of a silent pass.
+    v = await guard("Hi Vinod, it's been over 4 years since you joined Fam, right?")
+    assert v.decision == "block"
+    assert any(c.status == "unverifiable" for c in check(v, "claims_in_body_true"))
+
+
+@pytest.mark.asyncio
+async def test_sender_facts_are_not_claims_about_recipient():
+    v = await guard("Hi Vinod, I'm the Head of Talent at Grewon, founded in 2019. We're hiring senior engineers.")
+    assert v.decision == "allow", [c.model_dump() for c in v.checks]
 
 
 @pytest.mark.asyncio
@@ -165,3 +206,71 @@ def test_http_route(monkeypatch):
                                                        "to": VINOD, "body": body, "scope": "outreach.hiring", "today": TODAY.isoformat()})
     assert r.status_code == 200, r.text
     assert r.json()["decision"] == "allow", r.json()
+
+
+@pytest.mark.asyncio
+async def test_sourced_sends_through_mcp_and_false_draft_is_blocked(tmp_path, monkeypatch):
+    from app.agents import sourced_agent
+
+    monkeypatch.setattr(sourced_agent, "IDENTITY_PATH", tmp_path / "id.json")
+    cands = await sourced_agent.candidates_fixture_people(TODAY)
+    assert len(cands) >= 5 and all(c.outreach_draft for c in cands)
+    bad = cands[0].model_copy()
+    bad.outreach_draft = bad.outreach_draft.replace("Hi ", "Hi! Congrats on 9 years at " + (bad.company or "X") + ". ", 1)
+    results = await sourced_agent.send_all(cands + [bad], today=TODAY)
+    assert [r["sent"] for r in results] == [True] * len(cands) + [False], results
+    assert any("claims_in_body_true" in x for x in results[-1]["not_passing"])
+    outbox = (tmp_path / "outbox.jsonl").read_text().splitlines()
+    assert len(outbox) == len(cands)
+
+
+@pytest.fixture
+def fake_registry(monkeypatch):
+    """Stand-in for WS8's registry.get_agent (same contract: public record, private key never included)."""
+    import sys
+    import types
+
+    store = {}
+    mod = types.ModuleType("app.agents.registry")
+
+    def get_agent(agent_id):
+        if agent_id not in store:
+            raise ValueError(f"no AI employee with id {agent_id}")
+        return store[agent_id]
+
+    mod.get_agent = get_agent
+    import app.agents
+
+    monkeypatch.setitem(sys.modules, "app.agents.registry", mod)
+    monkeypatch.setattr(app.agents, "registry", mod, raising=False)
+    return store
+
+
+async def _mcp_call(name, args):
+    import mcp_server
+
+    res = await mcp_server.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": name, "arguments": args}})
+    return res["result"]["content"][0]["text"], res["result"]["isError"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_by_agent_id_no_key_on_the_wire(fake_registry):
+    import mcp_server
+
+    p, key = agent()
+    fake_registry[p.agent_id] = {"agent_id": p.agent_id, "passport": p.model_dump(), "status": "active"}
+    tools = {t["name"] for t in (await mcp_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}))["result"]["tools"]}
+    assert "sign_message" not in tools
+    assert all("agent_private_key" not in json.dumps(t["inputSchema"]) for t in mcp_server.TOOLS)
+    body = "Hi Vinod, your work at Fam caught our eye."
+    args = {"agent_id": p.agent_id, "signature": sign_message(p, key, body), "to": VINOD, "body": body,
+            "scope": "outreach.hiring", "today": TODAY.isoformat()}
+    text, err = await _mcp_call("check_before_send", args)
+    assert not err and text.startswith("ALLOW"), text
+
+    fake_registry[p.agent_id]["status"] = "suspended"
+    text, err = await _mcp_call("check_before_send", args)
+    assert text.startswith("BLOCK") and "agent_active" in text
+
+    text, err = await _mcp_call("check_before_send", {**args, "agent_id": "agt_nope"})
+    assert err and "agt_nope" in text

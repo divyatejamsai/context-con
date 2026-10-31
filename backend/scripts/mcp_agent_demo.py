@@ -2,7 +2,8 @@
 
 1. Onboards an AI employee in the registry (same store the backend and console use).
 2. Starts backend/mcp_server.py as a subprocess and speaks MCP JSON-RPC to it over stdio:
-   initialize -> tools/list -> sign_message -> check_before_send (clean draft, false claim) -> ledger_lookup.
+   initialize -> tools/list -> check_before_send by agent_id (clean draft, false claim) -> ledger_lookup.
+   The agent signs each body locally with its own key; the key never crosses the wire.
 3. Exits 1 if the guard doesn't allow the clean draft and block the false one.
 
     cd backend && CRUSTDATA_MODE=replay LLM_MODE=mock python scripts/mcp_agent_demo.py        # offline, fixtures
@@ -71,7 +72,9 @@ async def main() -> int:
 
     sc = {s["id"]: s for s in json.loads((BACKEND.parent / "fixtures/countersign/sponsors.json").read_text())["scenarios"]}
     agent = registry.onboard("Sourced (MCP)", "recruiter", Sponsor(**sc["authorised_founder"]["sponsor"]))
-    key_b64 = __import__("base64").b64encode(registry.private_key(agent["agent_id"])).decode()
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    passport, key = Passport.model_validate(agent["passport"]), registry.private_key(agent["agent_id"])
     print(f"onboarded {agent['name']} {agent['agent_id']} under {agent['passport']['sponsor']['name']}")
 
     proc = await asyncio.create_subprocess_exec(sys.executable, str(BACKEND / "mcp_server.py"), cwd=str(BACKEND),
@@ -83,9 +86,10 @@ async def main() -> int:
                                              "clientInfo": {"name": "mcp_agent_demo", "version": "0"}})
         tools = [t["name"] for t in (await mcp.call("tools/list"))["tools"]]
         print(f"MCP server {init['serverInfo']['name']} {init['serverInfo']['version']}: tools {tools}")
+        ok &= "sign_message" not in tools
         for label, body, expect in DRAFTS:
-            sig = (await mcp.tool("sign_message", {"passport": agent["passport"], "agent_private_key": key_b64, "body": body}))["signature"]
-            v = await mcp.tool("check_before_send", {"passport": agent["passport"], "signature": sig, "to": VINOD,
+            sig = sign_message(passport, key, body)  # local: only the signature goes to the server
+            v = await mcp.tool("check_before_send", {"agent_id": agent["agent_id"], "signature": sig, "to": VINOD,
                                                       "body": body, "scope": "outreach.hiring", "today": "2026-10-31"})
             print(f"\n[{label}] \"{body}\"\n  -> {v['decision'].upper()} (expected {expect.upper()})")
             for c in v["checks"]:

@@ -315,3 +315,35 @@ async def test_years_bonus_counts_only_matching_roles():
     claims, _ = await verify_candidate(p, None, crit, FakeClient(), today=TODAY)
     _, reasons = await rank_candidate(p, claims, crit)
     assert not any("yrs in rust" in r.text for r in reasons)
+
+
+@pytest.mark.asyncio
+async def test_career_history_progression_and_must_have_gate():
+    p = json.loads(json.dumps(PEOPLE["live_job_facts"]))
+    p["experience"]["employment_details"]["past"] = [
+        {"name": "PayCo", "title": "Senior Backend Engineer", "start_date": "2020-06-01", "end_date": "2022-12-01",
+         "company_headcount_latest": 400, "company_professional_network_industry": "Financial Services"},
+        {"name": "Big IT", "title": "Associate Software Engineer", "start_date": "2016-06-01", "end_date": "2020-05-01",
+         "company_headcount_latest": 200000, "company_professional_network_industry": "IT Services and IT Consulting"},
+    ]
+    claims, _ = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
+    career = [c for c in claims if c.claim.startswith("Career:")][0]
+    assert "PayCo" in career.claim and "Financial Services" in career.claim
+    prog = [c for c in claims if c.claim.startswith("Progression")][0]
+    assert "(rising)" in prog.claim
+    score, reasons = await rank_candidate(p, claims, CRIT)
+    texts = " | ".join(r.text for r in reasons)
+    assert "Career history:" in texts and "PayCo" in texts and "Rising career" in texts
+    assert score > 60
+    crit = CRIT.model_copy(update={"must_haves": ["Kubernetes"]})
+    claims, _ = await verify_candidate(p, None, crit, FakeClient(), today=TODAY)
+    score2, reasons2 = await rank_candidate(p, claims, crit)
+    assert score2 <= 60 and reasons2[0].text.startswith("Missing must-have: Kubernetes")
+
+
+@pytest.mark.asyncio
+async def test_stale_data_flagged():
+    p = json.loads(json.dumps(PEOPLE["clean"]))
+    p["_source"]["fetched_at"] = "2026-08-01T00:00:00Z"
+    _, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
+    assert any("days old" in f for f in flags)

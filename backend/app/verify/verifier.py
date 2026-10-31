@@ -414,6 +414,28 @@ async def verify_candidate(
         out.add(f"Skills not evidenced: {', '.join(missing)}", "unverifiable",
                 "not found in profile skills, headline, titles or employer industries", ep, pr.skills_field or "skills")
 
+    # 8. Career history: what kind of companies and roles came before (company context, not just the latest title).
+    history = sorted([j for j in pr.current + pr.past if j.company], key=lambda j: j.start or date.min, reverse=True)
+    if len(history) >= 2:
+        parts = []
+        for j in history[:4]:
+            kind = [x for x in (
+                f"~{j.company_headcount:,} people" if j.company_headcount else (f"{j.company_headcount_range} people" if j.company_headcount_range else None),
+                j.company_industry,
+            ) if x]
+            yrs = _years(j.start, j.end or today) if j.start else None
+            parts.append(f"{j.title or 'role'} at {j.company}" + (f" ({', '.join(kind)})" if kind else "") + (f", {_fmt_years(yrs)}" if yrs else ""))
+        out.add(f"Career: {'; '.join(parts)}", "verified", f"{len(history)} roles on the employment record", ep,
+                "experience.employment_details" if pr.current and ".employment_details" in pr.current[0].path else "past_employers")
+        # 9. Progression: seniority over time, oldest to newest.
+        dated = [j for j in reversed(history) if j.title and j.start]
+        if len(dated) >= 2:
+            ranks = [max(seniority_rank(j.title), seniority_rank(j.seniority_level) if j.seniority_level else 0) for j in dated]
+            trend = "rising" if ranks[-1] > ranks[0] else "falling" if ranks[-1] < ranks[0] else "flat"
+            path = " -> ".join(dict.fromkeys(j.title for j in dated[-4:]))
+            out.add(f"Progression ({trend}): {path}", "verified", f"titles from {dated[0].start.year} to {dated[-1].start.year}", ep,
+                    "experience.employment_details" if ".employment_details" in dated[-1].path else "past_employers")
+
     # Flags: freshness is Crustdata's edge, so surface recent moves loudly.
     if cur and cur.start and 0 <= (today - cur.start).days <= RECENT_CHANGE_DAYS:
         flags.insert(0, f"Changed jobs {_months_ago(cur.start, today)} (joined {cur.company})")
@@ -429,6 +451,10 @@ async def verify_candidate(
             distinct.append(j)
     if len(distinct) > 1:
         flags.append(f"Holds {len(distinct)} concurrent roles: {', '.join(j.company for j in distinct[:3])}")
+    # Reviews of existing sourcing tools keep citing stale profiles; say how old our data is when it's old.
+    fetched = parse_date(get_path(person, "_source.fetched_at"))
+    if fetched and (today - fetched).days > 30:
+        flags.append(f"Profile data is {(today - fetched).days} days old (fetched {fetched.isoformat()})")
     for c in out.items:
         if c.status == "contradicted" and c.id not in flagged:
             flags.append(f"Contradicted: {c.claim}")
