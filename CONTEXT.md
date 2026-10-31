@@ -3,7 +3,7 @@
 > Living handover doc. Anyone (human or AI agent) picking this up should be able to continue from here alone.
 > Update it every time a decision is made or a milestone is hit. Newest entries go at the top of each log.
 
-Last updated: 2026-10-31 ~10:18 IST
+Last updated: 2026-10-31 ~10:28 IST
 
 ---
 
@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| 10:25 | Split build into 5 parallel workstreams (WS1-WS5) with fixed folder ownership and shared interfaces | User wants parallel work; ownership avoids merge conflicts | dummyanaxes |
 | 10:12 | LLM = Gemini on Vertex AI via ADC; repo = divyatejamsai/context-con | User choice | dummyanaxes |
 | 10:05 | Stack: Python/FastAPI agent + Next.js UI, SSE streaming, cache/replay mode | 2-person split, UI needed for hiring demo, replay protects demo | dummyanaxes + Claude |
 | 09:57 | **Theme = Hiring** (confirmed) | User picked it from the recommendation | dummyanaxes |
@@ -98,6 +99,8 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| 10:27 | First push to GitHub: commit 18c9e38 on main (CONTEXT.md, README, .gitignore, .env.example). `.env` with Crustdata key created on Sai's Mac (gitignored, chmod 600). TODO: set GOOGLE_CLOUD_PROJECT in .env |
+| 10:25 | Workstreams defined (section 7a). Found: Crustdata blocked from cloud sandboxes, so live calls run on Sai's Mac |
 | 10:18 | Crustdata API key + MCP URL received; key kept in local `.env` only. Repo cloned, first push of docs |
 | 10:12 | LLM and repo decided. Blocker: GitHub account not linked to Claude yet |
 | 10:05 | Team (2), stack, architecture, API contract and build plan added. Blocker: LLM key |
@@ -153,6 +156,95 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 {"type":"done","summary":{"searched":120,"enriched":25,"shortlisted":8}}
 ```
 B starts with a `fixtures/run.jsonl` of these events so the UI is never blocked on the backend.
+
+## 7a. Parallel workstreams (decided 10:25 IST)
+
+The build runs as **5 workstreams at once**. Each one owns its own folders, so nobody edits anyone else's files. All of them code against the contracts in this section and in section 6. **CONTEXT.md and repo setup are owned by the "Plan the Hiring agent build" thread.** Every other workstream reports its decisions there so they get logged here.
+
+### Environment facts every workstream must know
+- **Crustdata (`api.crustdata.com`) is blocked from Claude's cloud sandboxes** by the network policy. Real Crustdata calls run on Sai's Mac (or after the project's cloud environment allows that domain). Until then, cloud workstreams code against **fixtures** (saved real responses).
+- **Gemini / Vertex ADC credentials exist only on the team's laptops.** Cloud workstreams must make every LLM call go through `backend/app/llm.py`, which supports `LLM_MODE=mock` (returns canned JSON) so code can be tested without credentials.
+- Secrets live only in `.env` (gitignored). Never commit keys.
+- Branches: each workstream works on `ws/<name>` and merges to `main` at the checkpoints (12:30, 13:30, 14:15).
+
+### Repo layout and ownership
+```
+backend/
+  app/
+    main.py, orchestrator.py, brief.py, outreach.py, schemas.py, llm.py   -> WS2 Pipeline & API
+    crustdata/client.py, crustdata/cache.py                               -> WS1 Crustdata
+    verify/verifier.py, verify/ranker.py                                  -> WS3 Verifier
+  scripts/smoke_crustdata.py                                              -> WS1
+  tests/                                                                  -> each WS owns tests for its folder
+  pyproject.toml / requirements.txt                                       -> WS2 (others ask WS2 to add deps)
+fixtures/
+  crustdata/*.json     (real sample responses)                            -> WS1
+  run.jsonl            (sample SSE event stream for the UI)               -> WS2 (first version from section 6 contract)
+frontend/                                                                 -> WS4 UI
+demo/  (briefs.md, script.md, seeded_fakes/)                              -> WS5 Demo & QA
+```
+
+### Shared interfaces (code against these, do not change them without telling the doc owner)
+
+**Crustdata client (WS1 provides, WS2/WS3 consume)**
+```python
+class CrustdataError(Exception): ...
+
+class CrustdataClient:          # backend/app/crustdata/client.py
+    def __init__(self, api_key: str | None = None, mode: str = "live"):  # mode: live | cache | replay
+    async def person_search(self, filters: dict, limit: int = 25) -> list[dict]
+    async def person_enrich(self, profile_url: str) -> dict | None
+    async def company_search(self, filters: dict, limit: int = 25) -> list[dict]
+    async def company_identify(self, name: str | None = None, domain: str | None = None) -> dict | None
+    async def company_enrich(self, company_id: str | None = None, domain: str | None = None) -> dict | None
+    async def job_search(self, filters: dict, limit: int = 25) -> list[dict]
+    async def web_search(self, query: str) -> list[dict]
+    async def web_fetch(self, url: str) -> dict | None
+```
+- Every returned dict carries `"_source": {"endpoint": "person/enrich", "request_hash": "...", "fetched_at": "ISO"}` so claims can cite it.
+- Retries with backoff on 429/5xx, timeout 20s, raises `CrustdataError` only after retries. `None` / `[]` means "not found", never an exception.
+- `mode=replay` serves only from `cache/` + `fixtures/crustdata/` (demo safety). `mode=cache` = live but reads/writes cache.
+
+**LLM wrapper (WS2 provides, WS3 consumes)**
+```python
+# backend/app/llm.py
+async def generate_json(prompt: str, schema: type[BaseModel], tier: Literal["fast","smart"] = "fast") -> BaseModel
+async def generate_text(prompt: str, tier: Literal["fast","smart"] = "fast") -> str
+# fast = Gemini Flash, smart = Gemini Pro, via google-genai with vertexai=True. LLM_MODE=mock returns schema-valid stub data.
+```
+
+**Core types (WS2 owns `backend/app/schemas.py`, mirrors the SSE contract in section 6)**
+```python
+class Criteria(BaseModel):
+    role: str; title_variants: list[str]; seniority: str | None; skills: list[str]
+    locations: list[str]; company_preferences: list[str]; must_haves: list[str]; nice_to_haves: list[str]; raw_brief: str
+class Source(BaseModel):  endpoint: str; field: str | None = None; url: str | None = None
+class Claim(BaseModel):   id: str; claim: str; status: Literal["verified","contradicted","unverifiable"]; evidence: str; source: Source
+class Reason(BaseModel):  text: str; claim_ids: list[str]
+class Candidate(BaseModel):
+    id: str; name: str; title: str | None; company: str | None; location: str | None; profile_url: str | None
+    score: int; reasons: list[Reason]; claims: list[Claim]; flags: list[str]; outreach_draft: str | None
+```
+
+**Verifier (WS3 provides, WS2 calls)**
+```python
+# backend/app/verify/verifier.py
+async def verify_candidate(person: dict, company: dict | None, criteria: Criteria, client: CrustdataClient) -> tuple[list[Claim], list[str]]  # (claims, flags)
+# backend/app/verify/ranker.py
+async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[int, list[Reason]]  # every Reason cites claim ids
+```
+
+### The workstreams
+
+| WS | Name | Owns | First deliverable (by) | Depends on |
+|---|---|---|---|---|
+| WS1 | Crustdata client + cache/replay | `backend/app/crustdata/`, `backend/scripts/`, `fixtures/crustdata/` | Smoke test run **on Sai's Mac**, real responses saved as fixtures (10:50) | API key in `.env` |
+| WS2 | Pipeline + API | `backend/app/` (except crustdata/, verify/), `fixtures/run.jsonl` | `llm.py` + `schemas.py` + `run.jsonl` committed (10:50); `/api/run` SSE end-to-end with real data (12:30) | WS1 fixtures, WS3 for verify step |
+| WS3 | Verifier + ranker | `backend/app/verify/` | Claim extraction + checks on fixture people (12:00); ranker (13:00) | WS1 fixtures, WS2 `schemas.py`/`llm.py` |
+| WS4 | Web UI | `frontend/` | UI fully working on `fixtures/run.jsonl` (12:30); wired to live backend (14:00) | `run.jsonl` (can write its own from section 6 until WS2's lands) |
+| WS5 | Demo & QA | `demo/`, README "How to run" | 5 messy test briefs + edge cases (11:15); seeded-fake resumes (13:00); demo script (14:00); record video (15:15) | everything, for the final run |
+
+Humans: **Sai** runs anything that needs the Mac (Crustdata live calls, Vertex, running the app, recording). The second teammate can pair on WS4 UI or WS5 demo.
 
 ## 7. Build plan (IST)
 
