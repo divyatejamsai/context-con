@@ -910,6 +910,52 @@ def tune_section(t: dict) -> str:
     ])
 
 
+# =============================================================================================== diagnose
+
+def diagnose(rows: list[dict]) -> str:
+    """Why do real hires rank where they do? Prints titles and score parts only, never names."""
+    from statistics import median
+    out, agg = [], {"hires": 0, "no_title": 0, "title_matches_posting": 0, "title_matches_variant": 0,
+                    "gapped": 0, "contradicted": 0, "below_median": 0, "injected": 0}
+    sig_h, sig_o = {}, {}
+    for r in rows:
+        if r.get("error") or not r.get("slate"):
+            continue
+        slate = r["slate"]
+        others = [c for c in slate if not c["hire"]]
+        med = median([c["score"] for c in others]) if others else 0
+        variants = (r.get("criteria") or {}).get("title_variants") or []
+        out.append(f"\n## {r['company']} | {r['title']} | posted {r['posted']} | pool {r.get('pool')} | "
+                   f"variants {variants} | locs {(r.get('criteria') or {}).get('locations')}")
+        out.append(f"   others: median score {med}, top titles {[c.get('title') for c in sorted(others, key=lambda c: -c['score'])[:3]]}")
+        for h in r.get("hires") or []:
+            out.append(f"   joined as: {h.get('title')} on {h.get('start')}")
+        for c in slate:
+            if not c["hire"]:
+                continue
+            agg["hires"] += 1
+            t = c.get("title")
+            agg["no_title"] += not t
+            agg["title_matches_posting"] += bool(t and role_match(r["title"], t))
+            agg["title_matches_variant"] += bool(t and any(_fuzzy(t, v) for v in variants))
+            agg["gapped"] += bool(c.get("gapped"))
+            agg["contradicted"] += bool(c.get("contradicted"))
+            agg["below_median"] += c["score"] < med
+            for k, v in (c.get("signals") or {}).items():
+                sig_h[k] = sig_h.get(k, 0) + v
+            on = [k for k, v in (c.get("signals") or {}).items() if v]
+            out.append(f"   HIRE as-of title={t!r} score={c['score']} raw={c.get('raw')} gapped={c.get('gapped')} "
+                       f"verified={c['verified']} contradicted={c['contradicted']} prescore={c['prescore']} signals={on}")
+        for c in others:
+            for k, v in (c.get("signals") or {}).items():
+                sig_o[k] = sig_o.get(k, 0) + v
+    n_o = sum(len([c for c in r.get("slate") or [] if not c["hire"]]) for r in rows if not r.get("error")) or 1
+    head = [f"# Backtest diagnosis ({agg['hires']} real hires on slates)", "", json.dumps(agg),
+            "signal rate, hires vs others: " + json.dumps({k: (round(sig_h.get(k, 0) / max(1, agg['hires']), 2),
+                                                                round(sig_o.get(k, 0) / n_o, 2)) for k in sig_o})]
+    return "\n".join(head + out) + "\n"
+
+
 # =============================================================================================== cli
 
 def _save_openings(ops: list[Opening], meta: dict):
@@ -957,6 +1003,10 @@ async def main_async(args) -> int:
     try:
         if args.cmd == "probe":
             await cmd_probe(client, args)
+            return 0
+        if args.cmd == "diagnose":
+            rows = [json.loads(x) for x in (DATA_DIR / "results.jsonl").read_text().splitlines() if x.strip()]
+            print(diagnose(rows))
             return 0
         if args.cmd in ("openings", "all"):
             ops = await build_openings(client, args)
@@ -1013,7 +1063,7 @@ async def main_async(args) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "tune", "all"])
+    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "tune", "diagnose", "all"])
     ap.add_argument("--start", default=WINDOW_START)
     ap.add_argument("--end", default=WINDOW_END)
     ap.add_argument("--country", default="India")
