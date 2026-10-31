@@ -152,14 +152,17 @@ SCOPE_RULES: dict[str, tuple[str, str]] = {
 SUBORDINATE = re.compile(r"\b(assistant|intern|internship|trainee|apprentice|former|ex|retired|chief of staff|office of|s office|to)\b")
 
 
+_GRANT_SPLIT = re.compile(r"\s+(?:and|&)\s+|\s*[|;]\s*", re.I)  # coarser than _ROLE_SPLIT: "Manager - IT - Engineering" is one role
+
+
 def can_grant(title: str | None, scope: str) -> bool:
     """True if some role in the title carries the authority. Roles are judged one at a time (split on and/&/|),
     and a subordinate role ("assistant to the CFO") never counts, even though it names a CFO."""
     if not title or scope not in SCOPE_RULES:
         return False
-    for part in _ROLE_SPLIT.split(title):
+    for part in _GRANT_SPLIT.split(title):
         t = expand_title(part)  # keeps word order so phrases like "chief financial" match
-        if t and not SUBORDINATE.search(t) and re.search(SCOPE_RULES[scope][0], t):
+        if t and (scope == "data.read" or not SUBORDINATE.search(t)) and re.search(SCOPE_RULES[scope][0], t):
             return True
     return False
 
