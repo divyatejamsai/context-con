@@ -383,3 +383,14 @@ def test_company_batch_prefetch(monkeypatch):
     evs = collect("senior backend engineer bangalore payments", client=client)
     assert client.batch_calls == [[42]] and client.single == 0
     assert evs[-1].type == "done"
+
+
+def test_near_miss_flag_and_rank_data(monkeypatch):
+    import app.orchestrator as o
+    monkeypatch.setattr(o, "SHORTLIST_MIN", 101)
+    monkeypatch.setattr(o, "NEAR_MISS_MIN", 0)
+    evs = collect("senior backend engineer bangalore payments")
+    cands = [e.candidate for e in evs if e.type == "candidate"]
+    assert all(any(f.startswith("Near miss") for f in c.flags) for c in cands)
+    final = [e for e in evs if e.type == "step" and e.step == "rank" and e.data and "near_miss" in e.data][-1]
+    assert set(final.data["near_miss"]) == {c.id for c in cands} and "near miss" in final.message

@@ -29,6 +29,7 @@ COMPANY_TIMEOUT = float(os.getenv("COMPANY_TIMEOUT", "6"))    # cap on Company I
 OUTREACH_TIMEOUT = float(os.getenv("OUTREACH_TIMEOUT", "12"))  # slower than this -> template draft
 CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
 SHORTLIST_MIN = int(os.getenv("SHORTLIST_MIN", "40"))  # below this a candidate is shown but not shortlisted
+NEAR_MISS_MIN = int(os.getenv("NEAR_MISS_MIN", "30"))  # [NEAR_MISS_MIN, SHORTLIST_MIN) = near miss, flagged as such
 
 
 # ---- pluggable parts (WS1 / WS3), with fallbacks so the pipeline always runs --------------------
@@ -382,6 +383,8 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
         location=people.location(person), profile_url=people.profile_url(person),
         score=int(score), reasons=reasons, claims=claims, flags=flags,
     )
+    if NEAR_MISS_MIN <= cand.score < SHORTLIST_MIN:
+        cand.flags.append(f"Near miss: scored {cand.score}, just under the {SHORTLIST_MIN} shortlist bar")
     if cand.score >= SHORTLIST_MIN:  # drafts only for people we'd actually contact
         await stage("outreach", "Drafting outreach for shortlisted candidates (drafts only, never sent)...")
         try:
@@ -498,14 +501,17 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                                                  -sum(k.status == "contradicted" for k in c.claims),
                                                  pre_by_url.get(c.profile_url, 0)), reverse=True)
             shortlist = [c for c in ranked if c.score >= SHORTLIST_MIN]
+            near = [c for c in ranked if NEAR_MISS_MIN <= c.score < SHORTLIST_MIN]
             summary.shortlisted = len(shortlist)
             if ranked:
                 top = f", top match {ranked[0].name} ({ranked[0].score})"
                 msg = (f"Shortlist ready: {len(shortlist)} of {len(ranked)} candidates score {SHORTLIST_MIN}+{top}"
                        if shortlist else f"No candidate scored {SHORTLIST_MIN}+; showing the {len(ranked)} closest{top}")
+                if near:
+                    msg += f". {len(near)} near miss{'es' if len(near) != 1 else ''} ({NEAR_MISS_MIN}-{SHORTLIST_MIN - 1}) shown below"
                 await emit(StepEvent(step="rank", message=msg,
                                      data={"order": [c.id for c in ranked], "shortlist": [c.id for c in shortlist],
-                                           "threshold": SHORTLIST_MIN}))
+                                           "near_miss": [c.id for c in near], "threshold": SHORTLIST_MIN}))
         except Exception as e:
             log.exception("run failed")
             await emit(ErrorEvent(message=f"Run failed: {type(e).__name__}: {e}"))
