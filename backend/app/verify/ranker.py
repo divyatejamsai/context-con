@@ -183,8 +183,14 @@ def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Fa
     f = _Factor("company", 15)
     comp = k.get("company", [])
     emp = [c for c in k.get("employer", []) if c.status != "contradicted"]
+    negated: list[str] = []
     for p in prefs:
         pn = norm(p)
+        neg = re.match(r"^(not|no|non|avoid|except|excluding|without|anti)\s+(.*)$", pn)
+        if neg:
+            negated.append(p)
+            _negative_pref(f, neg.group(2), p, comp, emp)
+            continue
         # Named company preference, e.g. "ex-Razorpay": look at employer claim and employment history.
         named = re.sub(r"^(ex|former|from)\s+", "", pn)
         if named and named not in _STARTUP_WORDS and named not in _STAGE_PREF:
@@ -217,7 +223,47 @@ def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Fa
                 f.add(CREDIT[c.status], f"Company matches '{p}'", [c])
     if not f.reasons and comp:
         f.add(0, f"Company profile doesn't match preference: {', '.join(prefs)}", comp[:1])
+    # One reason per claim: several preferences ("Series A", "Series B", "startup") often hit the same company claim.
+    best: dict[tuple, tuple[float, Reason, int]] = {}
+    for credit, r in f.reasons:
+        key = tuple(r.claim_ids)
+        prev = best.get(key)
+        if prev is None or credit > prev[0]:
+            best[key] = (credit, r, (prev[2] + 1) if prev else 1)
+        else:
+            best[key] = (prev[0], prev[1], prev[2] + 1)
+    f.reasons = [(c, r if n == 1 else Reason(text=f"{r.text} (and {n - 1} more preference{'s' if n > 2 else ''})", claim_ids=r.claim_ids))
+                 for c, r, n in best.values()]
     return f
+
+
+_BIG_WORDS = {"big tech", "faang", "maang", "mnc", "enterprise", "large company", "big company", "corporate", "big corp"}
+
+
+def _negative_pref(f: _Factor, what: str, label: str, comp: list[Claim], emp: list[Claim]) -> None:
+    """'not big tech' / 'no startups' / 'not Infosys': the match is the absence of the thing."""
+    for c in comp:
+        m = re.search(r"\((\w+) (stage|by size)\)", c.claim)
+        bucket = m.group(1) if m else None
+        hc = re.search(r"~([\d,]+) employees", c.claim)
+        size = int(hc.group(1).replace(",", "")) if hc else None
+        if any(w in what for w in _BIG_WORDS):
+            big = bucket in ("public", "enterprise", "late") or (size is not None and size >= 5000)
+            if big:
+                f.add(0, f"Current company is large ({bucket or f'~{size:,} people'}), which the brief rules out ('{label}')", [c])
+            elif bucket or size is not None:
+                f.add(CREDIT[c.status], f"Not big tech ({bucket or f'~{size:,} people'}), as the brief asks", [c])
+            return
+        if any(w in what for w in _STARTUP_WORDS) or "startup" in what:
+            if bucket in ("seed", "early"):
+                f.add(0, f"Current company is an early-stage startup, which the brief rules out ('{label}')", [c])
+            elif bucket:
+                f.add(CREDIT[c.status], f"Not an early-stage startup ({bucket}), as the brief asks", [c])
+            return
+    for c in emp:
+        if same_company(what, c.claim.removeprefix("Works at")):
+            f.add(0, f"Currently at {what.title()}, which the brief rules out", [c])
+            return
 
 
 _YEARS_RE = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:yrs|years|yoe|yr)\b", re.I)
@@ -277,20 +323,47 @@ def _fmt(y: float) -> str:
 def evidence_strength(c: Claim) -> float:
     """How strongly a verified skill claim is evidenced: listed skill > title > current employer > past employer."""
     fld, ev = c.source.field or "", c.evidence
+    inferred_n = _inferred_count(ev)
+    if ev.startswith("inferred only:"):
+        # Domain read off an employer's industry/name: weaker than the person saying it themselves.
+        current = "current employer" in ev.split(";")[0]
+        base = 0.6 if current else 0.45
+        return min(0.75, base + 0.05 * (inferred_n - 1))
     if "skills" in fld:
         base = 1.0
     elif fld.endswith(".title") or "headline" in fld:
         base = 0.9
-    elif "taxonomy" in fld or (".current[" in fld) or "current employer" in ev:
-        base = 0.85
-    elif fld.endswith(".name"):
-        base = 0.7
-    elif "description" in fld:
-        base = 0.55
     else:
-        base = 0.65  # past employer industry
-    extra = ev.count("; ") if "; also:" in ev else 0
-    return min(1.0, base + 0.05 * extra)
+        base = 0.7
+    return min(1.0, base + 0.05 * inferred_n)
+
+
+def _inferred_count(ev: str) -> int:
+    if "inferred only:" in ev:
+        return len(ev.split("inferred only:", 1)[1].split("; "))
+    if "also inferred:" in ev:
+        return len(ev.split("also inferred:", 1)[1].split("; "))
+    return 0
+
+
+_GENERIC = {"engineer", "engineering", "developer", "software", "programmer", "member", "technical", "staff", "sde", "swe",
+            "consultant", "analyst", "specialist", "associate", "executive", "manager"}
+_NOT_A_ROLE = {"freelance", "freelancer", "intern", "internship", "trainee", "student", "volunteer", "self employed", "apprentice"}
+
+
+def _role_like(title: str, criteria: Criteria) -> bool:
+    """Is this past/current job the same kind of role as the brief? Needs the role's distinctive word
+    (e.g. 'backend', 'rust', 'sales'), not just 'engineer'."""
+    t = norm(title)
+    if any(w in t for w in _NOT_A_ROLE):
+        return False
+    role_core = _core(criteria.role) if criteria.role else ""
+    distinct = {w for w in role_core.split() if w not in _GENERIC}
+    jt = set(_core(title).split())
+    if distinct:
+        return bool(distinct & jt)
+    targets = [x for x in [criteria.role, *criteria.title_variants] if x]
+    return any(title_similarity(_core(title), _core(x)) >= 0.5 for x in targets)
 
 
 def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> list[tuple[float, Reason]]:
@@ -306,7 +379,7 @@ def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> lis
     if targets and (titles or exp):
         today = date.today()
         spans = sorted((j.start, j.end or today) for j in pr.current + pr.past
-                       if j.start and j.title and max(title_similarity(_core(j.title), _core(t)) for t in targets) >= 0.34)
+                       if j.start and j.title and _role_like(j.title, criteria))
         rel, cur_end = 0.0, None  # merge overlapping jobs so concurrent roles aren't double counted
         for a, b in spans:
             if cur_end and a < cur_end:
@@ -322,11 +395,14 @@ def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> lis
         name = c.claim.removeprefix("Skill:").strip()
         if c.status != "verified" or not domain_terms(name) or "employer" not in c.evidence:
             continue  # the bonus is for domain work at an employer, not a listed skill
-        sources = 1 + c.evidence.count("; ") if "; also:" in c.evidence else 1
-        current = "current employer" in c.evidence or ".current[" in (c.source.field or "")
-        pts = (2.0 if current else 0.5) + min(2.0, sources - 1)
-        where = "in the current role" if current else "from a past role only"
-        out.append((pts, Reason(text=f"{name} experience {where}, backed by {sources} source{'s' if sources > 1 else ''}", claim_ids=[c.id])))
+        direct = not c.evidence.startswith("inferred only:")
+        n_inf = _inferred_count(c.evidence)
+        current = "current employer" in c.evidence
+        pts = (2.0 if current else 0.5) * (1.0 if direct else 0.5) + min(2.0, 0.5 * n_inf + (1.0 if direct else 0.0))
+        where = "at the current employer" if current else "at past employers only"
+        what = f"stated directly and inferred from {n_inf} employer{'s' if n_inf > 1 else ''}" if direct else \
+               f"inferred from {n_inf} employer{'s' if n_inf > 1 else ''}' industry"
+        out.append((pts, Reason(text=f"{name} {where}: {what}", claim_ids=[c.id])))
         break
 
     # Stage fit and stability.

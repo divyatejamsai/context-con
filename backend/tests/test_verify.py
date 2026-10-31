@@ -171,7 +171,9 @@ async def test_web_citation_uses_unwrapped_url():
 async def test_real_company_enrich_fixture():
     """WS1's live Razorpay response: last_round_type is secondary_market, so stage comes from milestones."""
     company = json.loads((FX / "company_enrich_live.json").read_text())
-    claims, flags = await verify_candidate(PEOPLE["clean"], company, CRIT, FakeClient(), today=TODAY)
+    person = json.loads(json.dumps(PEOPLE["clean"]))
+    person["current_employers"][0]["employer_company_id"] = 897127
+    claims, flags = await verify_candidate(person, company, CRIT, FakeClient(), today=TODAY)
     stage = [c for c in claims if c.claim.startswith("Razorpay:")][0]
     assert stage.status == "verified"
     assert "Series F" in stage.claim and "~4,027 employees" in stage.claim and "founded 2014" in stage.claim
@@ -215,7 +217,7 @@ async def test_domain_skill_not_invented_and_concurrent_roles_deduped():
     cur.append(dict(cur[0], name="Razorpay", crustdata_company_id=1, company_professional_network_industry="Financial Services"))
     claims, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
     assert any(f.startswith("Holds 2 concurrent roles: Wipro, Razorpay") for f in flags)
-    assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "likely, from industry: current employer Razorpay is in Financial Services"
+    assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "inferred only: current employer Razorpay is in Financial Services"
 
 
 @pytest.mark.asyncio
@@ -274,3 +276,42 @@ async def test_claimed_stage_checked_against_employment_record_size():
     assert [c for c in claims if c.claim == "Acme Pay is Seed-stage startup"][0].status == "contradicted"
     claims, _ = await verify_candidate(_person_at(400, {"company_stage": "Series B"}), None, CRIT, FakeClient(), today=TODAY)
     assert not by_status(claims, "contradicted")  # size alone can't refute a nearby stage
+
+
+@pytest.mark.asyncio
+async def test_wrong_company_record_is_not_attached():
+    """A company record for a different employer (e.g. a past one) must be dropped, not cited."""
+    wrong = {"_source": {"endpoint": "company/enrich"}, "crustdata_company_id": 777, "basic_info": {"name": "Tech Mahindra"},
+             "headcount": {"total": 150000}, "funding": {"last_round_type": "ipo"}}
+    claims, _ = await verify_candidate(PEOPLE["live_job_facts"], wrong, CRIT, FakeClient(), today=TODAY)
+    assert not any("Tech Mahindra" in c.claim for c in claims)
+    assert any(c.claim.startswith("Acme Pay:") for c in claims)
+
+
+@pytest.mark.asyncio
+async def test_negated_preference_and_one_reason_per_claim():
+    big = {"_source": {"endpoint": "company/enrich"}, "basic_info": {"name": "Acme Pay"}, "headcount": {"total": 247000},
+           "funding": {"last_round_type": "post_ipo_equity"}}
+    crit = CRIT.model_copy(update={"company_preferences": ["not big tech"]})
+    p = PEOPLE["live_job_facts"]
+    claims, _ = await verify_candidate(p, big, crit, FakeClient(), today=TODAY)
+    _, reasons = await rank_candidate(p, claims, crit)
+    assert any("rules out" in r.text for r in reasons) and not any("fits 'not big tech'" in r.text for r in reasons)
+    small = {"_source": {"endpoint": "company/enrich"}, "basic_info": {"name": "Acme Pay"}, "headcount": {"total": 40},
+             "funding": {"last_round_type": "series_a"}}
+    crit = CRIT.model_copy(update={"company_preferences": ["Series A", "Series B", "startup"]})
+    claims, _ = await verify_candidate(p, small, crit, FakeClient(), today=TODAY)
+    _, reasons = await rank_candidate(p, claims, crit)
+    stage_id = [c.id for c in claims if c.claim.startswith("Acme Pay:")][0]
+    assert sum(r.claim_ids == [stage_id] for r in reasons) == 1
+
+
+@pytest.mark.asyncio
+async def test_years_bonus_counts_only_matching_roles():
+    p = json.loads(json.dumps(PEOPLE["live_job_facts"]))
+    p["experience"]["employment_details"]["past"] = [
+        {"name": "Self", "title": "Freelance Software Engineer", "start_date": "2009-01-01", "end_date": "2022-12-01"}]
+    crit = CRIT.model_copy(update={"role": "Rust Engineer", "title_variants": ["Software Engineer"]})
+    claims, _ = await verify_candidate(p, None, crit, FakeClient(), today=TODAY)
+    _, reasons = await rank_candidate(p, claims, crit)
+    assert not any("yrs in rust" in r.text for r in reasons)
