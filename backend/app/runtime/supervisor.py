@@ -17,6 +17,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import shutil
+import sys
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -65,6 +67,8 @@ class Runtime:
         self.started_at: str | None = None
         self.last_tick: float = 0.0
         self._wake: asyncio.Event | None = None
+        self.launch_claude = os.getenv("AGAXES_LAUNCH_CLAUDE", "0") == "1" and bool(shutil.which("claude"))
+        self.launches: dict[str, asyncio.subprocess.Process] = {}   # task_id -> Claude Code started for it
 
     # ---- lifecycle ------------------------------------------------------------------------------
 
@@ -74,7 +78,7 @@ class Runtime:
         self._wake = asyncio.Event()
         self.started_at = store.now()
         self.loop_task = asyncio.create_task(self._loop(), name="countersign-supervisor")
-        log.info("Countersign runtime started (store %s)", store.path())
+        log.info("Agaxes runtime started (store %s)", store.path())
 
     async def stop(self) -> None:
         for tid in list(self.running):
@@ -134,6 +138,20 @@ class Runtime:
                 self._stop(tid, why, requeue=False)
             elif store.policy(ag["agent_id"])["paused"]:
                 self._stop(tid, "agent paused", requeue=True)
+        for t in store.tasks(status="running"):  # outside agents: claimed over HTTP, no asyncio task here
+            if t["task_id"] in self.running:
+                continue
+            ag = agents.get(t["agent_id"])
+            if ag is None or ag["status"] != "active":
+                why = f"{ag['name']} was {ag['status']}" + (f": {ag['reason']}" if ag.get("reason") else "") if ag else "agent removed"
+                store.task_step(t["task_id"], f"Stopped by Agaxes: {why}. The agent is refused on its next call.", "control")
+                self._finish(t["task_id"], "cancelled", error=why)
+                self._kill_launch(t["task_id"])
+            elif store.policy(ag["agent_id"])["paused"]:
+                store.task_step(t["task_id"], "Stopped by Agaxes: agent paused. The agent is told to stop on its next call.", "control")
+                store.update_task(t["task_id"], status="queued", waiting_on="interrupted: agent paused")
+                ledger.append("task.interrupted", {"agent_id": ag["agent_id"], "task_id": t["task_id"], "why": "agent paused"})
+                self._kill_launch(t["task_id"])
         for ag in agents.values():
             if ag["status"] == "offboarded":
                 for t in store.tasks(ag["agent_id"], status="queued"):
@@ -220,7 +238,7 @@ class Runtime:
                 why = f"{ag['name']} is {ag['status']}"
             elif store.policy(ag["agent_id"])["paused"]:
                 why = f"{ag['name']} is paused"
-            elif ag["agent_id"] in busy:
+            elif ag["agent_id"] in busy or (ag.get("runtime") == "external" and store.tasks(ag["agent_id"], status="running")):
                 why = f"{ag['name']} is busy with another task"
             elif store.usage(ag["agent_id"])["tasks"] >= store.policy(ag["agent_id"])["budget"]["tasks_per_day"]:
                 why = "daily task budget reached"
@@ -228,8 +246,52 @@ class Runtime:
                 if t.get("waiting_on") != why:
                     store.update_task(t["task_id"], waiting_on=why)
                 continue
+            if ag.get("runtime") == "external":
+                why = f"waiting for {ag['name']} to pick it up"
+                if self.launch_claude and t["task_id"] not in self.launches:
+                    self._launch(t, ag)
+                    why = f"Agaxes started {ag['name']} on this machine; waiting for it to claim the task"
+                if t.get("waiting_on") != why:
+                    store.update_task(t["task_id"], waiting_on=why)
+                continue
             busy.add(ag["agent_id"])
             self.running[t["task_id"]] = asyncio.create_task(self._run(t["task_id"], ag), name=t["task_id"])
+
+    # ---- outside agents: start Claude Code on this machine for a queued task --------------------
+
+    def _launch(self, t: dict, ag: dict) -> None:
+        from .external import claude_prompt
+        exe = shutil.which("claude")
+        cli = str(Path(__file__).resolve().parents[2] / "scripts" / "agaxes_agent.py")
+        cmd = [exe, "-p", claude_prompt(ag, t["task_id"], f"{sys.executable} {cli}"),
+               "--allowedTools", f"Bash({sys.executable} {cli}:*)"]
+
+        async def go() -> None:
+            try:
+                proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+                                                            env=os.environ.copy())
+            except OSError as e:
+                store.task_step(t["task_id"], f"Could not start {ag['name']}: {e}", "system")
+                return
+            self.launches[t["task_id"]] = proc
+            store.task_step(t["task_id"], f"Agaxes started {ag['name']} (Claude Code, pid {proc.pid}) to work this task", "system")
+            out, _ = await proc.communicate()
+            text = (out or b"").decode(errors="replace").strip()
+            if text:
+                store.task_step(t["task_id"], f"{ag['name']} said: {text[-1500:]}", "agent")
+            cur = store.get_task(t["task_id"])
+            if cur and cur["status"] in ("queued", "running") and proc.returncode not in (None, 0, -15, 143):
+                store.task_step(t["task_id"], f"{ag['name']} exited with code {proc.returncode}", "system")
+
+        self.launches[t["task_id"]] = None  # type: ignore[assignment]  # reserved: don't launch twice
+        asyncio.create_task(go())
+
+    def _kill_launch(self, task_id: str) -> None:
+        proc = self.launches.get(task_id)
+        if proc is not None and proc.returncode is None:
+            proc.terminate()
+            store.task_step(task_id, "Agaxes ended the agent's process on this machine", "control")
+        self.launches.pop(task_id, None)  # a resumed task may be launched again
 
     # ---- running one task -----------------------------------------------------------------------
 
@@ -310,7 +372,11 @@ class Runtime:
         t = store.get_task(task_id)
         if not t:
             raise KeyError(task_id)
-        if t["status"] == "running":
+        if t["status"] == "running" and task_id not in self.running:  # an outside agent's task
+            store.task_step(task_id, f"Stopped by Agaxes: cancelled by {by}", "control")
+            self._finish(task_id, "cancelled", error=f"cancelled by {by}")
+            self._kill_launch(task_id)
+        elif t["status"] == "running":
             self._stop(task_id, f"cancelled by {by}", requeue=False)
         elif t["status"] == "queued":
             self._finish(task_id, "cancelled", error=f"cancelled by {by} before it started")

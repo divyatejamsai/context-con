@@ -20,6 +20,16 @@ manages them.
 | **Audit trail** | `task.assigned/started/done/failed/refused/cancelled/interrupted`, `agent.paused/resumed`, `runtime.policy`, `runtime.approval`, `runtime.schedule` and `runtime.payroll` all go on the hash-chained ledger, alongside the agents' own `guard.verdict` and `work.*` entries. |
 | **Crash safety** | State is written to `backend/data/runtime.json` atomically (or to `RUNTIME_PATH`). On restart, tasks that were running go back in the queue, and half-sent approvals go back to pending. Approving re-checks the guard, so retrying is safe. |
 
+## Outside agents (Claude Code), governed the same way
+Agents that run on their own machine get tasks too (kind `assignment`: written instructions). They hold their own key,
+and every call is signed `agaxes|action|agent_id|task_id|ts|text`. Replays are refused after 5 minutes.
+- `POST /api/runtime/agent/claim`, `/progress`, `/complete`, `/send` (`scripts/agaxes_agent.py` is a ready client: `next`, `progress`, `send`, `done`).
+- A send goes through Send Guard, then the approval inbox, exactly like an in-house agent's. A false claim is blocked and never reaches you.
+- Pause, suspend, offboard and cancel are enforced on the agent's next call, which is answered **STOP** (the CLI prints `STOP` and exits 3). A paused task goes back in the queue, and the agent can't claim new work until it is resumed.
+- With `AGAXES_LAUNCH_CLAUDE=1` and the `claude` CLI installed, Agaxes starts Claude Code itself on the machine for each queued task. It runs with the client as its only allowed tool. Pause or suspend also ends that process.
+
+Verified with the real Claude Code CLI: it claimed a task and drafted a note, which Send Guard cleared and parked in the approval inbox, then it reported done. On a second task it reported two steps, the employer paused it, its process was ended, and the task went back in the queue.
+
 ## Run
 ```bash
 cd backend && uvicorn app.main:app --port 8000      # the runtime starts with the API (RUNTIME_ENABLED=0 turns it off)
@@ -28,7 +38,7 @@ python scripts/run_fleet.py --only onboard          # or onboard from the consol
 Env vars: `RUNTIME_MAX_CONCURRENT` (4), `RUNTIME_TASK_TIMEOUT` (900s), `RUNTIME_PATH`. Writes honour `COUNTERSIGN_ADMIN_TOKEN`.
 
 ## Honest limits
-- Agents run inside the API process. They call the same `call_tool` the MCP server serves, in process, instead of over stdio. Outside agents (Claude Code) still come in over MCP, and they show up on the ledger but can't be assigned tasks.
+- In-house agents run inside the API process. They call the same `call_tool` the MCP server serves, in process, instead of over stdio. Outside agents use the signed HTTP calls above, and the plain MCP tools (`check_before_send` etc.) still work for agents that aren't given tasks.
 - "Sent" means written to the outbox. Nothing is emailed (event rule).
 - Pause and suspend cancel at the next `await`, which is the next Crustdata, Gemini or guard call, so within a second or so.
 - Gemini calls are counted by wrapping `llm._call`, so mock mode counts 0.

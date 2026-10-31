@@ -75,15 +75,17 @@ function ProductAside() {
   );
 }
 
-export function Field({ label, hint, error, optional, htmlFor, children }: {
-  label: string; hint?: string; error?: string | null; optional?: boolean; htmlFor?: string; children: React.ReactNode;
+export function Field({ label, hint, error, optional, htmlFor, labelAside, children }: {
+  label: string; hint?: string; error?: string | null; optional?: boolean; htmlFor?: string; labelAside?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="flex items-baseline justify-between text-[13px] font-medium">
-        {label}
+      <div className="flex items-baseline justify-between">
+        <label htmlFor={htmlFor} className="text-[13px] font-medium">{label}</label>
         {optional && <span className="text-[12px] font-normal text-faint">Optional</span>}
-      </label>
+        {labelAside}
+      </div>
       {children}
       {error ? (
         <p className="text-[12.5px] text-contradicted" role="alert">{error}</p>
