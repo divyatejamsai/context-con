@@ -3,7 +3,7 @@ import { CheckCircle2, CircleDashed, Lock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Source } from "@/lib/types";
 import { SCOPE_INFO, type Agent, type AgentStatus, type Check, type Scope, type Verdict } from "./api";
-import { BRAND } from "@/lib/brand";
+import { BRAND, brandText } from "@/lib/brand";
 
 // Styling uses only the shared semantic tokens (panel, elevated, border, primary, verified, contradicted, flag...),
 // so the console follows whatever look globals.css gives the Sourced app.
@@ -25,6 +25,8 @@ export const CHECK_LABEL: Record<string, string> = {
 };
 
 export const checkLabel = (name: string) => CHECK_LABEL[name] ?? name.replace(/_/g, " ");
+/** Readable text from the backend: current product name, and "sponsor_still_employed: …" keys turned into their labels. */
+export const plain = (s?: string | null) => brandText(s).replace(/\b([a-z]+(?:_[a-z]+)+):\s*/g, (_, k: string) => `${checkLabel(k)}: `);
 
 export function ago(iso?: string | null) {
   if (!iso) return "never";
@@ -101,7 +103,7 @@ export function SourceChip({ source }: { source?: Source | null }) {
   if (!source?.endpoint) return <span className="font-mono text-[10.5px] text-faint">no source</span>;
   const body = (
     <>
-      <span className="text-secondary">{source.endpoint}</span>
+      <span className="text-secondary">{brandText(source.endpoint)}</span>
       {source.field && <span className="truncate text-faint"> · {source.field}</span>}
     </>
   );
@@ -126,7 +128,7 @@ export function CheckRow({ check }: { check: Check }) {
           <SourceChip source={check.source} />
         </div>
         <p className={cn("mt-0.5 text-[12.5px] leading-snug", check.status === "pass" ? "text-muted-foreground" : "text-secondary")}>
-          {check.detail}
+          {plain(check.detail)}
         </p>
       </div>
     </li>

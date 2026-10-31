@@ -8,7 +8,7 @@ import type { Source } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getAdminToken, type AgentStatus, type Check as CheckT, type Scope, type Scorecard, type Sponsor } from "./api";
 import { Button, CheckRow, DecisionBadge, RuntimeBadge, ScopeChip, SourceChip, StatusPill, cardCls, checkLabel } from "./parts";
-import { BRAND } from "@/lib/brand";
+import { BRAND, brandText } from "@/lib/brand";
 
 // ---- stream types (mirror the docstring of backend/app/fleet/demo.py) ----------------------------
 
@@ -184,7 +184,7 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
         <div className="max-w-[720px]">
           <h1 className="text-[22px] font-[620] tracking-[-0.02em]">Run the demo</h1>
           <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-            Six AI employees do real work through the {BRAND.name} MCP server. Every passport, message and finished job is checked against
+            Six agents do real work through the {BRAND.name} MCP server. Every passport, message and finished job is checked against
             Crustdata and written to the ledger. Nothing on this page is scripted output: each card is an event from the run as it happens.
           </p>
         </div>
@@ -258,7 +258,7 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
               <div className="max-w-[420px]">
                 <p className="text-[13.5px] font-[510]">Press Run demo to play the story from the start.</p>
                 <p className="mt-1.5 text-[12.5px] text-muted-foreground">
-                  It uses the same registry and ledger as the rest of the console, so the AI employees and the ledger fill in as it plays.
+                  It uses the same registry and ledger as the rest of the console, so the agents and the ledger fill in as it plays.
                 </p>
               </div>
             </div>
@@ -344,7 +344,7 @@ function AgentCard({ a }: { a: AgentEv }) {
         <StatusPill status={a.status} className="ml-auto" />
       </div>
       <p className="mt-0.5 text-[12px] text-muted-foreground">{a.role}</p>
-      {a.job && <p className="mt-1.5 text-[12.5px] leading-snug text-secondary">{a.job}</p>}
+      {a.job && <p className="mt-1.5 text-[12.5px] leading-snug text-secondary">{brandText(a.job)}</p>}
       <p className="mt-2 text-[12px] text-muted-foreground">
         for <span className="font-[510] text-foreground">{a.sponsor.name}</span>
         {a.sponsor.title && `, ${a.sponsor.title}`} at {a.sponsor.company}
@@ -487,7 +487,7 @@ function Finale({ done, onOpen, onBack }: { done: DoneEv; onOpen: (v: "employees
     <div className="animate-fade">
       <h2 className="text-[18px] font-[620] tracking-[-0.015em]">The scorecard</h2>
       <p className="mt-1.5 max-w-[760px] text-[13.5px] leading-relaxed text-secondary">
-        Counted from the ledger, not from this page: what each AI employee sent, what Send Guard stopped, and the work it filed.
+        Counted from the ledger, not from this page: what each agent sent, what Send Guard stopped, and the work it filed.
       </p>
       <div className={cn("mt-4 flex items-center gap-3 rounded-xl border px-4 py-3", done.chain_ok ? "border-verified/30 bg-verified/[0.05]" : "border-contradicted/35 bg-contradicted/[0.06]")}>
         <span className={cn("text-[14px] font-[590]", done.chain_ok ? "text-verified" : "text-contradicted")}>{done.chain_ok ? "Chain intact" : "Chain broken"}</span>
@@ -498,7 +498,7 @@ function Finale({ done, onOpen, onBack }: { done: DoneEv; onOpen: (v: "employees
         <table className="w-full min-w-[640px] text-[12.5px]">
           <thead>
             <tr className="border-b border-border text-left text-[11.5px] text-muted-foreground">
-              {["AI employee", "Status", "Messages", "Allowed", "Blocked", "Top block reason", "Work filed", "Sponsor checks"].map((h) => (
+              {["Agent", "Status", "Messages", "Allowed", "Blocked", "Top block reason", "Work filed", "Sponsor checks"].map((h) => (
                 <th key={h} className="px-4 py-2 font-[510]">{h}</th>
               ))}
             </tr>
@@ -521,7 +521,7 @@ function Finale({ done, onOpen, onBack }: { done: DoneEv; onOpen: (v: "employees
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         <Button onClick={onBack}>Back to the last step</Button>
-        <Button onClick={() => onOpen("employees")}>See the AI employees <ArrowRight className="size-3.5" /></Button>
+        <Button onClick={() => onOpen("employees")}>See the agents <ArrowRight className="size-3.5" /></Button>
       </div>
     </div>
   );
