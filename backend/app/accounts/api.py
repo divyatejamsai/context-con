@@ -4,6 +4,8 @@ POST /api/auth/lookup   {email}                    -> domain checks + Crustdata 
 POST /api/auth/signup   {email, password, ...}     -> creates user (+ workspace) and a session
 POST /api/auth/login    {email, password}          -> session
 POST /api/auth/demo                                -> session for the shared demo workspace (DEMO_ACCOUNT=0 disables)
+POST /api/auth/forgot   {email}                    -> emails a one-time reset link (30 min) via app.outbound.mailer
+POST /api/auth/reset    {token, password}          -> sets the password, signs out other sessions, returns a session
 POST /api/auth/logout   Authorization: Bearer <t>  -> revokes the session
 GET  /api/auth/me       Authorization: Bearer <t>  -> user + company, 401 if the session is missing or expired
 
@@ -100,6 +102,15 @@ class SignupIn(BaseModel):
     accept_terms: bool = False
 
 
+class ForgotIn(BaseModel):
+    email: str = Field(max_length=254)
+
+
+class ResetIn(BaseModel):
+    token: str = Field(max_length=200)
+    password: str = Field(max_length=200)
+
+
 class LoginIn(BaseModel):
     email: str = Field(max_length=254)
     password: str = Field(max_length=200)
@@ -159,6 +170,28 @@ async def identify_company(domain: str) -> dict | None:
     }
 
 
+def _password_problem(password: str, email: str) -> str | None:
+    if len(password) < 10:
+        return "Use at least 10 characters."
+    if password.lower() in {email.lower(), email.split("@")[0].lower()}:
+        return "Don't use your email as your password."
+    return None
+
+
+def app_url() -> str:
+    return (os.getenv("PUBLIC_APP_URL") or "http://localhost:3000").rstrip("/")
+
+
+async def send_reset_email(to: str, name: str, link: str) -> None:
+    """Raises SendRefused (or ImportError before the mailer exists) when email isn't set up."""
+    from ..outbound.mailer import send_transactional
+    first = (name or "there").split()[0]
+    body = (f"Hi {first},\n\nSomeone asked to reset the password for your Sourced account ({to}).\n\n"
+            f"Set a new password here (the link works once, for 30 minutes):\n{link}\n\n"
+            "If this wasn't you, ignore this email. Your password stays the same.\n\nSourced")
+    await send_transactional(to, "Reset your Sourced password", body)
+
+
 def _session_payload(user: dict, company: dict, token: str, expires: str, joined: bool = False) -> dict:
     return {"token": token, "expires_at": expires, "user": user, "company": company, "joined_existing": joined}
 
@@ -201,10 +234,8 @@ async def signup(body: SignupIn, request: Request):
         return _err("invalid_email", "Enter a valid email address.", field="email")
     if domain in FREE_EMAIL_DOMAINS:
         return _err("personal_email", "Use your work email. Workspaces are set up per company domain.", field="email")
-    if len(body.password) < 10:
-        return _err("weak_password", "Use at least 10 characters.", field="password")
-    if body.password.lower() in {body.email.lower(), body.email.split("@")[0].lower()}:
-        return _err("weak_password", "Don't use your email as your password.", field="password")
+    if problem := _password_problem(body.password, body.email):
+        return _err("weak_password", problem, field="password")
     if not body.accept_terms:
         return _err("terms", "Accept the terms to create a workspace.", field="accept_terms")
     if body.size_band and body.size_band not in SIZE_BANDS:
@@ -240,6 +271,44 @@ async def login(body: LoginIn, request: Request):
     s = store()
     try:
         user = s.authenticate(body.email, body.password)
+    except AuthError as e:
+        return _err(e.code, e.message, e.status)
+    token, expires = s.create_session(user["id"], request.headers.get("user-agent"))
+    return _session_payload(user, s.company(user["company_id"]), token, expires)
+
+
+GENERIC_SENT = "If that email has a Sourced account, a reset link is on its way. It works once, for 30 minutes."
+
+
+@router.post("/forgot")
+async def forgot(body: ForgotIn):
+    s = store()
+    row = s.user_by_email(body.email.strip())
+    if row is None or row["email"] == DEMO_EMAIL:
+        return {"ok": True, "message": GENERIC_SENT}  # same answer either way: don't reveal which emails exist
+    token = s.create_reset(row["id"])
+    if token is None:
+        return {"ok": True, "message": GENERIC_SENT}
+    try:
+        await send_reset_email(row["email"], row["full_name"], f"{app_url()}/reset?token={token}")
+    except Exception as e:  # noqa: BLE001  SendRefused, missing mailer, provider down
+        log.warning("password reset email not sent: %s", e)
+        unset = type(e).__name__ in {"SendRefused", "ImportError", "ModuleNotFoundError"}
+        return _err("email_unavailable",
+                    "Email isn't set up on this server, so we can't send a reset link. Ask your workspace owner, "
+                    "or set SMTP_* or RESEND_API_KEY in backend/.env." if unset
+                    else "We couldn't send the email just now. Try again in a minute.", 503)
+    return {"ok": True, "message": GENERIC_SENT}
+
+
+@router.post("/reset")
+async def reset(body: ResetIn, request: Request):
+    s = store()
+    email = s.reset_email(body.token)
+    if email and (problem := _password_problem(body.password, email)):
+        return _err("weak_password", problem, field="password")
+    try:
+        user = s.reset_password(body.token, body.password)
     except AuthError as e:
         return _err(e.code, e.message, e.status)
     token, expires = s.create_session(user["id"], request.headers.get("user-agent"))
