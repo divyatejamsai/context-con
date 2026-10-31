@@ -1,0 +1,282 @@
+"""The agent runtime (app/runtime): real fleet agents on real (replayed) Crustdata, under the employer's controls."""
+import asyncio
+import json
+from datetime import date
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.agents import ledger, registry
+from app.agents.api import crustdata
+from app.fleet.demo import onboard
+from app.runtime import kinds, store
+from app.runtime.supervisor import Runtime, state
+
+TODAY = date(2026, 10, 31)
+
+
+@pytest.fixture(autouse=True)
+def _isolated(tmp_path, monkeypatch):
+    for var, name in (("AGENTS_PATH", "agents.json"), ("LEDGER_PATH", "ledger.jsonl"), ("ISSUER_KEY_PATH", "issuer.key"),
+                      ("OUTBOX_PATH", "outbox.jsonl"), ("RUNTIME_PATH", "runtime.json")):
+        monkeypatch.setenv(var, str(tmp_path / name))
+    monkeypatch.setenv("CRUSTDATA_MODE", "replay")
+    monkeypatch.setenv("LLM_MODE", "mock")
+    monkeypatch.delenv("COUNTERSIGN_ADMIN_TOKEN", raising=False)
+    store.reset_cache()
+    # Crustdata clients hold loop-bound locks: give every test (each has its own event loop) fresh ones.
+    from app.agents import api as agents_api
+    from app.runtime import worker
+    monkeypatch.setattr(agents_api, "_client", None)
+    monkeypatch.setattr(worker, "_mcp_mod", None)
+    yield tmp_path
+    store.reset_cache()
+
+
+@pytest.fixture
+def slow_kind(monkeypatch):
+    """A job that takes as long as the test wants: lets us stop an agent mid-task."""
+    gate = {"steps": 0}
+
+    async def handler(ctx, inp):
+        await ctx.clock_in("data.read")
+        for i in range(int(inp.get("n", 200))):
+            ctx.log(f"  working   step {i}")
+            gate["steps"] += 1
+            await asyncio.sleep(0.02)
+        return {"ok": True, "summary": "finished"}
+
+    monkeypatch.setitem(kinds.KINDS, "slow", {"label": "Slow", "scope": "data.read", "fields": [], "handler": handler,
+                                              "description": "", "agent_hint": None})
+    return gate
+
+
+async def until(cond, timeout=60.0):
+    t = 0.0
+    while not cond():
+        await asyncio.sleep(0.05)
+        t += 0.05
+        if t > timeout:
+            raise AssertionError("timed out waiting")
+
+
+def fleet() -> dict:
+    return {k: a for k, a, _ in onboard(["sourced", "pipeline", "diligence", "reference", "closer"])}
+
+
+def status(tid: str) -> str:
+    return store.get_task(tid)["status"]
+
+
+@pytest.mark.asyncio
+async def test_agents_do_real_work_and_sends_wait_for_approval(tmp_path):
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        p = rt.assign(ags["pipeline"]["agent_id"], "sales_outreach", {}, by="test")
+        d = rt.assign(ags["diligence"]["agent_id"], "vendor_diligence", {"domain": "razorpay.com"}, by="test")
+        c = rt.assign(ags["closer"]["agent_id"], "sales_outreach", {}, by="test")
+        await until(lambda: all(status(t["task_id"]) not in ("queued", "running") for t in (p, d, c)), 120)
+        pt, dt, ct = (store.get_task(t["task_id"]) for t in (p, d, c))
+        assert pt["status"] == "done" and dt["status"] == "done"
+        assert ct["status"] == "refused" and ct["output"]["clock_in"]["failed"][0]["name"] == "sponsor_still_employed"
+        sends = {s["to"]["name"]: s["state"] for s in pt["output"]["sends"]}
+        assert sends["Shivank Verma"] == "blocked"  # stale CRM row never reaches a person
+        assert sum(v == "pending_approval" for v in sends.values()) == 3
+        assert not (tmp_path / "outbox.jsonl").exists()  # nothing leaves before a person approves
+        assert dt["output"]["artifacts"][0]["kind"] == "vendor_brief" and dt["output"]["filed"]
+        assert pt["usage"]["crustdata"] > 0 and store.usage(ags["pipeline"]["agent_id"])["tasks"] == 1
+
+        pending = store.approvals("pending")
+        assert len(pending) == 3 and all(a["preview"]["decision"] == "allow" for a in pending)
+        ok = await rt.approve(pending[0]["approval_id"], "Pankaj")
+        assert ok["status"] == "sent" and ok["result"]["sent"]
+        with pytest.raises(ValueError):
+            await rt.approve(pending[0]["approval_id"], "Pankaj")  # no double send
+        no = rt.reject(pending[1]["approval_id"], "Pankaj", "not this quarter")
+        assert no["status"] == "rejected"
+        outbox = [json.loads(x) for x in (tmp_path / "outbox.jsonl").read_text().splitlines()]
+        assert [m["to"]["name"] for m in outbox] == [pending[0]["to"]["name"]]
+        states = {s.get("approval_id"): s["state"] for s in store.get_task(p["task_id"])["output"]["sends"]}
+        assert states[pending[0]["approval_id"]] == "sent" and states[pending[1]["approval_id"]] == "rejected"
+
+        kinds_on_ledger = [e["kind"] for e in ledger.entries()]
+        for k in ("task.assigned", "task.started", "task.done", "task.refused", "runtime.approval"):
+            assert k in kinds_on_ledger
+        assert ledger.verify_chain()[0]
+        s = state(rt)
+        m = {a["name"]: a for a in s["agents"]}
+        assert m["Pipeline"]["metrics"]["sent"] == 1 and m["Pipeline"]["metrics"]["rejected"] == 1
+        assert m["Pipeline"]["metrics"]["guard_blocked"] == 1 and m["Pipeline"]["activity"] == "waiting_on_you"
+        assert m["Closer"]["metrics"]["refused"] == 1
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_approval_rechecks_at_send_time(tmp_path):
+    """Approving a draft for an agent that was suspended in the meantime sends nothing."""
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["pipeline"]["agent_id"], "sales_outreach", {}, by="test")
+        await until(lambda: status(t["task_id"]) == "done", 120)
+        registry.suspend(ags["pipeline"]["agent_id"], "sponsor asked to stop", by="sponsor")
+        a = store.approvals("pending")[0]
+        res = await rt.approve(a["approval_id"], "someone")
+        assert res["status"] == "blocked_at_send" and not res["result"]["sent"]
+        assert not (tmp_path / "outbox.jsonl").exists()
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_pause_interrupts_running_work_and_resume_reruns_it(slow_kind):
+    ags = fleet()
+    aid = ags["diligence"]["agent_id"]
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(aid, "slow", {"n": 400}, by="test")
+        await until(lambda: slow_kind["steps"] > 3)
+        rt.pause(aid, "employer", "checking its work")
+        await until(lambda: status(t["task_id"]) == "queued")
+        n = slow_kind["steps"]
+        await asyncio.sleep(0.4)
+        assert slow_kind["steps"] == n  # it really stopped
+        assert "paused" in store.get_task(t["task_id"])["waiting_on"]
+        assert state(rt)["agents"][[a["name"] for a in state(rt)["agents"]].index("Diligence")]["activity"] == "paused"
+        rt.resume(aid, "employer")
+        await until(lambda: slow_kind["steps"] > n)
+        assert status(t["task_id"]) == "running"
+        rt.cancel(t["task_id"], "employer")
+        await until(lambda: status(t["task_id"]) == "cancelled")
+        kinds_on_ledger = [e["kind"] for e in ledger.entries()]
+        assert {"agent.paused", "agent.resumed", "task.interrupted", "task.cancelled"} <= set(kinds_on_ledger)
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_suspension_from_anywhere_stops_the_agent_mid_task(slow_kind):
+    ags = fleet()
+    aid = ags["reference"]["agent_id"]
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(aid, "slow", {"n": 400}, by="test")
+        q = rt.assign(aid, "slow", {"n": 5}, by="test")
+        await until(lambda: slow_kind["steps"] > 3)
+        registry.suspend(aid, "sponsor on leave", by="sponsor")  # the registry, not the runtime: it still notices
+        await until(lambda: status(t["task_id"]) == "cancelled")
+        assert "suspended" in store.get_task(t["task_id"])["error"]
+        await asyncio.sleep(0.3)
+        assert status(q["task_id"]) == "queued" and "suspended" in store.get_task(q["task_id"])["waiting_on"]
+        registry.offboard(aid, "role closed", by="sponsor")
+        await until(lambda: status(q["task_id"]) == "cancelled")
+        with pytest.raises(ValueError):
+            rt.assign(aid, "slow", {}, by="test")
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_budgets_and_scopes_are_enforced(slow_kind):
+    ags = fleet()
+    with pytest.raises(ValueError, match="outreach.sales"):
+        Runtime().assign(ags["diligence"]["agent_id"], "sales_outreach", {}, by="test")  # read-only analyst
+    aid = ags["pipeline"]["agent_id"]
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    rt.set_policy(aid, "employer", budget={"tasks_per_day": 1, "crustdata_calls_per_day": 2})
+    await rt.start()
+    try:
+        a = rt.assign(aid, "slow", {"n": 2}, by="test")
+        b = rt.assign(aid, "slow", {"n": 2}, by="test")
+        await until(lambda: status(a["task_id"]) == "done")
+        await asyncio.sleep(0.3)
+        assert status(b["task_id"]) == "queued" and "budget" in store.get_task(b["task_id"])["waiting_on"]
+        rt.cancel(b["task_id"], "test")
+        rt.set_policy(aid, "employer", budget={"tasks_per_day": 10})
+        c = rt.assign(aid, "sales_outreach", {}, by="test")  # 4 Person Enrich calls against a cap of 2
+        await until(lambda: status(c["task_id"]) in ("failed", "done"), 120)
+        tc = store.get_task(c["task_id"])
+        assert tc["status"] == "failed" and "crustdata budget" in tc["error"] and tc["usage"]["crustdata"] == 2
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_schedules_run_recurring_work_and_restart_recovers(slow_kind):
+    ags = fleet()
+    aid = ags["reference"]["agent_id"]
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    s = rt.add_schedule(aid, "slow", {"n": 2}, 60, "employer")
+    await until(lambda: any(t.get("schedule_id") == s["schedule_id"] and t["status"] == "done" for t in store.tasks()))
+    assert store.schedules()[0]["runs"] == 1 and store.schedules()[0]["next_run_at"] > store.now()
+    long = rt.assign(aid, "slow", {"n": 1000}, by="test")
+    await until(lambda: status(long["task_id"]) == "running")
+    # a crash: the process dies with work in flight
+    rt.loop_task.cancel()
+    for x in rt.running.values():
+        x.cancel()
+    await asyncio.sleep(0.1)
+    store.update_task(long["task_id"], status="running")
+    store.reset_cache()
+    rt2 = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt2.start()
+    try:
+        await until(lambda: store.get_task(long["task_id"])["attempts"] >= 2)
+        assert any("restarted" in s["text"] for s in store.get_task(long["task_id"])["steps"])
+    finally:
+        await rt2.stop()
+
+
+@pytest.mark.asyncio
+async def test_payroll_run_suspends_and_stops_the_agent_whose_sponsor_left(slow_kind):
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["closer"]["agent_id"], "slow", {"n": 1000}, by="test")
+        await until(lambda: status(t["task_id"]) in ("running", "done"))
+        res = await rt.run_payroll("test")
+        assert "Closer" in res["suspended"] and res["ledger_entry"]
+        await until(lambda: status(t["task_id"]) == "cancelled")
+        assert registry.get_agent(ags["closer"]["agent_id"])["status"] == "suspended"
+    finally:
+        await rt.stop()
+
+
+def test_http_routes(monkeypatch, slow_kind):
+    monkeypatch.setenv("RUNTIME_ENABLED", "1")
+    from app.main import app
+    ags = fleet()
+    with TestClient(app) as c:
+        k = c.get("/api/runtime/kinds").json()
+        assert {x["kind"] for x in k} >= {"sourcing", "sales_outreach", "vendor_diligence", "reference_check"}
+        r = c.post("/api/runtime/tasks", json={"agent_id": ags["diligence"]["agent_id"], "kind": "vendor_diligence",
+                                              "input": {"domain": "razorpay.com"}, "by": "Charish"})
+        assert r.status_code == 200, r.text
+        tid = r.json()["task_id"]
+        bad = c.post("/api/runtime/tasks", json={"agent_id": ags["diligence"]["agent_id"], "kind": "sales_outreach"})
+        assert bad.status_code == 400 and "outreach.sales" in bad.json()["detail"]
+        for _ in range(400):
+            if c.get(f"/api/runtime/tasks/{tid}").json()["status"] not in ("queued", "running"):
+                break
+            asyncio.run(asyncio.sleep(0.05))
+        tj = c.get(f"/api/runtime/tasks/{tid}").json()
+        assert tj["status"] == "done", (tj["steps"], tj["output"].get("clock_in"))
+        st = c.get("/api/runtime/state").json()
+        assert st["runtime"]["alive"] and st["totals"]["done_today"] >= 1 and st["ledger"]["chain_ok"]
+        aid = ags["pipeline"]["agent_id"]
+        assert c.post(f"/api/runtime/agents/{aid}/pause", json={"by": "me", "reason": "audit"}).json()["paused"]
+        assert not c.post(f"/api/runtime/agents/{aid}/resume", json={"by": "me"}).json()["paused"]
+        pol = c.put(f"/api/runtime/agents/{aid}/policy", json={"require_approval": False, "budget": {"sends_per_day": 3}}).json()
+        assert pol["require_approval"] is False and pol["budget"]["sends_per_day"] == 3
+        s = c.post("/api/runtime/schedules", json={"agent_id": aid, "kind": "sales_outreach", "every_minutes": 30}).json()
+        assert not c.post(f"/api/runtime/schedules/{s['schedule_id']}/toggle").json()["enabled"]
+        assert c.delete(f"/api/runtime/schedules/{s['schedule_id']}").status_code == 200
+        assert c.put("/api/runtime/payroll", json={"every_minutes": 15}).json()["every_minutes"] == 15
