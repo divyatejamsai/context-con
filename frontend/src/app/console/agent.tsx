@@ -335,6 +335,22 @@ function OverviewTab({
             v={a.key_custody === "agent" ? "Held by the agent" : `Held by ${BRAND.name}`}
             sub={a.key_custody === "agent" ? `${BRAND.name} only has the public half` : `${BRAND.name} signs for it`}
           />
+          <Fact k="Owner" v={a.owner?.name ?? s.name} sub={a.owner ? `${a.owner.email} · ${a.owner.workspace_role}` : "No owner named: the sponsor answers for it"} />
+          <Fact
+            k="Last signed call"
+            v={a.last_seen_at ? ago(a.last_seen_at) : "None yet"}
+            sub={a.first_seen_at ? `First ${day(a.first_seen_at)}${a.heartbeats ? ` · ${a.heartbeats} heartbeat${a.heartbeats === 1 ? "" : "s"}` : ""}` : a.key_custody === "agent" ? "Waiting for a heartbeat signed with its key" : "Recorded when it is connected"}
+          />
+          <div className="sm:col-span-3">
+            <dt className="text-[11.5px] text-faint">May call</dt>
+            <dd className="mt-1.5 flex flex-wrap gap-1.5">
+              {a.tools == null ? (
+                <span className="text-[12.5px] text-muted-foreground">Any tool its permissions allow (connected before tool limits)</span>
+              ) : a.tools.length ? a.tools.map((t) => (
+                <span key={t} className="inline-flex h-6 items-center rounded-md border border-border-strong bg-elevated px-2 text-[12px]">{TOOL_LABEL[t] ?? t}</span>
+              )) : <span className="text-[12.5px] text-muted-foreground">No tools</span>}
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -442,6 +458,15 @@ function AppCard({ agent: a }: { agent: Agent }) {
     </section>
   );
 }
+
+// Same names as the Connect flow's tool catalog (backend/app/agents/connect.py TOOLS).
+const TOOL_LABEL: Record<string, string> = {
+  "crustdata.people": "Crustdata People",
+  "crustdata.companies": "Crustdata Companies",
+  web: "Web search and fetch",
+  email: "Email, through Send Guard",
+  esign: "Offer letters",
+};
 
 function Fact({ k, v, sub }: { k: string; v: string; sub?: string }) {
   return (

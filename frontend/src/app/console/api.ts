@@ -99,6 +99,14 @@ export interface Agent {
   workspace_id?: string | null;
   /** User ids of the people (recruiters) who work with it. They see only the agents assigned to them. */
   assignees?: string[];
+  /** From its connection request (backend/app/agents/connect.py). Missing on agents connected before that existed. */
+  owner?: { user_id: string; name: string; email: string; workspace_role: string } | null;
+  /** Tools it may call. Missing or null: no tool limit (connected before tool limits existed). */
+  tools?: string[] | null;
+  connection_id?: string | null;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+  heartbeats?: number;
   /** Emergency stops in force that froze it. While any is on, only lifting the stop brings it back. */
   frozen_by?: string[];
 }
