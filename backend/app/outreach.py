@@ -8,12 +8,18 @@ from .schemas import Candidate, Criteria
 
 log = logging.getLogger(__name__)
 
-PROMPT = """Write a short, warm recruiting outreach message (max 90 words) to {name}, currently {title} at {company}.
+PROMPT = """Write a short, warm recruiting outreach message (max 90 words) to {name}.
 Role we're hiring for: {role}. What the client wants: {wants}.
-Mention 1-2 specific facts from the VERIFIED evidence below and nothing else about them (no invented details).
-No subject line, no placeholders like [Company], sign off as "— The hiring team".
 
-Verified evidence:
+Hard rules:
+- Every statement about {first} or their employer must come from the VERIFIED FACTS below. Nothing else.
+- Lead with the domain fact (the first fact listed) because it is why we're reaching out.
+- No adjectives or descriptions of any company ("leading", "fast-growing", "innovative", "financial services company")
+  unless those exact words are in a fact.
+- No subject line. No other placeholders. End with exactly:
+[Your name]
+
+VERIFIED FACTS:
 {evidence}
 """
 
@@ -28,17 +34,27 @@ def template_draft(c: Candidate, criteria: Criteria) -> str:
     lines.append(f"We're hiring a {criteria.role or 'senior engineer'}"
                  + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
                  + " and I think your background is a strong fit. Open to a 15-minute chat this week?")
-    lines += ["", "— The hiring team"]
+    lines += ["", "[Your name]"]
     return "\n".join(lines)
 
 
-async def draft_outreach(c: Candidate, criteria: Criteria) -> str:
+def _domain_first(c: Candidate, criteria: Criteria) -> list:
+    """Verified claims, the ones matching the brief's domain terms (e.g. payments) first."""
+    from .orchestrator import domain_terms  # local import: orchestrator imports this module
+
+    terms = domain_terms(criteria)
     verified = [k for k in c.claims if k.status == "verified"]
+    hit = [k for k in verified if any(t in (k.claim + " " + k.evidence).lower() for t in terms)]
+    return hit + [k for k in verified if k not in hit]
+
+
+async def draft_outreach(c: Candidate, criteria: Criteria) -> str:
+    verified = _domain_first(c, criteria)
     if llm.is_mock() or not verified:
         return template_draft(c, criteria)
     prompt = PROMPT.format(
-        name=c.name, title=c.title or "an engineer", company=c.company or "their current company", role=criteria.role,
-        wants=", ".join(criteria.must_haves + criteria.skills[:3]) or criteria.raw_brief,
+        name=c.name, first=(c.name or "them").split()[0], role=criteria.role,
+        wants=", ".join(dict.fromkeys(criteria.must_haves + criteria.skills[:3])) or criteria.raw_brief,
         evidence="\n".join(f"- {k.claim}" for k in verified[:6]),
     )
     try:
