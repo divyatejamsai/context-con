@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from ..schemas import Claim, Criteria, Reason
 
-from .profile import norm, same_company, seniority_rank, title_similarity, tokens
+from .profile import load_person, norm, same_company, seniority_rank, title_similarity, tokens
 
 log = logging.getLogger(__name__)
 
@@ -172,8 +172,7 @@ def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Fa
             for c in emp:
                 if same_company(named, c.claim.removeprefix("Works at")):
                     f.add(CREDIT[c.status], f"Currently at {named.title()}, a preferred company", [c])
-            past = person.get("past_employers") or []
-            names = [e.get("employer_name") or e.get("company_name") or e.get("name") for e in past if isinstance(e, dict)]
+            names = [j.company for j in load_person(person).past]
             if any(same_company(named, n) for n in names if n) and emp:
                 f.add(0.8, f"Previously worked at {named.title()}", emp[:1])
         for c in comp:
