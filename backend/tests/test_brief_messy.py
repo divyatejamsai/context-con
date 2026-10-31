@@ -206,7 +206,7 @@ def test_out_of_credits_stops_cleanly_without_broadening():
     client = _Fake(status=402)
     evs = collect("need a junior quant trader in mumbai", client=client)
     errs = [e.message for e in evs if e.type == "error"]
-    assert any("out of credits" in m and "402" in m for m in errs)
+    assert any("out of credits" in m.lower() and "402" in m for m in errs)
     levels = {e.data.get("level") for e in evs if e.type == "step" and e.step == "search" and e.data and "strategy" in e.data}
     assert levels == {0}  # did not keep broadening into more 402s
     assert evs[-1].type == "done"

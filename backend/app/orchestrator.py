@@ -73,6 +73,12 @@ PERSON_SEARCH_FIELDS = ["crustdata_person_id", "basic_profile", "experience", "s
 SCHOOL_FIELD = os.getenv("CRUSTDATA_SCHOOL_FIELD", "education.schools.school")  # not live-verified (credits ran out)
 
 
+try:
+    from .crustdata.client import OUT_OF_CREDITS as OUT_OF_CREDITS_MSG
+except Exception:  # pragma: no cover
+    OUT_OF_CREDITS_MSG = "Data provider out of credits: Crustdata returned 402 (insufficient credits)."
+
+
 class OutOfCredits(Exception):
     """Crustdata answered 402: the key has no credits left. Retrying or broadening only burns time."""
 _COUNTRIES = {"india", "united states", "usa", "us", "united kingdom", "uk", "singapore", "germany", "canada",
@@ -513,9 +519,8 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
             try:
                 pool = await search_pool(client, criteria, emit)
             except OutOfCredits:
-                await emit(ErrorEvent(step="search", message="Crustdata is out of credits (HTTP 402), so no new profiles "
-                                                             "can be searched. Top up the API key, or run with "
-                                                             "CRUSTDATA_MODE=replay to use recorded data."))
+                await emit(ErrorEvent(step="search", message=OUT_OF_CREDITS_MSG + " (Or run with CRUSTDATA_MODE=replay "
+                                                                            "to use recorded data.)"))
                 return
             if template_key:
                 pool = [p for p in pool if _norm_profile(people.profile_url(p)) != template_key]
