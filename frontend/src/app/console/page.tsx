@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, BadgeCheck, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, MousePointerClick, Plus, RefreshCw, RotateCcw, Send,
+  Activity, ArrowLeft, BadgeCheck, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, MousePointerClick, Plus, RefreshCw, RotateCcw, Send,
   ShieldAlert, ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -20,15 +20,17 @@ import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
 import { DemoView } from "./demo";
+import { WorkView } from "./work";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "verify" | "guard" | "ledger" | "demo";
+type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
 type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
 const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string }[] = [
   { v: "employees", label: "AI employees", icon: Users, desc: "Onboard agents, see their passports, and suspend or retire them" },
+  { v: "work", label: "Work", icon: Activity, desc: "Live work: assign tasks, approve sends, pause or stop agents, budgets and report cards" },
   { v: "verify", label: "Verify passport", icon: ShieldCheck, desc: "Check whether an agent that contacts you can be trusted" },
   { v: "guard", label: "Send Guard", icon: Send, desc: "Check a drafted message before an agent can send it" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision" },
@@ -188,6 +190,8 @@ export default function Console() {
             <Loader2 className="size-4 animate-spin" /> Connecting to the Countersign backend…
           </span>
         </div>
+      ) : view === "work" ? (
+        <WorkView onChanged={refresh} />
       ) : view === "verify" ? (
         <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
       ) : view === "guard" ? (

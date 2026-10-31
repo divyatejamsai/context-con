@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from ..agents import ledger
 from ..agents.api import require_admin
 from ..agents.registry import RegistryError
-from . import store
+from . import receipts, store
 from .kinds import public_kinds
 from .supervisor import Runtime, state
 
@@ -218,3 +218,18 @@ async def payroll(req: PayrollRequest):
 @router.post("/payroll/run", dependencies=admin)
 async def payroll_run():
     return await rt().run_payroll("employer")
+
+
+@router.get("/receipts/{entry_hash}")
+async def receipt(entry_hash: str):
+    if len(entry_hash) < 8:
+        raise HTTPException(400, "give at least 8 characters of the entry hash")
+    try:
+        return receipts.issue(entry_hash)
+    except KeyError:
+        raise HTTPException(404, "no ledger entry with that hash")
+
+
+@router.post("/receipts/verify")
+async def verify_receipt(r: dict):
+    return receipts.verify_receipt(r.get("receipt") or r)

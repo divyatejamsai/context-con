@@ -280,3 +280,21 @@ def test_http_routes(monkeypatch, slow_kind):
         assert not c.post(f"/api/runtime/schedules/{s['schedule_id']}/toggle").json()["enabled"]
         assert c.delete(f"/api/runtime/schedules/{s['schedule_id']}").status_code == 200
         assert c.put("/api/runtime/payroll", json={"every_minutes": 15}).json()["every_minutes"] == 15
+
+
+def test_receipts_verify_and_catch_edits():
+    import copy
+    from app.runtime import receipts
+    ledger.append("agent.onboarded", {"agent_id": "agt_x"})
+    h = ledger.append("task.done", {"agent_id": "agt_x", "result": "3 cleared"})
+    ledger.append("task.started", {"agent_id": "agt_x"})
+    r = receipts.issue(h[:12])
+    assert r["entry"]["hash"] == h and r["previous"]["seq"] == 0
+    assert receipts.verify_receipt(r)["valid"]
+    forged = copy.deepcopy(r)
+    forged["entry"]["payload"]["result"] = "5 cleared"
+    v = receipts.verify_receipt(forged)
+    assert not v["valid"] and {c["name"] for c in v["checks"] if c["status"] == "fail"} >= {"entry_hash"}
+    resigned = copy.deepcopy(r)
+    resigned["head"]["seq"] = 99
+    assert not receipts.verify_receipt(resigned)["valid"]  # issuer signature covers the whole receipt

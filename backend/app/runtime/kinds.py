@@ -201,7 +201,7 @@ def can_do(agent: dict, kind: str) -> str | None:
     if not spec:
         return f"unknown task kind {kind}"
     if agent.get("runtime") == "external":
-        return f"{agent['name']} runs outside Countersign; it can't be assigned work here"
+        return f"{agent['name']} runs outside Agaxes; it can't be assigned work here"
     if spec["scope"] not in agent["passport"]["scopes"]:
         return f"{agent['name']}'s passport has no {spec['scope']} scope"
     if agent.get("status") == "offboarded":

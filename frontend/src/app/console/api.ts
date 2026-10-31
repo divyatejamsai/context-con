@@ -191,3 +191,190 @@ export const api = {
   review: (id: string, b: { reviewer: string; decision: ReviewDecision; notes: string; scopes?: Scope[] }) =>
     post<Agent>(`/agents/${id}/reviews`, b),
 };
+
+// ---- Agent runtime (backend/app/runtime, docs/RUNTIME.md): tasks, approvals, budgets, schedules -------------
+
+export type TaskStatus = "queued" | "running" | "done" | "failed" | "cancelled" | "refused";
+export type Activity = "working" | "idle" | "paused" | "waiting_on_you" | "suspended" | "offboarded";
+
+export interface TaskKind {
+  kind: string;
+  label: string;
+  scope: Scope;
+  agent_hint?: string | null;
+  description: string;
+  fields: { name: string; label: string; type: "text" | "textarea"; required: boolean; placeholder?: string }[];
+}
+
+export interface SendRecord {
+  to: Recipient;
+  scope: Scope;
+  body: string;
+  decision: "allow" | "block";
+  state: "blocked" | "pending_approval" | "sent" | "rejected" | "blocked_at_send" | "expired";
+  approval_id?: string | null;
+  guard_entry?: string | null;
+  checks: Check[];
+}
+
+export interface Task {
+  task_id: string;
+  agent_id: string;
+  agent_name: string;
+  kind: string;
+  title: string;
+  status: TaskStatus;
+  waiting_on?: string | null;
+  assigned_by: string;
+  schedule_id?: string | null;
+  ref?: { kind: string; id: string } | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  seconds?: number | null;
+  attempts: number;
+  progress: { done: number; total: number; label: string };
+  usage: { crustdata: number; llm: number; sends: number };
+  result?: string | null;
+  error?: string | null;
+  ledger: string[];
+  last_step?: string | null;
+  counts?: { sends: number; findings: number; shortlist: number; artifacts: number };
+  steps?: { ts: string; kind: string; text: string }[];
+  input?: Record<string, string>;
+  output?: {
+    clock_in?: { decision: "allow" | "block"; headline: string; ledger_entry?: string; failed: Check[] };
+    sends?: SendRecord[];
+    shortlist?: { name: string; title?: string; company?: string; location?: string; score?: number; profile_url?: string; reasons?: string[]; guard?: string }[];
+    findings?: { candidate: string; profile_url?: string; verified: number; total: number; contradicted: { claim: string; evidence: string; source?: Source | null }[] }[];
+    artifacts?: { kind: string; title: string; path?: string; content?: string }[];
+    filed?: { kind: string; summary: string; ledger_entry: string }[];
+  };
+  approvals?: Approval[];
+}
+
+export interface Approval {
+  approval_id: string;
+  task_id: string;
+  agent_id: string;
+  agent_name: string;
+  action: "send";
+  to: Recipient;
+  body: string;
+  scope: Scope;
+  status: "pending" | "sending" | "sent" | "rejected" | "blocked_at_send" | "expired";
+  preview: { decision: "allow" | "block"; checks: Check[]; ledger_entry?: string | null };
+  created_at: string;
+  decided_at?: string | null;
+  decided_by?: string | null;
+  note?: string | null;
+  result?: { sent: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string } | null;
+}
+
+export interface Budget {
+  tasks_per_day: number;
+  sends_per_day: number;
+  crustdata_calls_per_day: number;
+  llm_calls_per_day: number;
+}
+
+export interface Policy {
+  paused: boolean;
+  paused_reason?: string | null;
+  require_approval: boolean;
+  budget: Budget;
+}
+
+export interface ReportCard {
+  tasks_total: number;
+  done: number;
+  failed: number;
+  refused: number;
+  cancelled: number;
+  success_rate: number | null;
+  avg_seconds: number | null;
+  drafts: number;
+  guard_blocked: number;
+  sent: number;
+  pending_approval: number;
+  rejected: number;
+  blocked_at_send: number;
+  findings: number;
+  false_claims: number;
+  approval_rate: number | null;
+  filed: number;
+  crustdata_calls: number;
+  llm_calls: number;
+  last_active: string | null;
+}
+
+export interface LiveAgent {
+  agent_id: string;
+  name: string;
+  role: string;
+  job?: string | null;
+  runtime?: string;
+  employee_no?: number;
+  status: AgentStatus;
+  reason?: string | null;
+  sponsor: Sponsor;
+  scopes: Scope[];
+  activity: Activity;
+  policy: Policy;
+  usage_today: { tasks: number; sends: number; crustdata: number; llm: number };
+  kinds: string[];
+  current: Task | null;
+  queued: number;
+  metrics: ReportCard;
+}
+
+export interface Schedule {
+  schedule_id: string;
+  agent_id: string;
+  agent_name: string;
+  kind: string;
+  title: string;
+  input: Record<string, string>;
+  every_minutes: number;
+  enabled: boolean;
+  next_run_at?: string | null;
+  last_run_at?: string | null;
+  last_task_id?: string | null;
+  last_skip?: string | null;
+  runs: number;
+}
+
+export interface RuntimeState {
+  version: number;
+  runtime: { alive: boolean; started_at: string | null; running: number; max_concurrent: number; modes: { crustdata: string; llm: string } };
+  totals: { agents: number; working: number; queued: number; done_today: number; failed_today: number; pending_approvals: number; sent_today: number; blocked_today: number };
+  agents: LiveAgent[];
+  tasks: Task[];
+  approvals: { pending: Approval[]; decided: Approval[] };
+  schedules: Schedule[];
+  payroll: { enabled: boolean; every_minutes: number; last_run_at?: string | null; next_run_at?: string | null; running?: boolean;
+    last_result?: { at: string; by: string; checked: number; suspended: string[]; error?: string; ledger_entry?: string } | null };
+  ledger: { chain_ok: boolean; first_bad_seq: number | null };
+}
+
+export const receiptUrl = (hash: string) => `${API_URL}/api/runtime/receipts/${hash}`;
+
+export const runtime = {
+  state: () => req<RuntimeState>("/runtime/state"),
+  kinds: () => req<TaskKind[]>("/runtime/kinds"),
+  task: (id: string) => req<Task>(`/runtime/tasks/${id}`),
+  assign: (b: { agent_id: string; kind: string; input: Record<string, string>; by?: string }) => post<Task>("/runtime/tasks", b),
+  cancel: (id: string) => post<Task>(`/runtime/tasks/${id}/cancel`, { by: "employer" }),
+  retry: (id: string) => post<Task>(`/runtime/tasks/${id}/retry`, { by: "employer" }),
+  approve: (id: string) => post<Approval>(`/runtime/approvals/${id}/approve`, { by: "employer" }),
+  reject: (id: string, note?: string) => post<Approval>(`/runtime/approvals/${id}/reject`, { by: "employer", note }),
+  pause: (id: string, reason?: string) => post<Policy>(`/runtime/agents/${id}/pause`, { by: "employer", reason }),
+  resume: (id: string) => post<Policy>(`/runtime/agents/${id}/resume`, { by: "employer" }),
+  suspend: (id: string, reason: string) => post<Agent>(`/runtime/agents/${id}/suspend`, { by: "employer", reason }),
+  policy: (id: string, b: { require_approval?: boolean; budget?: Partial<Budget> }) => post<Policy>(`/runtime/agents/${id}/policy`, b, "PUT"),
+  schedule: (b: { agent_id: string; kind: string; input: Record<string, string>; every_minutes: number }) => post<Schedule>("/runtime/schedules", b),
+  toggleSchedule: (id: string) => post<Schedule>(`/runtime/schedules/${id}/toggle`),
+  deleteSchedule: (id: string) => post<{ deleted: string }>(`/runtime/schedules/${id}`, undefined, "DELETE"),
+  setPayroll: (b: { enabled?: boolean; every_minutes?: number }) => post<RuntimeState["payroll"]>("/runtime/payroll", b, "PUT"),
+  runPayroll: () => post<NonNullable<RuntimeState["payroll"]["last_result"]>>("/runtime/payroll/run"),
+};

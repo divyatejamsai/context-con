@@ -146,7 +146,7 @@ class Runtime:
         at = self.running.get(task_id)
         if at and not at.done() and task_id not in self.stop_reason:
             self.stop_reason[task_id] = (why, requeue)
-            store.task_step(task_id, f"Stopped by Countersign: {why}", "control")
+            store.task_step(task_id, f"Stopped by Agaxes: {why}", "control")
             at.cancel()
 
     def _schedules(self, agents: dict[str, dict]) -> None:
@@ -402,6 +402,9 @@ def metrics(agent_id: str, tasks: list[dict], approvals: list[dict]) -> dict:
         "rejected": sum(a["status"] == "rejected" for a in approvals if a["agent_id"] == agent_id),
         "blocked_at_send": sum(a["status"] == "blocked_at_send" for a in approvals if a["agent_id"] == agent_id),
         "findings": sum(len(t["output"].get("findings", [])) for t in mine),
+        "false_claims": sum(len(f.get("contradicted") or []) for t in mine for f in t["output"].get("findings", [])),
+        "approval_rate": (lambda dec: round(sum(a["status"] in ("sent", "blocked_at_send") for a in dec) / len(dec), 3) if dec else None)(
+            [a for a in approvals if a["agent_id"] == agent_id and a["status"] in ("sent", "blocked_at_send", "rejected")]),
         "filed": sum(len(t["output"].get("filed", [])) for t in mine),
         "crustdata_calls": sum(t["usage"].get("crustdata", 0) for t in mine),
         "llm_calls": sum(t["usage"].get("llm", 0) for t in mine),
