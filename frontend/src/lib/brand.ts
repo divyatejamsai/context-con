@@ -8,3 +8,6 @@ export const BRAND = {
   /** The hiring agent that runs under it. */
   agent: "Sourced",
 } as const;
+
+/** Older stored records (agent jobs, ledger notes, source names) still say "Countersign". Show them under the current name. Display only: never run this on a passport you will send back, its signature covers the text. */
+export const brandText = (s?: string | null) => (s ?? "").replace(/Countersign/g, BRAND.name).replace(/countersign/g, BRAND.name.toLowerCase());
