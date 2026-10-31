@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, BadgeCheck, Check, ChevronRight, Database, FileSearch, FileText, Mail, ScanSearch, ShieldCheck, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AGENT_STEPS, PIPELINE_STEPS } from "@/lib/types";
+import { AUTOSEND_STEPS, PIPELINE_STEPS } from "@/lib/types";
 import type { RunState, StepState } from "@/lib/run-state";
 
 const META: Record<string, { label: string; todo: string; tool: string; what?: string; Icon: typeof Database }> = {
@@ -12,8 +12,9 @@ const META: Record<string, { label: string; todo: string; tool: string; what?: s
   enrich: { todo: "Enrich profiles", label: "Enriched profiles", tool: "crustdata · person/enrich, company/enrich", what: "Pulls each person's full work history and their company's details.", Icon: Database },
   verify: { todo: "Verify claims", label: "Verified claims", tool: "crustdata · enrich + web/fetch", what: "Compares every claim with those records and marks it verified, contradicted or unverifiable.", Icon: ShieldCheck },
   rank: { todo: "Rank candidates", label: "Ranked candidates", tool: "llm · rank (cites claim ids)", what: "Scores each person against the brief. Every reason points at a checked claim.", Icon: Trophy },
-  outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft (never sent)", what: "Writes a first message using only verified facts. It is never sent for you.", Icon: Mail },
-  guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send (nothing is sent)", what: "Re-checks each draft before it could be sent: the agent's passport, the recipient, and every fact in the message.", Icon: ShieldCheck },
+  outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft", what: "Writes a first message using only verified facts.", Icon: Mail },
+  send: { todo: "Send emails", label: "Sent emails", tool: "outbound · guarded_send (Resend / SMTP)", what: "Emails every draft Send Guard cleared, with nobody at the keyboard. They all go to your own test inbox, never to the candidates.", Icon: Mail },
+  guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send + person/enrich (contact)", what: "Re-checks each draft before it can be sent (the agent's passport, the recipient, every fact in the message) and finds each person's email on Crustdata.", Icon: ShieldCheck },
 };
 
 const CHECK_CLS = { pass: "text-verified", fail: "text-contradicted", unverifiable: "text-unverifiable" } as const;
@@ -27,7 +28,7 @@ export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; 
     endRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [run.log.length]);
 
-  const known = AGENT_STEPS as readonly string[];
+  const known = AUTOSEND_STEPS as readonly string[];
   const extra = Object.keys(run.steps).filter((s) => !known.includes(s));
   const seen = [...known, ...extra].filter((s) => run.steps[s] || run.log.some((l) => l.step === s));
   const pending = run.running ? pipeline.filter((s) => !seen.includes(s)) : [];

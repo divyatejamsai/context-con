@@ -11,6 +11,8 @@ GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event
 /api/runtime/*                              -> the agent runtime: tasks, approvals, budgets, schedules (app/runtime/)
 /api/campaigns/*                            -> brief to signed offer, ~100 conversations over weeks (app/talent/api.py)
 /api/staffing/*                             -> staff 1000 shifts from applications seeded with fakes (app/talent/api.py)
+POST /api/agents/{agent_id}/email            -> find the email on Crustdata, Send Guard, send for real (app/outbound/)
+GET  /api/messages, POST /api/messages/refresh -> sent emails with delivery status and replies
 """
 from __future__ import annotations
 
@@ -36,6 +38,7 @@ from .agents.api import router as agents_router  # noqa: E402  (Agaxes, docs/COU
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
 from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
+from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
 
@@ -47,6 +50,7 @@ app.include_router(agents_router)
 app.include_router(sourced_router)
 app.include_router(demo_router)
 app.include_router(runtime_api.router)
+app.include_router(outbound_router)
 app.include_router(auth_router)
 app.include_router(talent_router)
 

@@ -1,9 +1,10 @@
 "use client";
-import { ArrowDown, ArrowUp, Flag, Pin } from "lucide-react";
+import { ArrowDown, ArrowUp, Flag, Mail, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Candidate } from "@/lib/types";
 import { claimCounts, evidenceStrength } from "@/lib/run-state";
 import { Avatar, EvidenceStrip, FitBadge, GuardBadge, StatusPill } from "@/components/evidence";
+import { MessageStatus } from "@/components/outreach";
 
 export interface Row {
   c: Candidate;
@@ -39,6 +40,11 @@ export function ShortlistRows({ rows, selected, onSelect }: { rows: Row[]; selec
                   {pinned && <Pin className="size-3 shrink-0 fill-primary text-primary" />}
                   {k.contradicted > 0 && <StatusPill status="contradicted" count={k.contradicted} className="ml-0.5" />}
                   <GuardBadge guard={c.guard} />
+                  {c.outreach?.status === "sent" ? (
+                    <MessageStatus status="sent" className="h-[18px] text-[10.5px]" />
+                  ) : c.contact?.email ? (
+                    <span title={`Email on Crustdata: ${c.contact.email}`} className="inline-flex shrink-0 text-faint"><Mail className="size-3" /></span>
+                  ) : null}
                 </div>
                 <p className="truncate text-[12.5px] text-muted-foreground">
                   {[c.title, c.company].filter(Boolean).join(" · ") || "Title unknown"}

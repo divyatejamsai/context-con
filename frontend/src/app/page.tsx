@@ -10,7 +10,7 @@ import { CompareTable, ShortlistRows, type Row, type SortKey } from "@/component
 import { AGENT_ID, API_URL, streamRun, type RunMode } from "@/lib/stream";
 import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run-state";
 import { download, toCSV, toMarkdown } from "@/lib/export";
-import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
+import { AGENT_STEPS, AUTOSEND_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductNav } from "@/components/app-header";
 import { AccountMenu } from "@/components/account-menu";
@@ -37,6 +37,7 @@ const toggle = (s: Set<string>, id: string) => {
 
 export default function Home() {
   const [brief, setBrief] = useState(EXAMPLES[0].brief);
+  const [autosend, setAutosend] = useState(false);
   const [lastBrief, setLastBrief] = useState("");
   const [mode, setMode] = useState<RunMode>(process.env.NEXT_PUBLIC_DEFAULT_MODE === "replay" ? "replay" : "live");
   const [run, dispatch] = useReducer(runReducer, initialRun);
@@ -91,14 +92,14 @@ export default function Home() {
     setNow(Date.now());
     dispatch({ type: "start", at: Date.now() });
     try {
-      for await (const ev of streamRun(brief, mode, ctrl.signal)) dispatch({ type: "event", ev, at: Date.now() });
+      for await (const ev of streamRun(brief, mode, ctrl.signal, autosend)) dispatch({ type: "event", ev, at: Date.now() });
       dispatch({ type: "stop", at: Date.now() });
     } catch (e) {
       if (ctrl.signal.aborted) return dispatch({ type: "stop", at: Date.now() });
       const msg = e instanceof Error ? e.message : String(e);
       dispatch({ type: "fatal", at: Date.now(), message: mode === "live" ? `Couldn't reach the agent at ${API_URL}. ${msg}` : msg });
     }
-  }, [brief, mode]);
+  }, [brief, mode, autosend]);
 
   const stop = () => {
     abortRef.current?.abort();
@@ -249,7 +250,7 @@ export default function Home() {
       />
 
       {!started ? (
-        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} mode={mode} />
+        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} mode={mode} autosend={autosend} setAutosend={setAutosend} />
       ) : (
         <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,500px)] 2xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,560px)]">
           <aside className="order-last min-w-0 border-t border-border px-4 py-4 lg:order-none lg:sticky lg:border-t-0 lg:top-12 lg:h-[calc(100vh-3rem)] lg:overflow-y-auto lg:border-r">
@@ -262,7 +263,7 @@ export default function Home() {
               </div>
               <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">Every step, with the Crustdata call behind it. Click a step to read its log.</p>
             </div>
-            <Trace run={run} now={now} pipeline={mode === "live" && AGENT_ID ? AGENT_STEPS : PIPELINE_STEPS} />
+            <Trace run={run} now={now} pipeline={mode === "live" && AGENT_ID ? (autosend ? AUTOSEND_STEPS : AGENT_STEPS) : PIPELINE_STEPS} />
           </aside>
 
           <section className="min-w-0">
@@ -515,7 +516,7 @@ function TopBar({
   );
 }
 
-function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement>; mode: RunMode }) {
+function Hero({ brief, setBrief, onRun, briefRef, mode, autosend, setAutosend }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement>; mode: RunMode; autosend: boolean; setAutosend: (b: boolean) => void }) {
   return (
     <main>
       <div className="mx-auto flex max-w-[760px] flex-col px-4 pb-24 pt-16 sm:pt-24">
@@ -543,6 +544,18 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             }
           />
         </div>
+        {mode === "live" && AGENT_ID && (
+          <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2.5 text-[12.5px]">
+            <input type="checkbox" checked={autosend} onChange={(e) => setAutosend(e.target.checked)} className="mt-0.5 accent-[var(--primary)]" />
+            <span>
+              <span className="font-[510]">Email the shortlist for me</span>
+              <span className="block text-muted-foreground">
+                Sourced finds each person&apos;s email on Crustdata and sends every message Send Guard clears, with nobody at the keyboard. They
+                all go to your own test inbox, never to the candidates. Leave it off to review and send each one yourself.
+              </span>
+            </span>
+          </label>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[12px] text-faint">Or try an example:</span>
           {EXAMPLES.map((ex) => (
@@ -565,7 +578,7 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
           {[
             ["Search", "The agent turns your brief into search filters and looks for people on Crustdata. If nothing comes back, it widens the search.", "About 5 seconds"],
             ["Check", "For each person it compares their employer, tenure, location and company against Crustdata records. Each claim is marked verified, contradicted or unverifiable.", "Every claim gets a source"],
-            ["Review", "You get a ranked shortlist. Open anyone to see the evidence, then copy a drafted message. Nothing is sent for you.", "You decide who to contact"],
+            ["Reach out", "You get a ranked shortlist with each person's email from Crustdata. Send the drafted email (Send Guard checks it first), then watch it get delivered and replied to.", "Sent, delivered, replied"],
           ].map(([t, d, note], i) => (
             <div key={t} className={cn("p-5", i > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
               <span className="grid size-6 place-items-center rounded-full border border-border-strong font-mono text-[11px] text-muted-foreground">{i + 1}</span>
@@ -763,7 +776,7 @@ function Guide({ onClose }: { onClose: () => void }) {
   const steps = [
     ["Open a candidate", "Click a row to see why they rank where they do."],
     ["Check the claims", "Red means Crustdata says the claim is wrong. Grey means there was nothing to check it against."],
-    ["Copy the draft", "Edit the message and copy it. Nothing is ever sent from here."],
+    ["Send the email", "Each draft has the email Crustdata holds for that person. Edit it if you like, then press Send: Send Guard checks it first, and you see it delivered and replied to."],
   ];
   return (
     <div className="mx-4 mb-3 rounded-lg border border-border bg-elevated px-4 py-3 animate-fade">

@@ -18,7 +18,7 @@ export function toMarkdown(brief: string, criteria: Criteria | undefined, cands:
     lines.push(``, `**Claims**`);
     for (const cl of c.claims ?? [])
       lines.push(`- [${cl.id}] ${normalizeStatus(cl.status, !!cl.source?.endpoint).toUpperCase()}: ${cl.claim}. ${cl.evidence ?? ""} _(${srcText(cl.source)})_`);
-    if (c.outreach_draft) lines.push(``, `**Outreach draft (not sent)**`, ``, ...c.outreach_draft.split("\n").map((l) => `> ${l}`));
+    if (c.outreach_draft) lines.push(``, `**Outreach draft**`, ``, ...c.outreach_draft.split("\n").map((l) => `> ${l}`));
     lines.push(``);
   });
   return lines.join("\n");

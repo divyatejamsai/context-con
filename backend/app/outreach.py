@@ -73,7 +73,8 @@ def template_draft(c: Candidate, criteria: Criteria) -> str:
     first_name = c.name.split()[0] if c.name else "there"
     # hook from a verified fact (domain first), never from ranker/scoring text
     facts = [k.claim.rstrip(".") for k in _domain_first(c, criteria)
-             if not re.search(r"\b(claims?|verified|score|matches the|crustdata)\b", k.claim, re.I)]
+             if not re.search(r"\b(claims?|verified|score|matches the|crustdata)\b", k.claim, re.I)
+             and not re.match(r"(title|based in|career|progression)\b", k.claim, re.I)]  # already said, or too long
     hook = facts[0] if facts else None
     at = f" at {c.company}" if c.company else ""
     lines = [f"Hi {first_name},", ""]
