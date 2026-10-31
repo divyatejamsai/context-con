@@ -64,6 +64,9 @@ BUCKETS: dict[str, tuple[list[str], list[str], list[str]]] = {
               ["outreach.sales", "data.read"], ["payment.send", "outreach.hiring"]),
     "ic": (["Software Engineer", "Data Analyst", "Product Designer", "QA Engineer", "Software Engineering Intern"],
            ["data.read"], ["contract.sign", "payment.send", "outreach.hiring"]),
+    # people who work FOR an executive: their titles name a CEO/CFO but carry none of that authority
+    "subordinate": (["Executive Assistant to CEO", "Executive Assistant to CFO", "Chief of Staff", "Founder's Office", "Finance Intern"],
+                    ["data.read"], ["payment.send", "contract.sign"]),
 }
 # Titles in a bucket that override the bucket's CANNOT list (e.g. an "Account Executive" can't hire, a "Sales Director" arguably can).
 SENIOR = re.compile(r"\b(head|director|vp|vice president|chief|(co-?)?founder|cofounder|cxo|cto|ceo|cfo|coo|president|partner|owner)\b", re.I)
