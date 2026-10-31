@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:13 | UI look changed from Dossier to "Sourced" | User found Dossier too generic | dummyanaxes (via WS4) |
 | ~11:13 | Use the already-billed GCP project for Vertex instead of linking billing to the original one | User asked to fix Gemini now; avoids touching billing accounts | Claude (under the user's "fix gemini" ask) |
 | ~11:00 | Keep repo public and merge real person fixtures into main (chosen over making the repo private) | Replay mode and demo work from the repo alone | dummyanaxes |
 | ~10:46 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
@@ -107,6 +108,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~11:13 | WS4 UI restyled as **"Sourced"** (PR #3, merged): dark-first, Linear-style surfaces, Inter and JetBrains Mono, tool-call cards per agent step, criteria chips with % fit. Same features and event contract as Dossier. tsc and build pass |
 | ~11:12 | WS3 graded ranker merged (5df12a6): base capped at 90, plus bonuses up to +10 for years in role, current-role domain and stable tenure, each citing claim ids. Seniority gap scales role fit (1.0 / 0.6 / 0.35), and skill credit is graded by evidence source. Real-fixture scores now spread 81 down to 28 |
 | ~11:11 | **Gemini works** (gemini-2.5-flash on the billed project; `.env` switched, old `.env` backed up locally). **Live run 3 (real Gemini + Crustdata)**: 26s, 0 errors, 132 profiles searched, 10 shortlisted. Scores 85,85,85,85,85,71,71,62,41,38. Claims: 68 verified, 10 unverifiable, 1 contradicted. Issues sent to WS2: parse_brief drops "Senior" from role and title variants (4 of 10 below senior), duplicates the domain as a "Payments experience" must-have (never matches, caps the score at 85), and outreach adds unsupported adjectives. gemini-2.5-pro is unused unless `RANK_USE_LLM=1` |
 | ~11:13 | Gemini still blocked: billing was enabled on a different GCP project than the one in `.env`. Fix: point `.env` `GOOGLE_CLOUD_PROJECT` at the billed project and enable Vertex AI there (no billing changes) |
