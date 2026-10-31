@@ -1,0 +1,215 @@
+{
+  "clean": {
+    "_source": {
+      "endpoint": "person/enrich",
+      "request_hash": "a1",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "name": "Asha Rao",
+    "headline": "Senior Backend Engineer at Razorpay | Payments, Go, Kafka",
+    "location": "Bengaluru, Karnataka, India",
+    "linkedin_profile_url": "https://www.linkedin.com/in/asha-rao-example",
+    "current_employers": [
+      {
+        "employer_name": "Razorpay",
+        "employee_title": "Senior Backend Engineer",
+        "start_date": "2021-03-01",
+        "employer_company_id": 111,
+        "employer_company_website_domain": [
+          "razorpay.com"
+        ]
+      }
+    ],
+    "past_employers": [
+      {
+        "employer_name": "Flipkart",
+        "employee_title": "Software Engineer",
+        "start_date": "2017-07-01",
+        "end_date": "2021-02-01"
+      }
+    ],
+    "skills": [
+      "Go",
+      "Payments",
+      "Kafka",
+      "PostgreSQL",
+      "Distributed Systems"
+    ]
+  },
+  "moved": {
+    "_source": {
+      "endpoint": "person/enrich",
+      "request_hash": "b2",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "name": "Rohan Mehta",
+    "headline": "Senior Software Engineer at Paytm",
+    "location": "Bangalore, India",
+    "current_employers": [
+      {
+        "employer_name": "CRED",
+        "employee_title": "Senior Software Engineer",
+        "start_date": "2026-10-06",
+        "employer_company_id": 222
+      }
+    ],
+    "past_employers": [
+      {
+        "employer_name": "Paytm",
+        "employee_title": "Senior Software Engineer",
+        "start_date": "2019-01-01",
+        "end_date": "2026-09-30"
+      }
+    ],
+    "skills": [
+      "Java",
+      "Payments",
+      "Microservices"
+    ]
+  },
+  "fake": {
+    "_source": {
+      "endpoint": "person/enrich",
+      "request_hash": "c3",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "name": "Meera Iyer",
+    "headline": "Software Engineer",
+    "location": "Pune, Maharashtra, India",
+    "current_employers": [
+      {
+        "employer_name": "Juspay Technologies",
+        "employee_title": "Software Engineer",
+        "start_date": "2022-05-01",
+        "employer_company_id": 333
+      }
+    ],
+    "past_employers": [
+      {
+        "employer_name": "Infosys",
+        "employee_title": "Systems Engineer",
+        "start_date": "2019-08-01",
+        "end_date": "2022-04-01"
+      }
+    ],
+    "skills": [
+      "Haskell",
+      "Payments"
+    ],
+    "claimed": {
+      "_source": "seeded resume demo/seeded_fakes/meera.md",
+      "employer": "Stripe",
+      "title": "Staff Engineer",
+      "years_experience": 12,
+      "location": "Bangalore",
+      "start_date": "2018-01-01"
+    }
+  },
+  "sparse": {
+    "_source": {
+      "endpoint": "person/search",
+      "request_hash": "d4",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "name": "Unknown Person",
+    "headline": "Engineer at Zeta"
+  },
+  "nested": {
+    "_source": {
+      "endpoint": "person/enrich",
+      "request_hash": "e5",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "basic_profile": {
+      "name": "Kabir Shah",
+      "headline": "Backend Engineer @ Jupiter",
+      "location": {
+        "city": "Bengaluru",
+        "country": "India"
+      }
+    },
+    "experience": {
+      "employment_details": {
+        "current": [
+          {
+            "company_name": "Jupiter",
+            "title": "Backend Engineer",
+            "start_date": "2023-01",
+            "company_id": 444
+          }
+        ],
+        "past": [
+          {
+            "company_name": "Swiggy",
+            "title": "SDE 1",
+            "start_date": "2020-06",
+            "end_date": "2022-12"
+          }
+        ]
+      }
+    },
+    "skills": {
+      "professional_network_skills": [
+        "Python",
+        "Payments"
+      ]
+    }
+  },
+  "live_shape": {
+    "_source": {
+      "endpoint": "person/enrich",
+      "request_hash": "f6",
+      "fetched_at": "2026-10-31T05:00:00Z"
+    },
+    "_match": {
+      "score": 1.0
+    },
+    "basic_profile": {
+      "name": "Dev Patel",
+      "headline": "Building payments infra",
+      "current_title": "Senior Backend Engineer",
+      "location": {
+        "city": "Bengaluru",
+        "country": "India"
+      }
+    },
+    "social_handles": {
+      "professional_network_identifier": {
+        "profile_url": "https://www.linkedin.com/in/dev-patel-example"
+      }
+    },
+    "experience": {
+      "employment_details": {
+        "current": [
+          {
+            "name": "Setu",
+            "title": "Backend Engineer",
+            "crustdata_company_id": 555,
+            "start_date": "2026-09-15T00:00:00",
+            "seniority_level": "Senior"
+          }
+        ],
+        "past": [
+          {
+            "name": "PhonePe",
+            "title": "Software Engineer",
+            "crustdata_company_id": 556,
+            "start_date": "2019-07-01T00:00:00",
+            "end_date": "2026-09-01T00:00:00",
+            "seniority_level": "Entry"
+          }
+        ]
+      }
+    },
+    "skills": {
+      "professional_network_skills": [
+        "Go",
+        "Payments",
+        "UPI"
+      ]
+    },
+    "claimed": {
+      "title": "Senior Backend Engineer"
+    }
+  }
+}

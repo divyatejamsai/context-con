@@ -1,0 +1,73 @@
+{
+  "111": {
+    "_source": {
+      "endpoint": "company/enrich"
+    },
+    "company_name": "Razorpay",
+    "headcount": {
+      "linkedin_headcount": 3200
+    },
+    "funding_and_investment": {
+      "last_funding_round_type": "Series F"
+    },
+    "year_founded": "2014",
+    "linkedin_industries": [
+      "Financial Services"
+    ]
+  },
+  "222": {
+    "_source": {
+      "endpoint": "company/enrich"
+    },
+    "company_name": "CRED",
+    "headcount": {
+      "linkedin_headcount": 1100
+    },
+    "funding_and_investment": {
+      "last_funding_round_type": "Series F"
+    },
+    "year_founded": "2018"
+  },
+  "333": {
+    "_source": {
+      "endpoint": "company/enrich"
+    },
+    "company_name": "Juspay",
+    "headcount": {
+      "linkedin_headcount": 900
+    },
+    "funding_and_investment": {
+      "last_funding_round_type": "Series D"
+    }
+  },
+  "444": {
+    "_source": {
+      "endpoint": "company/enrich"
+    },
+    "company_name": "Jupiter",
+    "headcount": {
+      "linkedin_headcount": 250
+    },
+    "funding_and_investment": {
+      "last_funding_round_type": "Series C"
+    }
+  },
+  "555": {
+    "_source": {
+      "endpoint": "company/enrich"
+    },
+    "_match": {
+      "score": 1.0
+    },
+    "basic_info": {
+      "name": "Setu"
+    },
+    "headcount": {
+      "total": 180
+    },
+    "funding": {
+      "last_round_type": "Series A",
+      "total_investment_usd": 21000000
+    }
+  }
+}
