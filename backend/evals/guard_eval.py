@@ -2,7 +2,8 @@
 
     cd backend
     LLM_MODE=mock CRUSTDATA_MODE=replay python -m evals.guard_eval              # offline: every person in the fixtures
-    LLM_MODE=live CRUSTDATA_MODE=cache  python -m evals.guard_eval --live 120   # Sai's Mac: +120 people via person_search
+    LLM_MODE=live CRUSTDATA_MODE=cache  python -m evals.guard_eval --live 60 --concurrency 3   # Mac: test only 60 live people
+    (people tested are capped at --max-people, default 150; the local cache/ is only used with --include-cache)
     ... --out ../evals_out_guard.md   (gitignored: the report names real people)
 
 Cases per recipient (only those the record supports):
@@ -106,12 +107,14 @@ def _rows(path: str) -> list[dict]:
     return [unwrap_record(d)]
 
 
-def fixture_people() -> dict[str, dict]:
-    """Every distinct person in the committed fixtures (and local cache/). Enrich records win over search rows."""
+def fixture_people(include_cache: bool = False) -> dict[str, dict]:
+    """Every distinct person in the committed fixtures (and, with include_cache, the local cache/, which can hold
+    thousands). Enrich records win over search rows."""
     out: dict[str, dict] = {}
-    pats = [("fixtures/crustdata/person_search/*.json", 0), ("cache/crustdata/person_search/*.json", 0),
-            ("fixtures/crustdata/person_enrich_*.json", 1), ("fixtures/crustdata/person_enrich/*.json", 1),
-            ("cache/crustdata/person_enrich/*.json", 1)]
+    pats = [("fixtures/crustdata/person_search/*.json", 0), ("fixtures/crustdata/person_enrich_*.json", 1),
+            ("fixtures/crustdata/person_enrich/*.json", 1)]
+    if include_cache:
+        pats = [("cache/crustdata/person_search/*.json", 0)] + pats + [("cache/crustdata/person_enrich/*.json", 1)]
     for pat, _ in pats:
         for f in sorted(glob.glob(str(ROOT / pat))):
             try:
@@ -484,8 +487,10 @@ def report(all_cases: list[Case], meta: dict) -> str:
 
 async def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--live", type=int, default=0, help="also pull N people live via person_search + enrich")
-    ap.add_argument("--max-people", type=int, default=0)
+    ap.add_argument("--live", type=int, default=0, help="pull N people live via person_search + enrich and test only them")
+    ap.add_argument("--with-fixtures", action="store_true", help="with --live: also test the committed fixture people")
+    ap.add_argument("--include-cache", action="store_true", help="also test every person in the local cache/ (can be thousands)")
+    ap.add_argument("--max-people", type=int, default=150, help="hard cap on people tested (seeded sample); 0 = no cap")
     ap.add_argument("--today", default=None)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--concurrency", type=int, default=8)
@@ -499,15 +504,17 @@ async def main() -> None:
     if mode != "replay" or a.live:
         from app.crustdata.client import CrustdataClient
         client = CrustdataClient(mode=mode if mode != "replay" else "cache")
-    people = fixture_people()
+    people = {} if a.live and not a.with_fixtures else fixture_people(a.include_cache)
     if a.live and client:
         got = await live_people(client, a.live)
-        print(f"live: {len(got)} people enriched")
+        print(f"live: {len(got)} people enriched", flush=True)
         people.update(got)
-    if a.max_people:
-        people = dict(list(people.items())[: a.max_people])
-
     rng = random.Random(a.seed)
+    if a.max_people and len(people) > a.max_people:
+        keep = set(rng.sample(sorted(people), a.max_people))
+        people = {k: v for k, v in people.items() if k in keep}
+        print(f"capped to {a.max_people} people (--max-people)", flush=True)
+
     sem = asyncio.Semaphore(a.concurrency)
     cases = make_cases(people, today, rng) + tamper_cases(people) + await sourced_cases(people, today, client, sem)
     print(f"{len(cases)} cases over {len(people)} people", flush=True)
