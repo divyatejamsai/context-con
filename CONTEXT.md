@@ -91,6 +91,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:37 | **Standing approval: push fixtures/recordings whenever** (incl. real-person data to the public repo); no need to ask again | User: "you can push whenever man" | dummyanaxes |
 | ~11:41 | UI look changed again: Sourced dark theme replaced by neo-brutalist bento | User wanted it more creative; the earlier look read as default GitHub | dummyanaxes (via WS4) |
 | ~11:31 | Thin shortlists: show 30-39 scorers as "near misses" instead of lowering the 40 bar | Keeps the bar honest while still showing options | WS2 |
 | ~11:25 | **Correction: no pivot.** Build **all four agent-infra ideas (1 Agent Passport, 2 Send Guard, 3 AI employee manager, 4 hash-chained ledger) in parallel with Hiring.** Sourced/Hiring work continues in full. There is no go/no-go switch | User: "I wanna do 1,2,3,4 and still keep the hiring too and not pivot it" | dummyanaxes |
@@ -114,6 +115,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~11:43 | Countersign WS6 (Passport + ledger, `claude/project-thread-icv883` 547293c, not on main yet): beyond the 5 fixture scenarios, a real sponsor found via Person Search (Razorpay's Head of Talent Acquisition) got **allow** on `outreach.hiring` (7 live calls, 0 errors). Send Guard and the AI-employee console are being built on top of this branch |
 | ~11:42 | **Send Guard (branch `claude/project-thread-gz8tzg`, 94e9eb1) verified live** (real Gemini claim extraction + Crustdata): 5/5 demo cases right. Clean outreach ALLOW. False tenure claim BLOCK. Recipient already left BLOCK. Sponsor left BLOCK. Body altered after signing BLOCK (signature invalid). 84 tests pass. **Live eval round 5 (1986396): 63/63, 36s**, near misses now shown (B2 4, B4 5). Passport and Guard live recordings are saved on the Mac, waiting on the user's OK to push (public repo, real people) |
 | ~11:41 | Merged: **WS4 UI restyled as neo-brutalist bento** (PR #4, user asked for "more creative"): Bricolage Grotesque, ink borders, hard shadows, colour semantics (lime verified, coral contradicted, yellow selected, lavender citations). Shortlist, collapsed Near misses, greyed Below the bar. Export covers the shortlist only. Build passes. **WS2 7f9d78b:** domain-like employer names are identified by domain, and fuzzy identify results that don't match the employer are ignored (root cause of Tech Mahindra attached to nvme-z.tech) |
 | ~11:39 | WS3 merged 3d96653, fixing eval-r4 items 1-5: negated preferences ("not big tech", "no startups") become weaknesses. Domain evidence is split into direct and inferred, with reduced credit for inferred-only. Company-preference reasons collapse to one per claim. Mismatched company records are rejected and refetched by the job's id. The years-in-role bonus counts only roles sharing the role's distinctive word and skips freelance/intern |
