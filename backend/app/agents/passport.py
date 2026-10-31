@@ -133,38 +133,64 @@ def signature_valid(p: Passport) -> bool:
 # ----------------------------------------------------------------------------- authority rules
 
 # Which current titles may delegate which scope. Matched on expanded title tokens / phrases.
-_FOUNDER = r"\b(founder|co ?founder|ceo|chief executive|owner|managing director|partner)\b"
+_FOUNDER = (r"\b(founder|co ?founder|cofounder|ceo|chief executive|managing director|managing partner|general partner|founding partner"
+            r"|business owner|proprietor|proprietaire|fondateur|fundador|grunder|geschaftsfuhrer\w*|directeur general|prokurist)\b|^owner$")
+_CXO = (r"\bchief (executive|operating|financial|technology|technical|product|revenue|commercial|business|legal|people|human resources"
+        r"|marketing|information|strategy|growth|data|security|risk|compliance|investment|digital)( and \w+)? officer\b")
+_FINANCE_LEAD = (r"\b(cfo|chief financial|financial controller|finance controller|controller|treasurer|comptroller|directeur financier"
+                 r"|director financiero|diretor financeiro|finanzvorstand)\b"
+                 r"|\b(head|director|vice president|vp|svp|evp|manager|lead|officer|partner)\b( of)? (corporate )?financ\w*"
+                 r"|\bfinanc\w* (director|manager|controller|head|lead|officer)\b")
 SCOPE_RULES: dict[str, tuple[str, str]] = {
-    "outreach.hiring": (_FOUNDER + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)|cto|chief"
-                        r"|vice president|director|head|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
+    "outreach.hiring": (_FOUNDER + "|" + _CXO + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)"
+                        r"|vice president|director|head of|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
                         "talent/HR, an engineering manager or above, or a founder"),
-    "outreach.sales": (_FOUNDER + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager|partnerships|vertrieb|verkauf|vermittler|broker"
-                       r"|vice president|director|head|chief)\b", "sales/BD/marketing, a director or above, or a founder"),
+    "outreach.sales": (_FOUNDER + "|" + _CXO + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager"
+                       r"|partnerships|gtm|vertrieb|verkauf|vermittler|broker|vice president|director|head of)\b",
+                       "sales/BD/marketing, a director or above, or a founder"),
     "data.read": (r".", "any current employee"),
-    "contract.sign": (_FOUNDER + r"|\b(chief \w+ officer|cto|cfo|coo|vice president|director|head|general counsel|legal)\b",
-                      "a founder, CXO, VP, director/head or legal"),
-    "payment.send": (_FOUNDER + r"|\b(cfo|chief financial|finance|controller|treasur\w*)\b", "a founder, the CFO or finance"),
+    "contract.sign": (_FOUNDER + "|" + _CXO + r"|\b(vice president|director|head of|general counsel|legal counsel|head of legal)\b",
+                      "a founder, a CXO, a VP, a director/head or legal"),
+    "payment.send": (_FOUNDER + "|" + _FINANCE_LEAD, "a founder, the CFO or a finance lead"),
 }
 
 
-# A role containing these works FOR the powerful person, or used to be them: "Executive Assistant to the CFO",
-# "Intern, Office of the CEO", "Ex-CFO", "Chief of Staff to CFO". It never carries that person's authority.
-SUBORDINATE = re.compile(r"\b(assistant|intern|internship|trainee|apprentice|former|ex|retired|chief of staff|office of|s office|to)\b")
+# Anywhere in a title, these mean the person works FOR the powerful one, is learning to be them, or used to be them:
+# "Executive Assistant to CEO & CFO", "Finance & Tax Intern", "Ex-CFO", "Aspiring CFO", "Founder (2015-2019)".
+# Such a title carries no authority beyond reading data, however the roles are joined.
+SUBORDINATE = re.compile(
+    r"\b(assistant|asst|assistente|asistente|assistante|secretary|secretaire|intern|internship|trainee|apprentice|stagiaire"
+    r"|praktikant\w*|werkstudent\w*|student|graduate program|former|ex|retired|exited|aspiring|future|in training|shadowing"
+    r"|mentee|supporting|working with|seeking|enthusiast|volunteer|chief of staff|office of|s office|office coordinator"
+    r"|s ea|to|non executive|board|advisor|adviser|advisory)\b"
+    r"|\b(19|20)\d\d (19|20)\d\d\b|\b(19|20)\d\d present\b")
 
 
-_GRANT_SPLIT = re.compile(r"\s+(?:and|&)\s+|\s*[|;]\s*", re.I)  # coarser than _ROLE_SPLIT: "Manager - IT - Engineering" is one role
+def clean_title(title: str | None) -> str:
+    """NFKC (fullwidth/compat letters), drop zero-width chars and accents, lowercase, expand abbreviations."""
+    import unicodedata
+    t = unicodedata.normalize("NFKC", title or "")
+    t = re.sub(r"[​-‏⁠﻿]", "", t)
+    t = "".join(ch for ch in unicodedata.normalize("NFKD", t) if not unicodedata.combining(ch))
+    t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower())
+    t = re.sub(r"\bex[\s.\-‐-―]+(?=\w)", "ex ", t)
+    return expand_title(" ".join(_ROLE_ABBREV.get(w, w) for w in norm(t).split()))
+
+
+def is_subordinate(title: str | None) -> bool:
+    return bool(SUBORDINATE.search(clean_title(title)))
 
 
 def can_grant(title: str | None, scope: str) -> bool:
-    """True if some role in the title carries the authority. Roles are judged one at a time (split on and/&/|),
-    and a subordinate role ("assistant to the CFO") never counts, even though it names a CFO."""
-    if not title or scope not in SCOPE_RULES:
+    """True if some role in the title carries the authority. A subordinate title ("assistant to the CFO",
+    "Finance & Tax Intern") never does, whatever it names, because the veto reads the whole title before any split."""
+    if not title or not title.strip() or scope not in SCOPE_RULES:
         return False
-    for part in _GRANT_SPLIT.split(title):
-        t = expand_title(part)  # keeps word order so phrases like "chief financial" match
-        if t and (scope == "data.read" or not SUBORDINATE.search(t)) and re.search(SCOPE_RULES[scope][0], t):
-            return True
-    return False
+    if scope == "data.read":
+        return True
+    if is_subordinate(title):
+        return False
+    return re.search(SCOPE_RULES[scope][0], clean_title(title)) is not None
 
 
 # ----------------------------------------------------------------------------- verify
@@ -235,7 +261,9 @@ _CHIEF = re.compile(r"\bchief\s+((?:[a-z]+\s+(?:and\s+|&\s+)?){1,3}?)officer\b")
 def _roles(title: str | None) -> list[set[str]]:
     """'COO and Account Executive' -> two roles, compared one at a time so words can't mix across them.
     'Chief X Officer' becomes one atomic term, so CEO never matches CTO or 'COO, Account Executive'."""
-    t = " ".join(_ROLE_ABBREV.get(w, w) for w in re.sub(r"[^a-z0-9&|/;+\-\u2013\u2014 ]+", " ", (title or "").lower()).split())
+    import unicodedata
+    raw = "".join(ch for ch in unicodedata.normalize("NFKD", unicodedata.normalize("NFKC", title or "")) if not unicodedata.combining(ch))
+    t = " ".join(_ROLE_ABBREV.get(w, w) for w in re.sub(r"[^a-z0-9&|/;+\-\u2013\u2014 ]+", " ", raw.lower()).split())
     t = _CHIEF.sub(lambda m: "chief_" + "_".join(_stem(w) for w in re.findall(r"[a-z]+", m.group(1)) if w != "and") + "_officer", t)
     out = []
     for part in _ROLE_SPLIT.split(t):
@@ -250,15 +278,19 @@ def title_matches(claimed: str | None, actual: str | None) -> bool:
     """Every role in the claimed title must fit inside one real role, word for word. Understating ("Director" for
     "Senior Director") passes; any extra or different word ("CEO" for "CTO", or for "COO and Account Executive") fails.
     A title identical to the real one always passes."""
-    if norm(claimed) and norm(claimed) == norm(actual):
+    if clean_title(claimed) and clean_title(claimed) == clean_title(actual):
         return True
+    if is_subordinate(actual) and not is_subordinate(claimed):  # 'CFO' for 'Executive Assistant to CEO & CFO'
+        return False
     c, a = _roles(claimed), _roles(actual)
     # leaving out a rank-changing word isn't understating: "President" for "Vice President", "CFO" for "Former CFO"
     return bool(c and a) and all(any(cr <= ar and (ar & _RANK_WORDS) <= cr for ar in a) for cr in c)
 
 
 _RANK_WORDS = {"vice", "associat", "assistant", "deputy", "former", "ex", "intern", "internship", "traine", "apprentice",
-               "retired", "acting", "to", "offic", "junior"}
+               "retired", "acting", "to", "offic", "junior", "interim", "fractional", "aspiring", "future", "student",
+               "exited", "shadowing", "mentee", "asst", "sub", "board", "non", "volunteer", "honorary", "advisor", "advisory"}
+_RANK_WORDS = {_stem(w) for w in _RANK_WORDS} | _RANK_WORDS
 
 
 def _src(endpoint: str, field: str | None, url: str | None = None) -> Source:
