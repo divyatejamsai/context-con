@@ -197,6 +197,31 @@ async def test_skill_claims_use_skills_headline_and_titles():
 
 
 @pytest.mark.asyncio
+async def test_sender_stack_is_not_a_recipient_skill(monkeypatch):
+    # Live regression: Gemini put the sender's services (Django, AWS, Terraform, Kubernetes) in skills.
+    from app import llm
+    from app.agents import guard as g
+
+    body = ("As a Backend & DevOps Engineer, you understand the complexities of building robust infrastructure. "
+            "Grewon Technologies specializes in building and running backend and cloud infrastructure "
+            "(Python, Django, AWS, Terraform, Kubernetes) for product teams.")
+
+    async def fake_llm(prompt, schema, **kw):
+        return schema(skills=["Python", "Django", "AWS", "Terraform", "Kubernetes"])
+
+    monkeypatch.setattr(llm, "is_mock", lambda: False)
+    monkeypatch.setattr(llm, "generate_json", fake_llm)
+    stated, used_llm = await g.extract_claims(body, "Vinayak")
+    assert used_llm and stated.skills == []
+    async def fake_llm2(prompt, schema, **kw):
+        return schema(skills=["Kubernetes", "AWS"])
+
+    monkeypatch.setattr(llm, "generate_json", fake_llm2)
+    stated, _ = await g.extract_claims("Your experience with Kubernetes stood out. We run on AWS.", "Vinayak")
+    assert stated.skills == ["Kubernetes"]
+
+
+@pytest.mark.asyncio
 async def test_sender_facts_are_not_claims_about_recipient():
     v = await guard("Hi Vinod, I'm the Head of Talent at Grewon, founded in 2019. We're hiring senior engineers.")
     assert v.decision == "allow", [c.model_dump() for c in v.checks]
