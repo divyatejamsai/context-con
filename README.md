@@ -6,7 +6,7 @@ Built at **ContextCon 03 (IIT Bombay x Crustdata x YC)**.
 candidates from Crustdata's people graph. Every claim about every candidate is labelled **Verified / Contradicted /
 Unverifiable**, with its source attached. Outreach is drafted, never sent.
 
-**Agaxes** (agent access) is trust infrastructure for AI employees, and Sourced is employee #1. Each agent gets an Ed25519
+**Agaxes** is trust infrastructure for AI employees, and Sourced is employee #1. Each agent gets an Ed25519
 **passport** tied to a real human sponsor, and Agaxes checks live against Crustdata that the sponsor exists, is
 still employed, and can grant the agent's scopes. **Send Guard** blocks a draft before it goes out if the recipient
 has moved on or the draft makes a false claim. A **payroll check** re-verifies every sponsor and suspends agents whose
