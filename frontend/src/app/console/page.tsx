@@ -3,17 +3,17 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
-  ShieldAlert, ShieldCheck, Users, X,
+  ShieldAlert, ShieldCheck, UserCog, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, api, getAdminToken, setAdminToken, type Agent, type Role, type Scenario, 
-  type Verdict,
+  ApiError, api, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
+  type Verdict, type Workspace,
 } from "./api";
 import {
-  AgentMark, Button, DecisionBadge, EmptyState, PageHead, RuntimeBadge, ScopeChip, StatusPill, TERMS, Term, ago, cardCls,
+  AgentMark, Button, DecisionBadge, EmptyState, PageHead, RuntimeBadge, ScopeChip, StatusPill, TERMS, Term, ago, cardCls, until,
   checkLabel, inputCls,
 } from "./parts";
 import { VerifyView } from "./verify";
@@ -22,16 +22,17 @@ import { LedgerExplorer } from "./ledger";
 import { DemoView } from "./demo";
 import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } from "./agent";
 import { WorkView } from "./work";
+import { MembersView } from "./members";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND, brandText } from "@/lib/brand";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
+type View = "employees" | "work" | "verify" | "guard" | "ledger" | "members" | "demo";
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
-type Group = "Workforce" | "Tools" | "Audit" | "Learn";
-const GROUPS: Group[] = ["Workforce", "Tools", "Audit", "Learn"];
+type Group = "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
+const GROUPS: Group[] = ["Workforce", "Tools", "Audit", "Workspace", "Learn"];
 
 // The sidebar renders this list, grouped. Add a view here and it shows up in the nav.
 // Passport checks and Send Guard live on each agent's page; "Check a passport" is for agents that contact you from outside.
@@ -40,6 +41,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; gr
   { v: "work", label: "Live work", icon: Activity, desc: "Everything your agents are doing right now, and what's waiting for your approval", group: "Workforce" },
   { v: "verify", label: "Check a passport", icon: ShieldCheck, desc: "An agent from another company contacted you? Check whether it can be trusted", group: "Tools" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
+  { v: "members", label: "Members", icon: UserCog, desc: "Who at your company can see and control agents, and their roles", group: "Workspace" },
   { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six agents go through seven situations, with every decision and its source", group: "Learn" },
 ];
 
@@ -56,6 +58,8 @@ export default function Console() {
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
   const [onboarding, setOnboarding] = useState(false);
+  const [ws, setWs] = useState<Workspace | null>(null);
+  const [invites, setInvites] = useState<Enrollment[]>([]);
 
   const setView = (v: View) => {
     setViewState(v);
@@ -69,6 +73,7 @@ export default function Console() {
 
   const refresh = useCallback(async () => {
     const [list, l] = await Promise.all([api.agents(), api.ledger()]);
+    api.enrollments().then(setInvites).catch(() => setInvites([]));
     setAgents(list);
     setChain({ chain_ok: l.chain_ok, first_bad_seq: l.first_bad_seq, count: l.entries.length });
     return list;
@@ -76,6 +81,7 @@ export default function Console() {
 
   const connect = useCallback(() => {
     setMode("loading");
+    api.workspace().then(setWs).catch(() => setWs(null));
     Promise.all([refresh(), api.roles(), api.scenarios().catch(() => [])])
       .then(([, r, s]) => {
         setRoles(r.roles);
@@ -138,8 +144,8 @@ export default function Console() {
       const err = e instanceof ApiError ? e : new ApiError(String(e), 0);
       setFlash(
         err.status === 401
-          ? { tone: "bad", title: "Admin token needed", body: "This backend requires an admin token for changes. Add it with the key button at the top right." }
-          : { tone: "bad", title: err.status === 403 ? "Refused" : "Couldn't do that", body: err.message, verdict: err.verdict },
+          ? { tone: "bad", title: "Log in first", body: "This backend only lets signed-in people (or the admin token, under the key button) make changes." }
+          : { tone: "bad", title: err.status === 403 ? "Your role can't do this" : "Couldn't do that", body: err.message, verdict: err.verdict },
       );
     } finally {
       setBusy(null);
@@ -169,7 +175,7 @@ export default function Console() {
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents.length} />
+      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents.length} ws={ws} />
 
       <div className="min-w-0">
         {mode === "offline" ? (
@@ -186,6 +192,8 @@ export default function Console() {
           <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
         ) : view === "guard" ? (
           <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
+        ) : view === "members" ? (
+          <MembersView ws={ws} />
         ) : view === "demo" ? (
           <DemoView onChanged={refresh} onOpen={setView} />
         ) : view === "ledger" ? (
@@ -259,6 +267,8 @@ export default function Console() {
                 <AgentTable agents={agents} onPick={(id) => openAgent(id)} />
               )}
             </div>
+
+            <Invites invites={invites} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />
           </main>
         )}
       </div>
@@ -319,8 +329,8 @@ function Count({ dot, n, label }: { dot: string; n: number; label: string }) {
 // ---- shell -----------------------------------------------------------------------------------
 
 function Sidebar({
-  view, setView, mode, chain, counts, agents,
-}: { view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: number }) {
+  view, setView, mode, chain, counts, agents, ws,
+}: { view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: number; ws: Workspace | null }) {
   const badge = (v: View) =>
     v === "employees" ? (agents ? String(agents) : undefined) : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
   return (
@@ -360,6 +370,7 @@ function Sidebar({
         >
           <ArrowUpRight className="size-3.5" /> Open {BRAND.agent}
         </Link>
+        {ws && <AccessNote ws={ws} />}
         <div className="mt-2 flex items-center justify-between gap-2 px-1">
           <BackendDot mode={mode} />
           <div className="flex items-center gap-0.5">
@@ -370,6 +381,52 @@ function Sidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+/** How this console is protected, from GET /api/workspace. Open access is called out, because anyone on the network could act. */
+function AccessNote({ ws }: { ws: Workspace }) {
+  if (ws.auth_mode === "open")
+    return (
+      <p
+        className="mt-2 flex items-start gap-1.5 rounded-md border border-flag/30 bg-flag/[0.07] px-2 py-1.5 text-[11.5px] leading-snug text-secondary"
+        title="The backend is running without a login. Start it with AGAXES_REQUIRE_LOGIN=1 (or set an admin token) before real use."
+      >
+        <ShieldAlert className="mt-px size-3.5 shrink-0 text-flag" />
+        <span><b className="font-[590]">Open access.</b> Anyone on this network can control agents.</span>
+      </p>
+    );
+  const who = ws.via === "session" ? `You're ${ws.role === "admin" || ws.role === "owner" ? "an" : "a"} ${ws.role}` : ws.via === "admin_token" ? "Using the admin token" : "Read-only";
+  return (
+    <p className="mt-2 flex items-center gap-1.5 px-2 text-[11.5px] text-muted-foreground" title={ws.auth_mode === "login_required" ? "Everyone must log in, and their role decides what they can do." : "Changes need a login or the admin token. Anyone can read."}>
+      <ShieldCheck className="size-3.5 shrink-0 text-verified" />
+      <span className="truncate">{ws.auth_mode === "login_required" ? "Login required" : "Changes need a login"} · {who}</span>
+    </p>
+  );
+}
+
+/** Outside agents invited with a one-time command that haven't connected yet. */
+function Invites({ invites, onRevoke, busy }: { invites: Enrollment[]; onRevoke: (id: string) => void; busy: string | null }) {
+  const pending = invites.filter((i) => i.status === "pending");
+  if (!pending.length) return null;
+  return (
+    <section className="mt-8">
+      <h3 className="text-[14px] font-[590]">Waiting to connect ({pending.length})</h3>
+      <p className="mt-0.5 text-[12px] text-muted-foreground">Outside agents you invited. Each one gets its passport when it runs its one-time command and proves it holds its own key.</p>
+      <ul className={cn(cardCls, "mt-3 divide-y divide-border")}>
+        {pending.map((i) => (
+          <li key={i.enrollment_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-[510]">{i.name} <span className="font-normal text-muted-foreground">· for {i.sponsor.name}, {i.sponsor.company}</span></span>
+              <span className="block text-[12px] text-muted-foreground">Invited by {i.created_by} {ago(i.created_at)} · command expires {until(i.expires_at)}</span>
+            </span>
+            <Button variant="ghost" onClick={() => onRevoke(i.enrollment_id)} disabled={!!busy}>
+              {busy === `inv:${i.enrollment_id}` ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />} Cancel invite
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

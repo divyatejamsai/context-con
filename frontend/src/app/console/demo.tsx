@@ -3,10 +3,9 @@
 // Every card on this page is an event from that stream: real agents, real Send Guard verdicts, real ledger entries.
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, ChevronDown, FileText, Loader2, Play, RotateCcw, Square, TerminalSquare } from "lucide-react";
-import { API_URL } from "@/lib/stream";
 import type { Source } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { getAdminToken, type AgentStatus, type Check as CheckT, type Scope, type Scorecard, type Sponsor } from "./api";
+import { BASE, getAdminToken, type AgentStatus, type Check as CheckT, type Scope, type Scorecard, type Sponsor } from "./api";
 import { Button, CheckRow, DecisionBadge, RuntimeBadge, ScopeChip, SourceChip, StatusPill, cardCls, checkLabel } from "./parts";
 import { BRAND, brandText } from "@/lib/brand";
 
@@ -101,7 +100,7 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
   autoRef.current = auto;
 
   useEffect(() => {
-    fetch(`${API_URL}/api/demo/beats`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setBeats).catch(() => setError("The demo routes aren't on this backend yet (GET /api/demo/beats failed)."));
+    fetch(`${BASE}/demo/beats`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setBeats).catch(() => setError("The demo routes aren't on this backend yet (GET /api/demo/beats failed)."));
     return () => es.current?.close();
   }, []);
 
@@ -120,7 +119,7 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
     let got = false;
     // EventSource can't send headers, so the admin token (if set) rides as a query param.
     const token = getAdminToken();
-    const src = new EventSource(`${API_URL}/api/demo/run?claude_code=${claudeCode}${token ? `&token=${encodeURIComponent(token)}` : ""}`);
+    const src = new EventSource(`${BASE}/demo/run?claude_code=${claudeCode}${token ? `&token=${encodeURIComponent(token)}` : ""}`);
     es.current = src;
     src.onmessage = (m) => {
       got = true;
