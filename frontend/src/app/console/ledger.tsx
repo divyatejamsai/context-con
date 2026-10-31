@@ -1,10 +1,10 @@
 "use client";
 import { brandText } from "@/lib/brand";
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, FileClock, Loader2, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
+import { CheckCircle2, Download, FileClock, Loader2, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api, type Agent, type LedgerEntry, type LedgerView, type Scope } from "./api";
-import { Button, DecisionBadge, EmptyState, PageHead, ScopeChip, SourceChip, cardCls, inputCls } from "./parts";
+import { Button, DecisionBadge, EmptyState, PageHead, ScopeChip, SourceChip, cardCls, inputCls, plain } from "./parts";
 
 const KIND_LABEL: Record<string, string> = {
   "passport.issued": "Passport issued",
@@ -24,6 +24,28 @@ const KIND_LABEL: Record<string, string> = {
   "run.started": "Hiring run started",
   "run.finished": "Hiring run finished",
   "resume.verified": "Resume checked",
+  "agent.enrollment_created": "Outside agent invited",
+  "agent.enrollment_revoked": "Invite cancelled",
+  "agent.enrolled": "Outside agent connected with its own key",
+  "agent.paused": "Paused",
+  "agent.resumed": "Resumed",
+  "passport.key_rotated": "Signing key rotated",
+  "ledger.exported": "Audit log exported",
+  "workspace.role_changed": "Member's role changed",
+  "workspace.member_removed": "Member removed",
+  "task.assigned": "Task assigned",
+  "task.started": "Task started",
+  "task.retry": "Task retried",
+  "task.interrupted": "Task interrupted",
+  "runtime.approval": "Send approval decided",
+  "runtime.payroll": "Payroll run",
+  "runtime.policy": "Policy changed",
+  "runtime.schedule": "Schedule changed",
+  "message.sent": "Message sent",
+  "message.reply": "Reply received",
+  "message.status": "Message status",
+  "campaign.started": "Campaign started",
+  "offer.signed": "Offer signed",
 };
 
 const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work filed: ${k.slice(5).replace(/_/g, " ")}` : k);
@@ -102,11 +124,17 @@ async function sha256(s: string): Promise<string> {
 /** First seq whose hash or link doesn't hold, or null if the whole chain checks out. */
 async function verifyInBrowser(raw: string): Promise<number | null> {
   const entries = (parseLossless(raw) as { entries: Record<string, unknown>[] }).entries;
+  // A signed-in user sees only their workspace's entries, so there can be gaps. Every entry must hash to itself, and
+  // wherever two shown entries are consecutive (or the first is #0) the link between them must hold.
+  let prevSeq = -1;
   let prev = "0".repeat(64);
   for (let i = 0; i < entries.length; i++) {
     const { hash, ...body } = entries[i];
     const seq = body.seq instanceof Num ? Number(body.seq.raw) : NaN;
-    if (seq !== i || body.prev_hash !== prev || (await sha256(canonical(body))) !== hash) return Number.isNaN(seq) ? i : seq;
+    const linked = seq === prevSeq + 1;
+    if (Number.isNaN(seq) || seq <= prevSeq || (linked && body.prev_hash !== prev) || (await sha256(canonical(body))) !== hash)
+      return Number.isNaN(seq) ? i : seq;
+    prevSeq = seq;
     prev = hash as string;
   }
   return null;
@@ -168,8 +196,16 @@ export function LedgerExplorer({
         reordering any line breaks the chain from that point on, and both checks below turn red.
       </PageHead>
 
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-strong px-4 py-3">
+        <p className="min-w-0 text-[12.5px] leading-relaxed text-muted-foreground">
+          <b className="font-[590] text-foreground">Hand it to an auditor.</b> The JSONL file is signed and can be checked offline with
+          {" "}<code className="font-mono text-[11.5px]">scripts/verify_export.py</code>. The CSV is the same entries for a spreadsheet.
+        </p>
+        <ExportButtons agentId={agentId || undefined} />
+      </div>
+
       {view && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Integrity label="Server check" detail="The backend re-hashed every entry (verify_chain)." bad={view.chain_ok ? null : view.first_bad_seq} />
           <Integrity label="Browser check" detail="This page re-hashed every entry itself, so you don't have to trust the server." bad={browserBad} />
         </div>
@@ -215,6 +251,35 @@ export function LedgerExplorer({
         )}
       </div>
     </main>
+  );
+}
+
+/** Downloads the signed audit export (GET /api/ledger/export). Filtered to one agent when agentId is set. */
+export function ExportButtons({ agentId }: { agentId?: string }) {
+  const [busy, setBusy] = useState<"jsonl" | "csv" | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const run = async (f: "jsonl" | "csv") => {
+    setBusy(f);
+    setMsg(null);
+    try {
+      const name = await api.exportLedger(f, agentId);
+      setMsg({ ok: true, text: `Saved ${name}` });
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      {msg && <span className={cn("text-[11.5px]", msg.ok ? "text-verified" : "text-contradicted")}>{msg.text}</span>}
+      <Button onClick={() => run("jsonl")} disabled={!!busy} title="Signed manifest plus every entry, exactly as stored. This is the evidence.">
+        {busy === "jsonl" ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Export audit log
+      </Button>
+      <Button variant="ghost" onClick={() => run("csv")} disabled={!!busy} title="One row per entry, for a spreadsheet">
+        {busy === "csv" ? <Loader2 className="size-3.5 animate-spin" /> : null} CSV
+      </Button>
+    </span>
   );
 }
 
@@ -268,7 +333,11 @@ export function LedgerTimeline({
               <span className="ml-auto text-[11px] text-faint">{new Date(e.ts).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
             </div>
             {recipient && <p className="mt-0.5 text-[12.5px] text-secondary">to {recipient.name} at {recipient.company}</p>}
-            {p.reason && <p className="mt-0.5 text-[12.5px] text-secondary">{p.reason}</p>}
+            {p.reason && <p className="mt-0.5 text-[12.5px] text-secondary">{plain(p.reason)}</p>}
+            {e.actor?.email && (
+              <p className="mt-0.5 text-[11.5px] text-muted-foreground">by {e.actor.email}{e.actor.role ? ` (${e.actor.role})` : ""} via login</p>
+            )}
+            {e.actor && !e.actor.email && e.actor.via === "admin_token" && <p className="mt-0.5 text-[11.5px] text-muted-foreground">by the admin token</p>}
             {p.notes && <p className="mt-0.5 text-[12.5px] text-secondary">{p.notes}</p>}
             {e.kind.startsWith("work.") && p.summary && (
               <p className="mt-0.5 text-[12.5px] text-secondary">
