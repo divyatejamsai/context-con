@@ -94,7 +94,9 @@ class ErrorEvent(BaseModel):
 class RunSummary(BaseModel):
     searched: int = 0
     enriched: int = 0
-    shortlisted: int = 0
+    shortlisted: int = 0  # candidates scoring >= SHORTLIST_MIN
+    elapsed_ms: int = 0
+    timings_ms: dict[str, int] = Field(default_factory=dict)  # per step: parse, search, enrich_batch, candidates
 
 
 class DoneEvent(BaseModel):

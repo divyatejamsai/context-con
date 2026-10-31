@@ -9,10 +9,11 @@ import asyncio
 import logging
 import os
 import re
+import time
 from collections.abc import AsyncIterator
 
 from . import people
-from .brief import broaden_ladder, parse_brief
+from .brief import analyze_brief, broaden_ladder, clean_term
 from .fallbacks import DevCrustdataClient, basic_rank, basic_verify
 from .outreach import draft_outreach
 from .schemas import (Candidate, CandidateEvent, Claim, Criteria, DoneEvent, ErrorEvent, Event, Reason,
@@ -25,6 +26,7 @@ MIN_POOL = int(os.getenv("MIN_POOL", "3"))          # broaden the search while t
 MAX_ENRICH = int(os.getenv("MAX_ENRICH", "10"))      # how many candidates get the full enrich/verify/rank treatment
 CONCURRENCY = int(os.getenv("PIPELINE_CONCURRENCY", "5"))
 CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
+SHORTLIST_MIN = int(os.getenv("SHORTLIST_MIN", "40"))  # below this a candidate is shown but not shortlisted
 
 
 # ---- pluggable parts (WS1 / WS3), with fallbacks so the pipeline always runs --------------------
@@ -107,17 +109,18 @@ async def person_search(client, simple: dict) -> list[dict]:
     return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS)
 
 
-_FILLER = re.compile(r"\b(experience|exp|background|knowledge|expertise|strong|solid|deep|in|with|of)\b", re.I)
-
-
 def domain_terms(c: Criteria, n: int = 3) -> list[str]:
     """Short domain keywords from must-haves + skills ("payments experience" -> "payments")."""
     out: list[str] = []
     for raw in c.must_haves + c.skills:
-        t = re.sub(r"\s+", " ", _FILLER.sub(" ", raw or "")).strip(" ,.-").lower()
+        t = clean_term(raw)
         if t and len(t) <= 30 and t not in out:
             out.append(t)
     return out[:n]
+
+
+def _ms(t: float) -> int:
+    return int((time.monotonic() - t) * 1000)
 
 
 def _key(p: dict) -> str:
@@ -258,14 +261,17 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
         location=people.location(person), profile_url=people.profile_url(person),
         score=int(score), reasons=reasons, claims=claims, flags=flags,
     )
-    await stage("outreach", "Drafting outreach (drafts only, never sent)...")
-    cand.outreach_draft = await draft_outreach(cand, criteria)
+    if cand.score >= SHORTLIST_MIN:  # drafts only for people we'd actually contact
+        await stage("outreach", "Drafting outreach for shortlisted candidates (drafts only, never sent)...")
+        cand.outreach_draft = await draft_outreach(cand, criteria)
     return cand
 
 
 async def run(brief: str, client=None) -> AsyncIterator[Event]:
     queue: asyncio.Queue = asyncio.Queue()
     summary = RunSummary()
+    timings: dict[str, int] = {}
+    started = time.monotonic()
     _END = object()
 
     async def emit(ev: Event):
@@ -278,20 +284,32 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 await emit(ErrorEvent(step="parse", message="Empty brief: describe the role you're hiring for"))
                 return
             await emit(StepEvent(step="parse", message="Reading the brief..."))
-            criteria = await parse_brief(brief)
+            t = time.monotonic()
+            analysis = await analyze_brief(brief)
+            criteria = analysis.criteria
+            timings["parse"] = _ms(t)
+            if not analysis.is_hiring:
+                await emit(ErrorEvent(step="parse", message="This doesn't look like a hiring brief. Describe the role "
+                                                            "you're hiring for (title, location, must-haves)."))
+                return
             await emit(StepEvent(
                 step="parse",
                 message=f"Looking for {criteria.role}"
                         + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
-                        + f" ({len(criteria.title_variants)} title variants)",
-                data={"criteria": criteria.model_dump()}))
+                        + f" ({len(criteria.title_variants)} title variants: {', '.join(criteria.title_variants)})",
+                data={"criteria": criteria.model_dump(), "assumptions": analysis.assumptions}))
+            if analysis.assumptions:
+                await emit(StepEvent(step="parse", message="Assumptions: " + "; ".join(analysis.assumptions),
+                                     data={"assumptions": analysis.assumptions}))
 
             if client is None:
                 client, note = make_client()
                 if note:
                     await emit(ErrorEvent(step="search", message=note))
 
+            t = time.monotonic()
             pool = await search_pool(client, criteria, emit)
+            timings["search"] = _ms(t)
             summary.searched = len(pool)
             if not pool:
                 await emit(ErrorEvent(step="search", message="No matching profiles even after broadening the search"))
@@ -302,6 +320,7 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                                  data={"count": len(chosen)}))
             verify, rank = _load_verifier(), _load_ranker()
             pre = None
+            t = time.monotonic()
             if hasattr(client, "person_enrich_many"):
                 # one batched call: Person Enrich allows only 15 requests/min
                 urls = [u for u in (people.profile_url(p) for p in chosen) if u]
@@ -310,6 +329,8 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 except Exception as e:
                     await emit(ErrorEvent(step="enrich", message=f"Batch Person Enrich failed ({type(e).__name__}); using search data"))
                     pre = {u: None for u in urls}
+            timings["enrich_batch"] = _ms(t)
+            t = time.monotonic()
             sem = asyncio.Semaphore(CONCURRENCY)
             seen_steps: set = set()
             done: list[Candidate] = []
@@ -331,12 +352,18 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                     await emit(CandidateEvent(candidate=cand))
 
             await asyncio.gather(*(one(i, p) for i, p in enumerate(chosen)))
+            timings["candidates"] = _ms(t)
             summary.enriched = len(done)
             ranked = sorted(done, key=lambda c: c.score, reverse=True)
-            summary.shortlisted = len(ranked)
+            shortlist = [c for c in ranked if c.score >= SHORTLIST_MIN]
+            summary.shortlisted = len(shortlist)
             if ranked:
-                await emit(StepEvent(step="rank", message=f"Shortlist ready: {len(ranked)} candidates, top match {ranked[0].name} ({ranked[0].score})",
-                                     data={"order": [c.id for c in ranked]}))
+                top = f", top match {ranked[0].name} ({ranked[0].score})"
+                msg = (f"Shortlist ready: {len(shortlist)} of {len(ranked)} candidates score {SHORTLIST_MIN}+{top}"
+                       if shortlist else f"No candidate scored {SHORTLIST_MIN}+; showing the {len(ranked)} closest{top}")
+                await emit(StepEvent(step="rank", message=msg,
+                                     data={"order": [c.id for c in ranked], "shortlist": [c.id for c in shortlist],
+                                           "threshold": SHORTLIST_MIN}))
         except Exception as e:
             log.exception("run failed")
             await emit(ErrorEvent(message=f"Run failed: {type(e).__name__}: {e}"))
@@ -350,6 +377,8 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
             if ev is _END:
                 break
             yield ev
+        summary.timings_ms = timings
+        summary.elapsed_ms = _ms(started)
         yield DoneEvent(summary=summary)
     finally:
         if not task.done():

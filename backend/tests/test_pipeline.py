@@ -199,3 +199,56 @@ def test_domain_match_is_prescored_first():
     a = {"title": "Backend Engineer"}
     b = {"title": "Backend Engineer", "_domain_match": True}
     assert prescore(b, c) > prescore(a, c)
+
+
+def test_non_hiring_text_stops_cleanly():
+    evs = collect("what's the weather in Mumbai")
+    assert not any(e.type == "candidate" for e in evs)
+    assert any(e.type == "error" and "hiring brief" in e.message for e in evs)
+    assert evs[-1].type == "done" and evs[-1].summary.shortlisted == 0
+
+
+def test_vague_brief_shows_assumptions():
+    evs = collect("someone good at ML for our team")
+    msgs = [e.message for e in evs if e.type == "step" and e.step == "parse"]
+    assert any(m.startswith("Assumptions:") and "No location given" in m for m in msgs)
+
+
+def test_broaden_widens_city_to_country_before_dropping():
+    c = heuristic_parse("staff rust engineer in pune")
+    steps = [d for d, _ in broaden_ladder(c)]
+    i = next(i for i, d in enumerate(steps) if d.startswith("widened"))
+    assert "India" in steps[i] and i < steps.index("dropped location")
+
+
+def test_shortlist_threshold_and_timings(monkeypatch):
+    import app.orchestrator as o
+    monkeypatch.setattr(o, "SHORTLIST_MIN", 101)
+    evs = collect("senior backend engineer bangalore payments")
+    cands = [e.candidate for e in evs if e.type == "candidate"]
+    assert cands and all(c.outreach_draft is None for c in cands)
+    s = evs[-1].summary
+    assert s.shortlisted == 0 and s.elapsed_ms >= 0 and "search" in s.timings_ms
+
+
+def test_series_stage_heuristic():
+    c = heuristic_parse("lookin for a foundng AE, sereis A-B stage companies ideally")
+    assert any("Series A-B" in p for p in c.company_preferences)
+
+
+def test_enforce_seniority_and_normalise_terms():
+    from app.brief import enforce_seniority, normalise_terms
+    c = Criteria(role="Backend Engineer", seniority="senior",
+                 title_variants=["Backend Engineer", "SDE II", "SDE III", "API Engineer", "Staff Engineer"],
+                 skills=["Payments", "Python"], must_haves=["Payments experience", "knowledge of Kafka"])
+    c = enforce_seniority(normalise_terms(c))
+    assert c.role == "Senior Backend Engineer"
+    assert "SDE II" not in c.title_variants and "SDE III" in c.title_variants
+    assert "Senior API Engineer" in c.title_variants and "Staff Engineer" in c.title_variants
+    assert c.must_haves == ["kafka"]
+
+
+def test_outreach_template_signs_with_placeholder():
+    from app.outreach import template_draft
+    c = Candidate(id="c1", name="Ananya Rao", title="Engineer", company="X")
+    assert template_draft(c, Criteria(role="Engineer")).endswith("[Your name]")
