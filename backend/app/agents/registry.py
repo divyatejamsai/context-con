@@ -28,6 +28,7 @@ from typing import Any, Literal
 
 from . import guard, ledger, passport as pp
 from .graph import Graph
+from ..crustdata.client import provider_status
 from .models import SCOPES, Passport, Scope, Sponsor, Verdict
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -256,7 +257,8 @@ def private_key(agent_id: str) -> bytes:
 
 
 async def recheck(agent_id: str, client) -> Verdict:
-    """Live check of one agent. Fail suspends it; a pass never lifts a suspension (that's reinstate's job)."""
+    """Live check of one agent. Fail (or unverifiable) suspends it, except when Crustdata is out of credits; a pass never
+    lifts a suspension (that's reinstate's job)."""
     with _lock:
         rec = _get(_load(), agent_id)
     if rec["status"] == "offboarded":
@@ -266,7 +268,11 @@ async def recheck(agent_id: str, client) -> Verdict:
         agents = _load()
         rec = _get(agents, agent_id)
         _record_check(rec, v)
-        if v.decision == "block" and rec["status"] == "active":
+        # Fail closed: an unverifiable check suspends too. The one exception is our own data provider being out of
+        # credits: that says nothing about the agent, so a check that only couldn't run leaves it as it is (its sends
+        # still fail closed at the guard until the key is topped up).
+        billing_outage = provider_status()["out_of_credits"] and not any(c.status == "fail" for c in v.checks)
+        if v.decision == "block" and rec["status"] == "active" and not billing_outage:
             _suspend(rec, _first_failure(v), by="payroll", sources=_sources(v))
         _save(agents)
     return v

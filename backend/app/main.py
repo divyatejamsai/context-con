@@ -26,7 +26,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
@@ -38,6 +38,7 @@ from .schemas import RunRequest  # noqa: E402
 from .agents.api import router as agents_router  # noqa: E402  (Agaxes, docs/COUNTERSIGN.md)
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
+from .crustdata import OUT_OF_CREDITS, OutOfCredits, provider_status  # noqa: E402
 from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
 from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
@@ -58,6 +59,12 @@ app.include_router(auth_router)
 app.include_router(members_router)
 app.include_router(platform_router)
 app.include_router(talent_router)
+
+
+@app.exception_handler(OutOfCredits)
+async def _out_of_credits(_request, exc: OutOfCredits):
+    """Anywhere a Crustdata 402 escapes a route, the console gets one clear message instead of a 500."""
+    return JSONResponse({"detail": OUT_OF_CREDITS, "code": "out_of_credits"}, status_code=402)
 
 
 @app.on_event("startup")
@@ -93,7 +100,8 @@ async def _stream(brief: str):
 async def health():
     from .accounts.authz import mode as auth_mode
     return {"ok": True, "llm_mode": llm.mode(), "crustdata_mode": os.getenv("CRUSTDATA_MODE", "live"),
-            "crustdata_key": bool(os.getenv("CRUSTDATA_API_KEY")), "auth_mode": auth_mode()}
+            "crustdata_key": bool(os.getenv("CRUSTDATA_API_KEY")), "auth_mode": auth_mode(),
+            "crustdata": provider_status()}
 
 
 @app.post("/api/run")

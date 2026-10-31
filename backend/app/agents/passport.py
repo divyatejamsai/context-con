@@ -455,7 +455,7 @@ async def verify_passport(p: Passport, client: Any = None, scope: Scope | None =
     try:
         person = await asyncio.wait_for(graph.person(s.profile_url), LOOKUP_TIMEOUT_S)
     except Exception as e:  # noqa: BLE001 - fail closed
-        add("sponsor_exists", "unverifiable", f"Crustdata lookup failed ({type(e).__name__}); cannot confirm the sponsor", _src("person/enrich", None, s.profile_url))
+        add("sponsor_exists", "unverifiable", f"{_lookup_failed(e)}; cannot confirm the sponsor", _src("person/enrich", None, s.profile_url))
 
     if person is None and not any(c.name == "sponsor_exists" for c in checks):
         add("sponsor_exists", "unverifiable" if graph.offline else "fail",
@@ -525,7 +525,7 @@ async def _domain_via_identify(graph: Graph, s: Sponsor, add) -> None:
     try:
         co = await asyncio.wait_for(graph.company_by_domain(s.company_domain), LOOKUP_TIMEOUT_S)
     except Exception as e:  # noqa: BLE001
-        add("domain_matches_company", "unverifiable", f"Company Identify failed ({type(e).__name__})", _src("company/identify", None))
+        add("domain_matches_company", "unverifiable", f"Company Identify: {_lookup_failed(e)}", _src("company/identify", None))
         return
     info = (co or {}).get("basic_info") or {}
     if not co:
@@ -535,6 +535,12 @@ async def _domain_via_identify(graph: Graph, s: Sponsor, add) -> None:
     add("domain_matches_company", "pass" if ok else "fail",
         f"{s.company_domain} belongs to {info.get('name')}" if ok else f"{s.company_domain} belongs to {info.get('name')}, not {s.company}",
         _src("company/identify", "basic_info.name"))
+
+
+def _lookup_failed(e: Exception) -> str:
+    if getattr(e, "status", None) == 402 or type(e).__name__ == "OutOfCredits":
+        return "Data provider out of credits (Crustdata 402)"
+    return f"Crustdata lookup failed ({type(e).__name__})"
 
 
 def revoke(agent_id: str, reason: str, sources: list[Source] | None = None) -> str:

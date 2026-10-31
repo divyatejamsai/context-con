@@ -412,7 +412,8 @@ export interface Schedule {
 
 export interface RuntimeState {
   version: number;
-  runtime: { alive: boolean; started_at: string | null; running: number; max_concurrent: number; modes: { crustdata: string; llm: string } };
+  runtime: { alive: boolean; started_at: string | null; running: number; max_concurrent: number; modes: { crustdata: string; llm: string };
+    provider?: { out_of_credits: boolean; since: string | null; endpoint: string | null; message: string | null } };
   totals: { agents: number; working: number; queued: number; done_today: number; failed_today: number; pending_approvals: number; sent_today: number; blocked_today: number };
   agents: LiveAgent[];
   tasks: Task[];
