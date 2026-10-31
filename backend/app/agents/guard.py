@@ -420,10 +420,38 @@ def _ledger_append(verdict: Verdict, passport: Passport, to: dict, scope: str, b
 
 # ---- public API ----------------------------------------------------------------
 
+class UnknownAgent(LookupError):
+    pass
+
+
+def resolve_agent(agent_id: str) -> tuple[Passport, str]:
+    """(passport, registry status) for an onboarded AI employee. The registry holds the passport, so callers send
+    only their agent_id; the private key never leaves the agent (it signs locally with passport.sign_message)."""
+    try:
+        from . import registry  # WS8
+    except ImportError as e:
+        raise UnknownAgent("no AI employee registry in this build; send the passport instead") from e
+    try:
+        rec = registry.get_agent(agent_id)
+    except Exception as e:  # RegistryError: unknown id
+        raise UnknownAgent(str(e)) from e
+    return Passport.model_validate(rec["passport"]), rec.get("status") or "active"
+
+
+def _status_check(status: str | None) -> list[Check]:
+    if status is None:
+        return []
+    ok = status == "active"
+    return [Check(id="g0", name="agent_active", status="pass" if ok else "fail",
+                  detail="Active in the AI employee registry" if ok else f"Registry status is {status}: this agent may not send",
+                  source=Source(endpoint="countersign/registry", field="status"))]
+
+
 async def check_send(passport: Passport | dict, signature: str, to: dict, body: str, scope: Scope,
                      client: CrustdataClient | None = None, *, today: date | None = None,
-                     graph: Graph | None = None) -> Verdict:
-    """Run every pre-send check; allow only if all pass. Never raises on bad data. Records one ledger entry."""
+                     graph: Graph | None = None, agent_status: str | None = None) -> Verdict:
+    """Run every pre-send check; allow only if all pass. Never raises on bad data. Records one ledger entry.
+    agent_status: the registry status when the passport was resolved from an agent_id (anything but active blocks)."""
     today = today or datetime.now(timezone.utc).date()
     graph = graph or Graph(client)
     client = client if client is not None else graph.client
@@ -434,7 +462,7 @@ async def check_send(passport: Passport | dict, signature: str, to: dict, body: 
         verify_passport(passport, client, scope, today=today, graph=graph, record=False),
         _recipient_checks(to, body, graph, client, today),
     )
-    checks = [*pv.checks, _signature_check(passport, body, signature or ""), *r_checks]
+    checks = [*_status_check(agent_status), *pv.checks, _signature_check(passport, body, signature or ""), *r_checks]
     decision = "allow" if checks and all(c.status == "pass" for c in checks) else "block"
     subject = "msg_" + hashlib.sha256(f"{passport.agent_id}\n{body}".encode()).hexdigest()[:12]
     verdict = Verdict(subject=subject, decision=decision, checks=checks)
@@ -449,9 +477,9 @@ def blocking_reasons(v: Verdict) -> list[str]:
 
 async def send_if_allowed(passport: Passport | dict, signature: str, to: dict, body: str, scope: Scope,
                           client: CrustdataClient | None = None, *, today: date | None = None,
-                          graph: Graph | None = None) -> tuple[Verdict, bool]:
+                          graph: Graph | None = None, agent_status: str | None = None) -> tuple[Verdict, bool]:
     """Guarded "send": on allow, append the message to the outbox file. Nothing leaves the machine."""
-    v = await check_send(passport, signature, to, body, scope, client, today=today, graph=graph)
+    v = await check_send(passport, signature, to, body, scope, client, today=today, graph=graph, agent_status=agent_status)
     if v.decision != "allow":
         return v, False
     agent_id = passport.agent_id if isinstance(passport, Passport) else passport.get("agent_id")

@@ -222,3 +222,52 @@ async def test_sourced_sends_through_mcp_and_false_draft_is_blocked(tmp_path, mo
     assert any("claims_in_body_true" in x for x in results[-1]["not_passing"])
     outbox = (tmp_path / "outbox.jsonl").read_text().splitlines()
     assert len(outbox) == len(cands)
+
+
+@pytest.fixture
+def fake_registry(monkeypatch):
+    """Stand-in for WS8's registry.get_agent (same contract: public record, private key never included)."""
+    import sys
+    import types
+
+    store = {}
+    mod = types.ModuleType("app.agents.registry")
+
+    def get_agent(agent_id):
+        if agent_id not in store:
+            raise ValueError(f"no AI employee with id {agent_id}")
+        return store[agent_id]
+
+    mod.get_agent = get_agent
+    monkeypatch.setitem(sys.modules, "app.agents.registry", mod)
+    return store
+
+
+async def _mcp_call(name, args):
+    import mcp_server
+
+    res = await mcp_server.handle({"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": name, "arguments": args}})
+    return res["result"]["content"][0]["text"], res["result"]["isError"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_by_agent_id_no_key_on_the_wire(fake_registry):
+    import mcp_server
+
+    p, key = agent()
+    fake_registry[p.agent_id] = {"agent_id": p.agent_id, "passport": p.model_dump(), "status": "active"}
+    tools = {t["name"] for t in (await mcp_server.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}))["result"]["tools"]}
+    assert "sign_message" not in tools
+    assert all("agent_private_key" not in json.dumps(t["inputSchema"]) for t in mcp_server.TOOLS)
+    body = "Hi Vinod, your work at Fam caught our eye."
+    args = {"agent_id": p.agent_id, "signature": sign_message(p, key, body), "to": VINOD, "body": body,
+            "scope": "outreach.hiring", "today": TODAY.isoformat()}
+    text, err = await _mcp_call("check_before_send", args)
+    assert not err and text.startswith("ALLOW"), text
+
+    fake_registry[p.agent_id]["status"] = "suspended"
+    text, err = await _mcp_call("check_before_send", args)
+    assert text.startswith("BLOCK") and "agent_active" in text
+
+    text, err = await _mcp_call("check_before_send", {**args, "agent_id": "agt_nope"})
+    assert err and "agt_nope" in text

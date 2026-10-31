@@ -36,7 +36,7 @@ IDENTITY_PATH = Path(os.getenv("SOURCED_IDENTITY_PATH", BACKEND / "data" / "sour
 # ---- identity ------------------------------------------------------------------------------
 
 def identity() -> tuple[Passport, bytes, str]:
-    """(passport, private key, where it came from)."""
+    """(passport, private key, where it came from). The key stays in this process: Sourced signs locally."""
     try:
         from . import registry  # WS8
 
@@ -173,7 +173,8 @@ async def send_all(cands: list[Candidate], *, today: date | None = None, mcp: MC
             if not c.outreach_draft:
                 continue
             to = {"name": c.name, "profile_url": c.profile_url, "company": c.company}
-            args = {"passport": p.model_dump(), "signature": sign_message(p, key, c.outreach_draft), "to": to,
+            who = {"agent_id": p.agent_id} if where == "registry" else {"passport": p.model_dump()}  # never the key
+            args = {**who, "signature": sign_message(p, key, c.outreach_draft), "to": to,
                     "body": c.outreach_draft, "scope": "outreach.hiring"}
             if today:
                 args["today"] = today.isoformat()
