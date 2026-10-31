@@ -7,7 +7,7 @@
 Beats (app/fleet/demo.py): 1 onboard, 2 real work (Pipeline sales, Reference resume checks, Diligence vendor brief),
 3 sponsor left (payroll run suspends Closer, then refuses it), 4 scope refusal (Diligence emails a vendor),
 5 wrong facts (stale CRM row, false tenure), 6 tampering (forged passport, edited ledger copy), 7 Claude Code.
-Every agent reaches Countersign only over the MCP server. Exit 1 if any beat's outcome is wrong.
+Every agent reaches Agaxes only over the MCP server. Exit 1 if any beat's outcome is wrong.
 
 Options: --store DIR (default backend/data, which the console reads), --only work,stale,... (beat ids; onboard always
 runs), --vendor, --leads, --applicants, --today YYYY-MM-DD, --pause SECONDS (between beats, for a live narration),
@@ -54,7 +54,7 @@ def src(c: dict) -> str:
 def show(ev: dict, verbose: bool) -> None:
     t = ev["type"]
     if t == "start":
-        print(f"{B}Countersign fleet demo{END}  store {ev['store']}  "
+        print(f"{B}Agaxes fleet demo{END}  store {ev['store']}  "
               f"CRUSTDATA_MODE={ev['modes']['crustdata']}  LLM_MODE={ev['modes']['llm']}")
     elif t == "beat":
         print(f"\n{B}{'=' * 4} {ev['n']}. {ev['title']} {'=' * max(4, 86 - len(ev['title']))}{END}\n{DIM}{ev['narration']}{END}")

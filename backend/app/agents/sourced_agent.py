@@ -1,7 +1,7 @@
 """Sourced, AI employee #1, sending its outreach through Send Guard over MCP.
 
 Sourced (the hiring pipeline) only drafts. This is the step after it: for each shortlisted candidate, Sourced signs
-its draft with its own passport key and calls the Countersign MCP server's `send_message` tool, the same way any
+its draft with its own passport key and calls the Agaxes MCP server's `send_message` tool, the same way any
 third-party agent would. Allowed drafts land in the outbox; blocked ones come back with cited reasons.
 
     cd backend

@@ -1,4 +1,4 @@
-"""Countersign MCP server (WS7), stdio transport. Any MCP-capable agent calls Send Guard before it sends.
+"""Agaxes MCP server (WS7), stdio transport. Any MCP-capable agent calls Send Guard before it sends.
 
 Run:   cd backend && CRUSTDATA_MODE=replay python mcp_server.py
 Claude Code:  claude mcp add countersign -e CRUSTDATA_MODE=replay -- python /abs/path/backend/mcp_server.py
@@ -46,8 +46,8 @@ from app.schemas import Source  # noqa: E402
 SERVER_INFO = {"name": "countersign", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
 
-_AGENT_ID = {"type": "string", "description": "Your Countersign agent id (agt_...). The server loads your passport."}
-_PASSPORT = {"type": "object", "description": "Only for agents not onboarded here: the Countersign passport JSON."}
+_AGENT_ID = {"type": "string", "description": "Your Agaxes agent id (agt_...). The server loads your passport."}
+_PASSPORT = {"type": "object", "description": "Only for agents not onboarded here: the Agaxes passport JSON."}
 _TO = {
     "type": "object", "description": "Recipient.",
     "properties": {"name": {"type": "string"}, "profile_url": {"type": "string", "description": "LinkedIn URL"},
@@ -66,7 +66,7 @@ _SEND_ARGS = {
 
 TOOLS = [
     {"name": "verify_agent",
-     "description": "Check an agent's passport: Countersign signature, expiry, revocation, and live Crustdata checks that the "
+     "description": "Check an agent's passport: Agaxes signature, expiry, revocation, and live Crustdata checks that the "
                     "human sponsor exists, still works at the company, and holds a title that can grant the scope.",
      "inputSchema": {"type": "object", "properties": {"agent_id": _AGENT_ID, "passport": _PASSPORT, "scope": _SCOPE}}},
     {"name": "check_before_send",
@@ -90,7 +90,7 @@ TOOLS = [
              "endpoint": {"type": "string"}, "field": {"type": "string"}, "url": {"type": "string"}}}}},
          "required": ["agent_id", "signature", "kind", "summary"]}},
     {"name": "ledger_lookup",
-     "description": "Read the tamper-evident Countersign ledger (optionally for one agent) and whether the hash chain is intact.",
+     "description": "Read the tamper-evident Agaxes ledger (optionally for one agent) and whether the hash chain is intact.",
      "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}, "kind": {"type": "string"},
                                                        "limit": {"type": "integer", "default": 50}}}},
 ]
