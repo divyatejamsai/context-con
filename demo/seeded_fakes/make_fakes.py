@@ -128,6 +128,8 @@ def build(person: dict, companies: dict[str, dict], offset: int, today: date):
             return "location", city, f"record location is {pr.location}"
         if kind == "company_stage" and bucket in ("growth", "late", "public", "enterprise"):
             return "company_stage", "Seed-stage startup", f"company record says {cf.stage or bucket}"
+        if kind == "company_stage" and bucket in ("seed", "early"):
+            return "company_stage", "Series D", f"company record says {cf.stage or bucket}"
         return None
 
     order = LIE_ORDER[offset % len(LIE_ORDER):] + LIE_ORDER[:offset % len(LIE_ORDER)]
