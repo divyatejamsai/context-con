@@ -40,8 +40,9 @@ const pct = (x: number | null | undefined) => (x == null ? "–" : `${Math.round
 const secs = (x: number | null | undefined) => (x == null ? "–" : x < 90 ? `${Math.round(x)}s` : `${Math.round(x / 60)}m`);
 const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : e instanceof Error ? e.message : String(e));
 
-export function WorkView({ onChanged }: { onChanged?: () => void }) {
-  const [st, setSt] = useState<RuntimeState | null>(null);
+/** The live work board. With agentId it shows just that agent's work, inside its page, without the fleet-wide parts. */
+export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agentId?: string }) {
+  const [st0, setSt] = useState<RuntimeState | null>(null);
   const [kinds, setKinds] = useState<TaskKind[]>([]);
   const [err, setErr] = useState<string>();
   const [busy, setBusy] = useState<string | null>(null);
@@ -89,9 +90,19 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const st: RuntimeState | null = !st0 || !agentId ? st0 : {
+    ...st0,
+    agents: st0.agents.filter((a) => a.agent_id === agentId),
+    tasks: st0.tasks.filter((t) => t.agent_id === agentId),
+    approvals: { pending: st0.approvals.pending.filter((a) => a.agent_id === agentId), decided: st0.approvals.decided.filter((a) => a.agent_id === agentId) },
+    schedules: st0.schedules.filter((x) => x.agent_id === agentId),
+  };
+  const Wrap = agentId ? "div" : "main";
+  const wrapCls = agentId ? "" : "mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8";
+
   if (!st) {
     return (
-      <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8">
+      <Wrap className={wrapCls}>
         {err ? (
           <EmptyState icon={ShieldAlert} tone="bad" title="Can't reach the agent runtime">{err}</EmptyState>
         ) : (
@@ -99,7 +110,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
             <span className="inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Loading live work…</span>
           </div>
         )}
-      </main>
+      </Wrap>
     );
   }
 
@@ -107,9 +118,9 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
   const outside = st.agents.filter((a) => a.status !== "offboarded" && a.runtime === "external");
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHead title="Work" eyebrow="Live">
+    <Wrap className={wrapCls}>
+      <div className={cn("flex flex-wrap items-start justify-between gap-4", agentId && "hidden")}>
+        <PageHead title="Live work">
           Your AI employees and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
           them mid-task, and set their budgets. Every change is written to the ledger.
         </PageHead>
@@ -133,7 +144,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
         </div>
       )}
 
-      <section className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-4 lg:grid-cols-7">
+      <section className={cn("mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-4 lg:grid-cols-7", agentId && "hidden")}>
         <Kpi label="Working now" value={st.totals.working} />
         <Kpi label="Queued" value={st.totals.queued} />
         <Kpi label="Waiting on you" value={st.totals.pending_approvals} tone={st.totals.pending_approvals ? "warn" : undefined} />
@@ -143,7 +154,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
         <Kpi label="Ledger" value={st.ledger.chain_ok ? "Intact" : `Broken #${st.ledger.first_bad_seq}`} tone={st.ledger.chain_ok ? "ok" : "bad"} />
       </section>
 
-      <section className="mt-7">
+      <section className={agentId ? "" : "mt-7"}>
         <SectionHead title={`Waiting on you (${st.approvals.pending.length})`}>
           Messages Send Guard has already cleared. Nothing leaves until you approve it, and approving runs the guard again
           at send time.
@@ -168,8 +179,8 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
         )}
       </section>
 
-      <section className="mt-8">
-        <SectionHead title="AI employees">Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
+      <section className={cn("mt-8", agentId && "max-w-[460px]")}>
+        <SectionHead title={agentId ? "Right now" : "AI employees"}>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
         {live.length ? (
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {live.map((a) => (
@@ -218,10 +229,10 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
           </div>
         </div>
         <div className="space-y-6">
-          <PayrollCard p={st.payroll} busy={busy}
+          {!agentId && <PayrollCard p={st.payroll} busy={busy}
             onRun={() => act("payroll", () => runtime.runPayroll(), "Payroll run finished")}
             onToggle={() => act("payroll", () => runtime.setPayroll({ enabled: !st.payroll.enabled }))}
-            onEvery={(m) => act("payroll", () => runtime.setPayroll({ every_minutes: m }), `Payroll every ${m} min`)} />
+            onEvery={(m) => act("payroll", () => runtime.setPayroll({ every_minutes: m }), `Payroll every ${m} min`)} />}
           <SchedulesCard schedules={st.schedules} kinds={kinds} busy={busy}
             onToggle={(id) => act(`sch:${id}`, () => runtime.toggleSchedule(id))}
             onDelete={(id) => act(`sch:${id}`, () => runtime.deleteSchedule(id), "Schedule deleted")} />
@@ -241,7 +252,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
         onRetry={(id) => act(`task:${id}`, () => runtime.retry(id), "Queued again")} />
       <PolicySheet agent={st.agents.find((a) => a.agent_id === settingsFor) ?? null} busy={busy} onClose={() => setSettingsFor(null)}
         onSave={(b) => act("policy", () => runtime.policy(settingsFor!, b), "Saved").then((ok) => ok && setSettingsFor(null))} />
-    </main>
+    </Wrap>
   );
 }
 

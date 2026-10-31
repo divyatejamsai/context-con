@@ -23,9 +23,10 @@ interface Result {
 }
 
 /** Draft a message as one of the AI employees and run it through the Send Guard before it can leave. */
-export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSent: () => void; onOnboard: () => void }) {
+export function GuardView({ agents, onSent, onOnboard, lockedAgentId }: { agents: Agent[]; onSent: () => void; onOnboard: () => void; lockedAgentId?: string }) {
   const senders = agents.filter((a) => a.status !== "offboarded");
-  const [agentId, setAgentId] = useState(senders[0]?.agent_id ?? "");
+  const [agentId, setAgentId] = useState(lockedAgentId ?? senders[0]?.agent_id ?? "");
+  const embedded = !!lockedAgentId;
   const [to, setTo] = useState<Recipient>(PEOPLE[0]);
   const [body, setBody] = useState("Hi Vinod, your work on backend systems at Fam caught our eye. Open to a chat about a role?");
   const [scope, setScope] = useState<Scope>("outreach.hiring");
@@ -37,8 +38,11 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
   const [history, setHistory] = useState<LedgerEntry[]>([]);
 
   const loadHistory = useCallback(() => {
-    api.ledger().then((l) => setHistory(l.entries.filter((e) => e.kind === "guard.verdict").reverse().slice(0, 12))).catch(() => {});
-  }, []);
+    api
+      .ledger(lockedAgentId)
+      .then((l) => setHistory(l.entries.filter((e) => e.kind === "guard.verdict" && (!lockedAgentId || (e.payload as { agent_id?: string }).agent_id === lockedAgentId)).reverse().slice(0, 12)))
+      .catch(() => {});
+  }, [lockedAgentId]);
   useEffect(loadHistory, [loadHistory]);
 
   const send = async () => {
@@ -59,8 +63,14 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
   const name = (id: string) => agents.find((a) => a.agent_id === id)?.name ?? id;
 
   return (
-    <main className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6 sm:px-8 sm:py-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className={cn("grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]", !embedded && "mx-auto max-w-[1320px] px-4 py-6 sm:px-8 sm:py-8")}>
       <section className="min-w-0">
+        {embedded ? (
+          <SectionHead title="Try a message">
+            Write what {name(agentId)} would send and to whom. <Term tip={TERMS.guard}>Send Guard</Term> checks its passport, its signature on the text,
+            that the person still works where the message says, and every fact in it. Nothing is emailed.
+          </SectionHead>
+        ) : (<>
         <PageHead title="Check a message before an agent sends it">
           The <Term tip={TERMS.guard}>Send Guard</Term> sits between an agent and the outside world. It checks the agent&apos;s passport, its
           signature on the text, that the recipient still works where the draft says, and every fact about them, in Crustdata. Nothing is
@@ -74,8 +84,9 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
             <>Press <span className="font-[590] text-foreground">Sign and check</span>. Allow means it could go out. Block means it was stopped.</>,
           ]}
         />
+        </>)}
 
-        <div className="mt-5 space-y-4 rounded-xl border border-border-strong bg-panel p-4">
+        <div className={cn("space-y-4 rounded-xl border border-border-strong bg-panel p-4", embedded ? "mt-3" : "mt-5")}>
           {!senders.length && (
             <EmptyState
               icon={Users}
@@ -86,17 +97,17 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
               Only an onboarded AI employee with a passport can sign a draft.
             </EmptyState>
           )}
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
-            <Field label="Sent by">
+          <div className={cn("grid gap-3", !embedded && "sm:grid-cols-[minmax(0,1fr)_200px]")}>
+            {!embedded && <Field label="Sent by">
               <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={inputCls}>
                 {senders.map((a) => (
                   <option key={a.agent_id} value={a.agent_id}>#{a.employee_no} {a.name} · for {a.passport.sponsor.name} ({a.status})</option>
                 ))}
               </select>
-            </Field>
-            <Field label="Permission used">
+            </Field>}
+            <Field label="What kind of message" hint={SCOPE_INFO[scope]?.detail}>
               <select value={scope} onChange={(e) => setScope(e.target.value as Scope)} className={inputCls}>
-                {SCOPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {SCOPES.map((s) => <option key={s} value={s}>{SCOPE_INFO[s].label}</option>)}
               </select>
             </Field>
           </div>
@@ -148,14 +159,17 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
             ))}
           </div>
 
-          <label className="flex items-start gap-2 text-[12.5px] font-[510]">
+          <details className="group rounded-lg border border-border px-3 py-2" open={tamper}>
+          <summary className="cursor-pointer list-none text-[12px] font-[510] text-muted-foreground">Advanced: test a tampered message</summary>
+          <label className="mt-2 flex items-start gap-2 text-[12.5px] font-[510]">
             <input type="checkbox" checked={tamper} onChange={(e) => setTamper(e.target.checked)} className="mt-0.5 accent-[var(--primary)]" />
             <span>
               Simulate tampering
               <span className="block text-[11.5px] font-normal text-muted-foreground">The agent signs the text below, but the draft above is what gets sent. The guard should block it.</span>
             </span>
           </label>
-          {tamper && <textarea value={signed} onChange={(e) => setSigned(e.target.value)} rows={2} className={cn(inputCls, "h-auto py-2")} />}
+          {tamper && <textarea value={signed} onChange={(e) => setSigned(e.target.value)} rows={2} className={cn(inputCls, "mt-2 h-auto py-2")} />}
+          </details>
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -194,7 +208,9 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
         </div>
 
         <div>
-          <SectionHead title="Recent verdicts">The last messages any agent tried to send, read from the ledger.</SectionHead>
+          <SectionHead title={embedded ? `Messages ${name(agentId)} tried to send` : "Recent verdicts"}>
+            {embedded ? "Newest first, from the ledger. Blocked ones never left." : "The last messages any agent tried to send, read from the ledger."}
+          </SectionHead>
           {history.length ? (
             <ul className="mt-2 divide-y divide-border rounded-xl border border-border-strong bg-panel">
               {history.map((e) => {
@@ -219,6 +235,6 @@ export function GuardView({ agents, onSent, onOnboard }: { agents: Agent[]; onSe
           )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
