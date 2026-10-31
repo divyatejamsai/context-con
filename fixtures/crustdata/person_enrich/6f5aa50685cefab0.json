@@ -1,0 +1,210 @@
+{
+  "endpoint": "person/enrich",
+  "request": {
+    "professional_network_profile_urls": [
+      "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+    ],
+    "fields": [
+      "basic_profile",
+      "experience",
+      "education",
+      "skills",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": [
+    {
+      "matched_on": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "Backend Engineer",
+              "first_name": "Charish",
+              "headline": "Engineering @SpotDraft | ex-PharmEasy",
+              "languages": [],
+              "last_name": "Anumukonda",
+              "location": {
+                "city": "Hyderabad",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Hyderabad, Telangana, India",
+                "state": "Telangana"
+              },
+              "name": "Charish Anumukonda",
+              "professional_network_name": "Charish Anumukonda",
+              "profile_picture_permalink": "",
+              "summary": "I am Backend Engineer at Spotdraft working in Python (Django framework).\nInterested in C++,Python,Algorithms,Data structures,ML,AI.\n\nI spend time coding (competitive mostly... from online platforms like gfg,firecode,hackerrank,interviewbit ), Gaming(CS:GO mostly), Chess(Represented my college),Table Tennis."
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Technology - BTech",
+                  "description": "",
+                  "end_year": 2018,
+                  "field_of_study": "Computer Science",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/992fce28dcabbb8ad4864f4dabbe2f5b67af0991214f1a318685eb52ceadd79a.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQHMxoGEoHiGLA/company-logo_400_400/company-logo_400_400/0/1691132180316/manipalacademyofhighereducation_logo?e=1776902400&v=beta&t=8ftRFAuOsW8aVgSCGQM1DbBs95IvH5ngIrfQBinME8I",
+                  "location": {
+                    "city": "Udupi",
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "Madhav Nagar, Manipal",
+                    "state": "Karnataka"
+                  },
+                  "professional_network_id": "15094374",
+                  "school": "Manipal Academy of Higher Education",
+                  "start_year": 2014
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "SpotDraft is on a mission to build the future of how legal works. The way we do that is to make contracts feel a lot less like paperwork and a lot more like progress. Founded by Madhav Bhagat and Shashank Bijapur, SpotDraft reflects the founders’ own cross-continental journeys into law and technology. Shashank trained as a lawyer at Harvard Law School and worked in New York as a corporate lawyer. Madhav, a computer science graduate from Carnegie Mellon University, built his career as a software engineer in the U.S. That combination of a lawyer who lived the pain of contracting and an engineer who knows how to build for scale became the foundation of SpotDraft’s product philosophy. The platform is built for teams working under real pressure. Tight timelines, real risk, and real business impact. Its AI supports legal judgment, not replaces it, helping teams draft faster, review smarter, surface key clauses and obligations, and free up time to focus on what truly matters: advising the business, shaping decisions, managing risk with confidence, and collaborating better as true business enablers.But SpotDraft isn’t only for legal teams. Sales, procurement, HR, finance, and operations all work inside the same contract ecosystem; so collaboration becomes simpler, handoffs become cleaner, and deals move without friction. Everyone stays aligned, without needing another tool or another process. Simply put:SpotDraft doesn’t just manage contracts.It helps teams move with confidence. One well-designed agreement at a time.",
+                    "company_headcount_latest": 343,
+                    "company_headcount_range": "201-500",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13233729",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e0a3a32a2554d460a33bcc721e018ac1bfc74505b19bf6e6010682362b6e451d.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.spotdraft.com",
+                    "company_website_domain": "spotdraft.com",
+                    "crustdata_company_id": 6443,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "SpotDraft",
+                    "position_id": 1630305641,
+                    "professional_network_id": "13233729",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2020-04-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "6 to 10 years",
+                    "years_at_company_raw": 6.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "Launched in 2015, PharmEasy is a consumer healthcare “super app.”Started with the sole purpose of making healthcare accessible and affordable to all, today PharmEasy is India's leading and most trusted online healthcare aggregator in the country.We provide on-demand, home-delivered access to a wide range of prescription pharmaceuticals, diagnostic test services, OTC pharmaceuticals, other consumer healthcare products, thereby serving your healthcare needs. Thus, through our services, we ensure you get access to the best and most genuine health products, with the highest savings in the shortest time possible.Today, we deliver medicines in 1000+ cities in India, covering 19000+ pin codes. We offer diagnostic test services across Mumbai, including Thane, Navi Mumbai, Kalyan & Dombivali, Delhi with Noida, Gurgaon, Faridabad & Ghaziabad, Chennai, Pune, Ahmedabad, and Gandhi Nagar, Surat, Vadodara, Lucknow, Kolkata, Hyderabad, Bengaluru, and Jaipur.We’re proud to be Great Place to Work® CertifiedTM and even prouder of our teams, whose passion for 'Simplifying Healthcare, Impacting Lives' continues to shape and strengthen an ever-evolving healthcare ecosystem.",
+                    "company_headcount_latest": 3977,
+                    "company_headcount_range": "1001-5000",
+                    "company_industries": [
+                      "Health, Wellness & Fitness"
+                    ],
+                    "company_professional_network_industry": "Health, Wellness & Fitness",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/10244704",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/caacc878a4e6e0e2a0294b40a6685230c5ffa4692c6d443389fdea8dc4aa2d38.jpg",
+                    "company_status": "active",
+                    "company_website": "http://pharmeasy.in/",
+                    "company_website_domain": "pharmeasy.in",
+                    "crustdata_company_id": 5742,
+                    "description": "Backend Engineer.",
+                    "employment_type": "",
+                    "end_date": "2020-04-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "India"
+                    },
+                    "name": "PharmEasy",
+                    "position_id": 1394756718,
+                    "professional_network_id": "10244704",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2018-08-01T00:00:00+00:00",
+                    "title": "Software Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": null,
+                    "company_headcount_latest": null,
+                    "company_headcount_range": null,
+                    "company_industries": null,
+                    "company_professional_network_industry": null,
+                    "company_professional_network_profile_url": null,
+                    "company_profile_picture_permalink": null,
+                    "company_status": null,
+                    "company_website": null,
+                    "company_website_domain": null,
+                    "crustdata_company_id": null,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2018-05-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Noida Area, India"
+                    },
+                    "name": "SAMSUNG R&D INSTITUTE INDIA - Noida",
+                    "position_id": 1194305096,
+                    "professional_network_id": null,
+                    "seniority_level": "In Training",
+                    "start_date": "2018-01-01T00:00:00+00:00",
+                    "title": "Software Engineering Intern",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Node.js",
+                "Python (Programming Language)",
+                "JavaScript",
+                "Programming",
+                "Machine Learning",
+                "Artificial Intelligence",
+                "Software Development",
+                "Computer Science",
+                "Data Structures",
+                "C++",
+                "Java",
+                "ASP.NET",
+                "Git",
+                "Cascading Style Sheets (CSS)",
+                "C (Programming Language)",
+                "Github",
+                "File Systems",
+                "Android Studio",
+                "Software Development Life Cycle (SDLC)",
+                "Amazon Web Services (AWS)"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+              },
+              "twitter_identifier": {
+                "slug": ""
+              }
+            },
+            "crustdata_person_id": 869887
+          }
+        }
+      ]
+    }
+  ],
+  "fetched_at": "2026-10-31T06:03:04+00:00"
+}
