@@ -13,7 +13,7 @@ import time
 from collections.abc import AsyncIterator
 
 from . import people
-from .brief import analyze_brief, broaden_ladder, clean_term
+from .brief import analyze_brief, broaden_ladder, clean_term, default_assumptions
 from .fallbacks import DevCrustdataClient, basic_rank, basic_verify
 from .outreach import draft_outreach
 from .schemas import (Candidate, CandidateEvent, Claim, Criteria, DoneEvent, ErrorEvent, Event, Reason,
@@ -117,6 +117,53 @@ def domain_terms(c: Criteria, n: int = 3) -> list[str]:
         if t and len(t) <= 30 and t not in out:
             out.append(t)
     return out[:n]
+
+
+_PROFILE_URL = re.compile(r"https?://(?:[a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9_%\-]+/?", re.I)
+
+
+def _norm_profile(url: str | None) -> str | None:
+    if not url:
+        return None
+    m = re.search(r"linkedin\.com/in/([^/?#]+)", url, re.I)
+    return m.group(1).lower() if m else url.lower().rstrip("/")
+
+
+async def apply_template(client, url: str, criteria: Criteria, emit) -> str | None:
+    """"Find me someone like <profile URL>": enrich that profile and fill criteria gaps from it.
+    Returns the normalised profile key so that person is excluded from results."""
+    try:
+        if hasattr(client, "person_enrich_many"):
+            person = (await client.person_enrich_many([url])).get(url)
+        else:
+            person = await client.person_enrich(url)
+    except Exception as e:
+        await emit(ErrorEvent(step="parse", message=f"Couldn't enrich the example profile ({type(e).__name__}); using the brief text only"))
+        return _norm_profile(url)
+    if not person:
+        await emit(ErrorEvent(step="parse", message="Example profile not found in Crustdata; using the brief text only"))
+        return _norm_profile(url)
+    t, loc, sk = people.title(person), people.location(person), people.skills(person)
+    filled = []
+    generic = criteria.role.lower().replace("senior ", "") in ("software engineer", "")
+    if t and generic:
+        criteria.role = t
+        criteria.title_variants = list(dict.fromkeys([t, *criteria.title_variants]))[:6]
+        filled.append(f"title {t}")
+    city = people.first(person, "basic_profile.location.city") or (loc.split(",")[0].strip() if loc else None)
+    if city and not criteria.locations:
+        criteria.locations = [city]
+        filled.append(f"location {city}")
+    if sk and not criteria.skills:
+        criteria.skills = sk[:5]
+        filled.append(f"skills {', '.join(sk[:5])}")
+    await emit(StepEvent(
+        step="parse",
+        message=f"Using {people.name(person)}'s profile as the template"
+                + (f" (filled {'; '.join(filled)})" if filled else "") + "; they are excluded from results",
+        data={"criteria": criteria.model_dump(), "template": {"name": people.name(person), "profile_url": url,
+              "source": people.source_endpoint(person, "person/enrich")}}))
+    return _norm_profile(url)
 
 
 def _ms(t: float) -> int:
@@ -298,17 +345,25 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                         + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
                         + f" ({len(criteria.title_variants)} title variants: {', '.join(criteria.title_variants)})",
                 data={"criteria": criteria.model_dump(), "assumptions": analysis.assumptions}))
-            if analysis.assumptions:
-                await emit(StepEvent(step="parse", message="Assumptions: " + "; ".join(analysis.assumptions),
-                                     data={"assumptions": analysis.assumptions}))
-
             if client is None:
                 client, note = make_client()
                 if note:
                     await emit(ErrorEvent(step="search", message=note))
 
+            template_key = None
+            m = _PROFILE_URL.search(brief)
+            if m:
+                template_key = await apply_template(client, m.group(0).rstrip("/"), criteria, emit)
+                still = default_assumptions(criteria)  # the template may have filled some gaps
+                analysis.assumptions = [a for a in analysis.assumptions if a in still or not a.startswith("No ")]
+            if analysis.assumptions:
+                await emit(StepEvent(step="parse", message="Assumptions: " + "; ".join(analysis.assumptions),
+                                     data={"assumptions": analysis.assumptions}))
+
             t = time.monotonic()
             pool = await search_pool(client, criteria, emit)
+            if template_key:
+                pool = [p for p in pool if _norm_profile(people.profile_url(p)) != template_key]
             timings["search"] = _ms(t)
             summary.searched = len(pool)
             if not pool:

@@ -83,7 +83,7 @@ class BriefAnalysis(BaseModel):
 
 _HIRING_WORDS = re.compile(
     r"\b(hire|hiring|recruit\w*|candidate|role|position|opening|vacancy|looking for|lookin|need (a|an|someone)|"
-    r"someone (good|who|with)|engineer|eng|developer|dev|designer|manager|lead|scientist|analyst|ae|sdr|sales|"
+    r"someone (good|who|with|like)|find (me )?(someone|people|candidates)|linkedin\.com/in/|engineer|eng|developer|dev|designer|manager|lead|scientist|analyst|ae|sdr|sales|"
     r"marketer|founding|head of|vp|cto|intern|architect|consultant|specialist|team)\b", re.I)
 
 

@@ -252,3 +252,12 @@ def test_outreach_template_signs_with_placeholder():
     from app.outreach import template_draft
     c = Candidate(id="c1", name="Ananya Rao", title="Engineer", company="X")
     assert template_draft(c, Criteria(role="Engineer")).endswith("[Your name]")
+
+
+def test_template_profile_fills_criteria_and_is_excluded():
+    evs = collect("find me someone like https://www.linkedin.com/in/dev-karthik-menon/")
+    tmpl = [e for e in evs if e.type == "step" and e.data and "template" in e.data]
+    assert tmpl and "Karthik Menon" in tmpl[0].message
+    cands = [e.candidate for e in evs if e.type == "candidate"]
+    assert all("karthik" not in (c.profile_url or "") for c in cands)
+    assert evs[-1].type == "done"
