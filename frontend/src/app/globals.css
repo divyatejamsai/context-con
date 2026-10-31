@@ -1,85 +1,125 @@
 @import "tailwindcss";
 
-/* Dossier palette: paper + ink, with three evidence signals. */
+/* Dark-first product palette: layered near-black surfaces, hairline borders, one indigo accent. */
 :root {
-  --background: #f3efe6;
-  --paper: #fbf9f4;
-  --foreground: #17150f;
-  --muted: #e9e4d8;
-  --muted-foreground: #6d685c;
-  --border: #d9d2c2;
-  --rule: #c9c0ac;
-  --primary: #1f3fb4;
+  --background: #08090a;
+  --panel: #0f1011;
+  --elevated: #16171a;
+  --hover: #1c1d21;
+  --foreground: #f7f8f8;
+  --secondary: #b4bcc8;
+  --muted-foreground: #8a8f98;
+  --faint: #62666d;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --primary: #7170ff;
+  --primary-strong: #5e6ad2;
   --primary-foreground: #ffffff;
-  --ring: #1f3fb4;
-  --verified: #1e6b43;
-  --contradicted: #c8391b;
-  --unverifiable: #7a7568;
-  --flag: #a3620a;
-  --highlight: #fff1a8;
+  --ring: #7170ff;
+  --verified: #4cc38a;
+  --contradicted: #f2555a;
+  --unverifiable: #8a8f98;
+  --flag: #f5a524;
+  --glow: rgba(113, 112, 255, 0.22);
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #11100e;
-    --paper: #1a1916;
-    --foreground: #ece6d8;
-    --muted: #26241f;
-    --muted-foreground: #9e978a;
-    --border: #322f29;
-    --rule: #47423a;
-    --primary: #8ea6ff;
-    --primary-foreground: #11100e;
-    --ring: #8ea6ff;
-    --verified: #5fcf8e;
-    --contradicted: #ff7a57;
-    --unverifiable: #9e978a;
-    --flag: #f0b44c;
-    --highlight: #4a4320;
+    --background: #f7f7f8;
+    --panel: #ffffff;
+    --elevated: #f1f1f3;
+    --hover: #ebebee;
+    --foreground: #0d0e10;
+    --secondary: #3c4149;
+    --muted-foreground: #6b6f76;
+    --faint: #9a9ea6;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.14);
+    --primary: #5e6ad2;
+    --primary-strong: #4f5bc4;
+    --ring: #5e6ad2;
+    --verified: #1f9d5b;
+    --contradicted: #d93036;
+    --unverifiable: #7b7f87;
+    --flag: #b7700a;
+    --glow: rgba(94, 106, 210, 0.16);
+    --shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+    color-scheme: light;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-paper: var(--paper);
+  --color-panel: var(--panel);
+  --color-elevated: var(--elevated);
+  --color-hover: var(--hover);
   --color-foreground: var(--foreground);
-  --color-card: var(--paper);
-  --color-card-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--elevated);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
   --color-border: var(--border);
-  --color-rule: var(--rule);
+  --color-border-strong: var(--border-strong);
   --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
   --color-primary-foreground: var(--primary-foreground);
   --color-ring: var(--ring);
   --color-verified: var(--verified);
   --color-contradicted: var(--contradicted);
   --color-unverifiable: var(--unverifiable);
   --color-flag: var(--flag);
-  --color-highlight: var(--highlight);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces Variable", "Fraunces", Georgia, serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --animate-fade: fade 150ms ease-out;
-  --animate-slide: slide 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --animate-rise: rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-stamp: stamp 420ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, Menlo, monospace;
+  --animate-fade: fade 140ms ease-out;
+  --animate-slide: slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-rise: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes stamp { 0% { opacity: 0; transform: scale(1.6) rotate(var(--stamp-rot, -4deg)); } 100% { opacity: 1; transform: scale(1) rotate(var(--stamp-rot, -4deg)); } }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  /* faint paper grain */
-  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 5%, transparent) 0.5px, transparent 0.5px);
-  background-size: 4px 4px;
+  font-feature-settings: "cv01", "ss03";
+  font-size: 14px;
 }
 
-.font-display { font-family: var(--font-serif); font-optical-sizing: auto; }
-kbd { font-family: var(--font-mono); font-size: 10px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--paper); color: var(--muted-foreground); }
-::selection { background: var(--highlight); }
+.shimmer-text {
+  background: linear-gradient(90deg, var(--muted-foreground) 0%, var(--foreground) 50%, var(--muted-foreground) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  background: var(--elevated);
+  color: var(--muted-foreground);
+}
+::selection { background: color-mix(in oklab, var(--primary) 40%, transparent); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
