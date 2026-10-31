@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:07 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
 | ~10:46 | Seeded-fake resumes are built locally and never committed | Public repo; they contain real people's records | WS5 |
 | 10:43 | Ranker is deterministic and weighted (LLM only rewrites reason text, optional) | Reproducible scores; judges want decisions that stay the same however the case is worded | WS3 |
 | 10:35 | Demo brief = B1 (payments backend, Bangalore) | Indian fintech is dense in Crustdata, so the demo returns rich results | WS5 |
@@ -104,6 +105,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~10:48 | WS1 v2 merged: `person_search` accepts raw Crustdata syntax or the simple shape (with city/country aliases, overridable via `CRUSTDATA_LOCATION_FIELDS`). Concurrent `person_enrich` calls are coalesced into batches of up to 25. Note: the orchestrator currently sends its own mapped filters (`to_crustdata_filters`), so WS2's mapping is the one in effect. Pick one at the first live run |
 | ~10:47 | WS2 merged: the orchestrator maps simple filters to Crustdata syntax in `to_crustdata_filters()`: title `(.)` on `experience.employment_details.current.title`, city `(.)` on `basic_profile.location.city` with spelling variants OR-ed (bangalore\|bengaluru), country `=` on `basic_profile.location.country`, skills `(.)` on `skills.professional_network_skills`. **City and skills field names are unverified until the first live run.** One `person_enrich_many` call per run (15 req/min limit). `CRUSTDATA_MODE` default = cache |
 | ~10:46 | WS5: root README now has "How to run" (section 8 lives there). Seeded fakes are generated on the Mac from cached Person Enrich and never committed, because they contain real people's data. check_fakes still passes against main (5 fakes, 0 misses, 0 false positives). Open: WS4 `frontend/.env.example` is missing although its README references it |
 | ~10:44 | **All 6 branches merged into `main`** (ws/crustdata, ws/pipeline, ws/verify, ws/ui, ws/demo). Clean merges, 30 backend tests pass in replay and dev modes. Every workstream should now rebase on `main`. Cloud pushes work again |
@@ -276,7 +278,7 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
   - skills: `skills.professional_network_skills[]`
   - company stage: `funding.{last_round_type, total_investment_usd}`. Size: `headcount.total`
 - Gotchas: `web_search` URLs are Google redirect links (unwrap before citing), and `web_fetch` content is raw HTML.
-- Person-level fixtures are **not committed**, because the repo is public. That's the user's decision, pending.
+- Person-level fixtures **will be committed** to the public repo (user decision, ~11:07 IST on WS1's card), pushed from Sai's Mac together with `companies.json`.
 - **Demo-safety risk:** replay mode can't produce candidates from the repo alone, because person data isn't committed. For a reliable demo, run each demo brief live once on the Mac (in `cache` mode) so `cache/` fills locally, then record in `replay` mode.
 
 ### Branches (all on GitHub, merged to `main` at ~10:44 IST)
