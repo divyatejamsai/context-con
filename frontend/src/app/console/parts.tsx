@@ -3,6 +3,7 @@ import { CheckCircle2, CircleDashed, Lock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Source } from "@/lib/types";
 import { SCOPE_INFO, type Agent, type AgentStatus, type Check, type Scope, type Verdict } from "./api";
+import { BRAND } from "@/lib/brand";
 
 // Styling uses only the shared semantic tokens (panel, elevated, border, primary, verified, contradicted, flag...),
 // so the console follows whatever look globals.css gives the Sourced app.
@@ -70,7 +71,7 @@ export function ScopeChip({ scope, muted }: { scope: Scope; muted?: boolean }) {
 export function RuntimeBadge({ runtime }: { runtime?: string }) {
   if (runtime !== "external") return null;
   return (
-    <span className="inline-flex h-[18px] items-center rounded border border-border-strong px-1 text-[10.5px] font-[510] text-muted-foreground" title="Runs outside Countersign and reaches it over MCP">
+    <span className="inline-flex h-[18px] items-center rounded border border-border-strong px-1 text-[10.5px] font-[510] text-muted-foreground" title={`Runs outside ${BRAND.name} and reaches it over MCP`}>
       External
     </span>
   );
@@ -143,11 +144,13 @@ export function DecisionBadge({ decision }: { decision: "allow" | "block" }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10.5px] font-medium uppercase tracking-wide",
-        decision === "allow" ? "bg-verified/15 text-verified" : "bg-contradicted/15 text-contradicted",
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[11px] font-[510]",
+        decision === "allow" ? "border-verified/30 bg-verified/10 text-verified" : "border-contradicted/30 bg-contradicted/10 text-contradicted",
       )}
+      title={decision === "allow" ? "Every check passed" : "At least one check failed, so it was stopped"}
     >
-      {decision}
+      {decision === "allow" ? <CheckCircle2 className="size-3" /> : <XCircle className="size-3" />}
+      {decision === "allow" ? "Allowed" : "Blocked"}
     </span>
   );
 }
@@ -237,12 +240,77 @@ export const inputCls =
 
 export const cardCls = "rounded-xl border border-border-strong bg-panel";
 
-/** Page heading used by every console view. */
-export function PageHead({ title, children }: { title: string; children?: React.ReactNode }) {
+/** Page heading used by every console view: what the page is for, in one or two sentences. */
+export function PageHead({ title, children, eyebrow }: { title: string; children?: React.ReactNode; eyebrow?: string }) {
   return (
     <div>
+      {eyebrow && <p className="mb-1 text-[11.5px] font-[510] text-faint">{eyebrow}</p>}
       <h1 className="text-[22px] font-[620] tracking-[-0.02em]">{title}</h1>
-      {children && <p className="mt-1.5 max-w-[620px] text-[13px] leading-relaxed text-muted-foreground">{children}</p>}
+      {children && <p className="mt-1.5 max-w-[640px] text-[13px] leading-relaxed text-muted-foreground">{children}</p>}
+    </div>
+  );
+}
+
+/** Numbered "how to use this page" steps, so a first-time user knows where to start. */
+export function HowTo({ steps, className }: { steps: React.ReactNode[]; className?: string }) {
+  return (
+    <ol className={cn("grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3", className)}>
+      {steps.map((s, i) => (
+        <li key={i} className="flex gap-2.5 bg-elevated px-3 py-2.5 text-[12.5px] leading-snug text-secondary">
+          <span className="grid size-5 shrink-0 place-items-center rounded-full border border-border-strong bg-panel font-mono text-[10.5px] text-muted-foreground">
+            {i + 1}
+          </span>
+          <span className="min-w-0">{s}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Jargon with its meaning on hover (dotted underline), e.g. <Term tip="...">sponsor</Term>. */
+export function Term({ children, tip }: { children: React.ReactNode; tip: string }) {
+  return (
+    <span title={tip} className="cursor-help underline decoration-border-strong decoration-dotted underline-offset-[3px]">
+      {children}
+    </span>
+  );
+}
+
+export const TERMS = {
+  passport: "A signed ID card for an AI agent. It names the agent, the person it acts for, and what it may do. Anyone it contacts can check it.",
+  sponsor: `The real person the agent acts for. ${BRAND.name} checks in Crustdata that they exist, still work at the company, and have the authority they delegate.`,
+  scope: "A permission written into the passport, such as sending hiring outreach or reading data.",
+  ledger: "An append-only log of every passport, check and decision. Each entry includes the hash of the one before it, so edits are detectable.",
+  guard: "Checks a drafted message before it can leave: the agent's passport, its signature on the text, and every fact about the recipient.",
+} as const;
+
+/** Empty or error state with a clear next step. */
+export function EmptyState({
+  icon: I, title, children, action, tone = "muted", className,
+}: { icon?: React.ElementType; title: string; children?: React.ReactNode; action?: React.ReactNode; tone?: "muted" | "bad"; className?: string }) {
+  return (
+    <div className={cn("flex flex-col items-center px-6 py-10 text-center", className)}>
+      {I && (
+        <span className={cn("grid size-9 place-items-center rounded-lg border", tone === "bad" ? "border-contradicted/30 bg-contradicted/[0.06] text-contradicted" : "border-border-strong bg-elevated text-muted-foreground")}>
+          <I className="size-4" />
+        </span>
+      )}
+      <p className="mt-3 text-[13.5px] font-[590]">{title}</p>
+      {children && <p className="mt-1 max-w-[360px] text-[12.5px] leading-relaxed text-muted-foreground">{children}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+/** Section heading inside a page, with an optional one-line explanation. */
+export function SectionHead({ title, children, aside }: { title: string; children?: React.ReactNode; aside?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="min-w-0">
+        <h3 className="text-[14px] font-[590]">{title}</h3>
+        {children && <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{children}</p>}
+      </div>
+      {aside}
     </div>
   );
 }

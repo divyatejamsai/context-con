@@ -4,6 +4,8 @@ import { forwardRef, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, Check, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
+import { BrandMark } from "@/components/brand-mark";
 
 export function Logo() {
   return (
@@ -20,8 +22,8 @@ export function AuthShell({ children, aside, switchTo }: { children: React.React
       <div className="flex flex-col px-5 py-6 sm:px-10">
         <div className="flex items-center justify-between">
           <Link href="/login" className="flex items-center gap-2">
-            <Logo />
-            <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
+            <BrandMark className="size-6 rounded-[6px]" />
+            <span className="text-[14px] font-semibold tracking-[-0.01em]">{BRAND.name}</span>
           </Link>
           {switchTo && (
             <Link href={`/${switchTo}`} className="inline-flex h-8 items-center rounded-md border border-border-strong px-3 text-[13px] font-medium transition hover:bg-hover">
@@ -30,7 +32,7 @@ export function AuthShell({ children, aside, switchTo }: { children: React.React
           )}
         </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">{children}</div>
-        <p className="text-[12px] text-faint">Runs under Countersign: every agent action is passport-checked and logged.</p>
+        <p className="text-[12px] text-faint">Every agent in your workspace carries a passport. Each action it takes is checked and logged.</p>
       </div>
       <aside className="hidden border-l border-border bg-elevated lg:flex lg:flex-col lg:justify-center lg:px-12">
         {aside ?? <ProductAside />}

@@ -30,6 +30,7 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
     >
       <textarea
         ref={ref}
+        id={compact ? undefined : "brief"}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -39,19 +40,20 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
           }
           if (e.key === "Escape") (e.target as HTMLTextAreaElement).blur();
         }}
-        placeholder="Tell me who you're hiring, however it comes out…"
+        placeholder="e.g. senior backend engineer, payments experience, Bangalore, from a startup"
         rows={compact ? 1 : 3}
         wrap={compact ? "off" : "soft"}
         disabled={running}
         className={cn(
           "w-full resize-none bg-transparent placeholder:text-faint focus:outline-none disabled:opacity-60",
-          compact ? "block h-10 overflow-hidden px-3.5 py-2.5 pr-28 text-[13.5px]" : "px-4 pb-2 pt-4 text-[17px] leading-relaxed",
+          compact ? "block h-10 overflow-hidden px-3.5 py-2.5 pr-36 text-[13.5px]" : "px-4 pb-2 pt-4 text-[17px] leading-relaxed",
         )}
         aria-label="Hiring brief"
+        title={compact ? "Edit the brief and press Enter (or Re-run) to search again" : undefined}
       />
       {compact ? (
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
-          <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Re-run" />
+          <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Search again" />
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
@@ -71,16 +73,17 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
 
 function RunButton({ running, disabled, onRun, onStop, label }: { running: boolean; disabled: boolean; onRun: () => void; onStop: () => void; label: string }) {
   return running ? (
-    <button onClick={onStop} className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12.5px] font-[510] hover:bg-hover">
+    <button onClick={onStop} title="Stop the search. Results so far stay on screen." className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12.5px] font-[510] hover:bg-hover">
       <Square className="size-3 fill-current" /> Stop
     </button>
   ) : (
     <button
       onClick={onRun}
       disabled={disabled}
-      className="inline-flex h-7 items-center gap-1.5 rounded-md bg-foreground px-2.5 text-[12.5px] font-[510] text-background transition hover:opacity-85 disabled:opacity-40"
+      title={disabled ? "Write a brief first" : "Search Crustdata for people who match this brief (⌘↵)"}
+      className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-foreground px-2.5 text-[12.5px] font-[510] text-background transition hover:opacity-85 disabled:opacity-40"
     >
-      {label === "Re-run" ? <CornerDownLeft className="size-3.5" /> : <ArrowUp className="size-3.5" />}
+      {label === "Search again" ? <CornerDownLeft className="size-3.5" /> : <ArrowUp className="size-3.5" />}
       {label}
     </button>
   );

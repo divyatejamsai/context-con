@@ -1,0 +1,277 @@
+"""What one task runs inside: the agent's own Ctx (app/fleet/base.py), wired to the runtime.
+
+- Every line the agent logs and every event it emits lands on the task live (steps, progress, output).
+- Crustdata and Gemini calls are counted against the agent's daily budget; going over stops the task.
+- send() is where the employer's control sits: Send Guard checks the draft first (a block never reaches a person),
+  then, if the agent's policy asks for it, the draft waits in the approval inbox. Approving re-runs the guard at
+  send time (the recipient may have moved, the agent may have been suspended), and only then writes the outbox.
+- The agent reaches Countersign through the same tool functions the MCP server serves (in process, so several
+  agents can run at once without queueing on one stdio pipe).
+"""
+from __future__ import annotations
+
+import contextvars
+import importlib.util
+import inspect
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from ..agents import ledger, registry
+from ..agents.passport import sign_message
+from ..fleet.base import Ctx, blocked_by
+from . import store
+
+log = logging.getLogger(__name__)
+BACKEND = Path(__file__).resolve().parents[2]
+
+
+class BudgetExceeded(RuntimeError):
+    pass
+
+
+@dataclass
+class Meter:
+    """Counts one task's calls. Lives in a contextvar so concurrent tasks don't share counts."""
+    task_id: str
+    agent_id: str
+    crustdata: int = 0
+    llm: int = 0
+    sends: int = 0
+
+    def charge(self, what: str, n: int = 1) -> None:
+        pol = store.policy(self.agent_id)["budget"]
+        used = store.usage(self.agent_id)
+        cap = {"crustdata": pol["crustdata_calls_per_day"], "llm": pol["llm_calls_per_day"],
+               "sends": pol["sends_per_day"]}[what]
+        if used.get(what, 0) + n > cap:
+            raise BudgetExceeded(f"daily {what} budget reached ({used.get(what, 0)}/{cap})")
+        setattr(self, what, getattr(self, what) + n)
+        store.add_usage(self.agent_id, **{what: n})
+        store.task_mutate(self.task_id, lambda t: t["usage"].__setitem__(what, t["usage"].get(what, 0) + n))
+
+
+METER: contextvars.ContextVar[Meter | None] = contextvars.ContextVar("countersign_meter", default=None)
+
+
+class MeteredClient:
+    """Wraps the shared CrustdataClient: every public API call is charged to the task that made it."""
+    _CALLS = {"person_search", "person_enrich", "person_enrich_many", "company_search", "company_identify",
+              "company_enrich", "job_search", "web_search", "web_fetch"}
+
+    def __init__(self, inner: Any):
+        self._inner = inner
+
+    def __getattr__(self, name: str):
+        attr = getattr(self._inner, name)
+        if name not in self._CALLS or not inspect.iscoroutinefunction(attr):
+            return attr
+
+        async def call(*a, **kw):
+            m = METER.get()
+            if m is not None:
+                m.charge("crustdata")
+            return await attr(*a, **kw)
+        return call
+
+
+_llm_patched = False
+
+
+def meter_llm() -> None:
+    """Count real Gemini calls (llm._call is what generate_json and generate_text both use). Idempotent."""
+    global _llm_patched
+    if _llm_patched:
+        return
+    from .. import llm
+    inner = llm._call
+
+    async def counted(*a, **kw):
+        m = METER.get()
+        if m is not None:
+            m.charge("llm")
+        return await inner(*a, **kw)
+    llm._call = counted
+    _llm_patched = True
+
+
+_mcp_mod = None
+
+
+def _mcp_server():
+    """backend/mcp_server.py, loaded once as a module: its call_tool is exactly what MCP clients reach."""
+    global _mcp_mod
+    if _mcp_mod is None:
+        spec = importlib.util.spec_from_file_location("countersign_mcp_server", BACKEND / "mcp_server.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _mcp_mod = mod
+    return _mcp_mod
+
+
+class InprocMCP:
+    """Same .tool(name, args) -> payload contract as fleet.mcp_client.CountersignMCP, without the subprocess."""
+    server = {"name": "countersign", "version": "in-process"}
+    tools = ["verify_agent", "check_before_send", "send_message", "record_work", "ledger_lookup"]
+
+    async def tool(self, name: str, args: dict) -> dict:
+        text, err = await _mcp_server().call_tool(name, args)
+        if err:
+            raise RuntimeError(f"{name}: {text}")
+        start = text.find("\n\n{")
+        start = start + 2 if start >= 0 else text.index("{")
+        return json.loads(text[start:])
+
+    async def close(self) -> None:
+        return None
+
+
+def to_key(to: dict) -> str:
+    return f"{to.get('name')} ({to.get('company')})"
+
+
+class RuntimeCtx(Ctx):
+    """A fleet Ctx whose sends go through the employer's approval policy and whose output lands on the task."""
+
+    task_id: str = ""
+
+    def _emit(self, ev: dict) -> None:
+        """Collect the agent's structured events on the task: findings, artifacts, filed work, clock-in verdicts."""
+        super()._emit(ev)
+        typ, tid = ev.get("type"), self.task_id
+
+        def fn(t: dict) -> None:
+            out, p = t["output"], t["progress"]
+            if typ == "finding":
+                out.setdefault("findings", []).append({k: v for k, v in ev.items() if k not in ("type", "agent", "agent_id")})
+                p["done"] = min(p["done"] + 1, p["total"]) if p["total"] else p["done"]
+            elif typ == "artifact":
+                out.setdefault("artifacts", []).append({k: ev.get(k) for k in ("kind", "title", "path", "content")})
+            elif typ == "filed":
+                out.setdefault("filed", []).append({k: ev.get(k) for k in ("kind", "summary", "ledger_entry")})
+                if ev.get("ledger_entry"):
+                    t["ledger"].append(ev["ledger_entry"])
+            elif typ == "verdict" and ev.get("action") == "clock_in":
+                out["clock_in"] = {"decision": ev.get("decision"), "headline": ev.get("headline"),
+                                   "ledger_entry": ev.get("ledger_entry"),
+                                   "failed": [c for c in ev.get("checks", []) if c.get("status") != "pass"]}
+            elif typ == "verdict" and ev.get("action") == "send":
+                p["done"] = min(p["done"] + 1, p["total"]) if p["total"] else p["done"]
+            else:
+                return
+        if typ in ("finding", "artifact", "filed", "verdict"):
+            store.task_mutate(tid, fn)
+
+    async def send(self, to: dict, body: str, scope: str) -> dict:
+        tid, who = self.task_id, to_key(to)
+        sig = sign_message(self.passport, self.key, body)
+        self._emit({"type": "draft", "to": to, "scope": scope, "body": body})
+        v = await self.mcp.tool("check_before_send", {"agent_id": self.agent_id, "signature": sig, "to": to,
+                                                      "body": body, "scope": scope, **self._today()})
+        return await self.after_guard(to, body, scope, sig, v)
+
+    async def after_guard(self, to: dict, body: str, scope: str, sig: str, v: dict) -> dict:
+        """Send Guard has looked at the draft (verdict v). Block, hold for approval, or send."""
+        tid, who = self.task_id, to_key(to)
+        rec = {"to": to, "scope": scope, "body": body, "decision": v["decision"], "guard_entry": v.get("ledger_entry"),
+               "checks": v.get("checks", []), "approval_id": None, "state": None}
+        if v["decision"] != "allow":
+            reasons = blocked_by(v)
+            self.log(f"  send      BLOCK  {who}: {'; '.join(reasons) or 'blocked'}")
+            self._verdict("send", {**v, "sent": False}, f"Blocked message to {who}: {reasons[0] if reasons else 'blocked'}", to)
+            rec["state"] = "blocked"
+            _add_send(tid, rec)
+            if self.report is not None:
+                self.report.blocked += 1
+            return {**v, "sent": False}
+
+        pol = store.policy(self.agent_id)
+        if pol["require_approval"]:
+            a = store.add_approval(task_id=tid, agent_id=self.agent_id, agent_name=self.agent["name"], action="send",
+                                   to=to, body=body, scope=scope, signature=sig, today=self._today().get("today"),
+                                   preview={"decision": v["decision"], "checks": v.get("checks", []),
+                                            "ledger_entry": v.get("ledger_entry")})
+            self.log(f"  send      HOLD   {who}: Send Guard cleared it; waiting for your approval")
+            self._verdict("send", {**v, "sent": False}, f"Cleared by Send Guard, waiting for approval: {who}", to)
+            rec.update(state="pending_approval", approval_id=a["approval_id"])
+            _add_send(tid, rec)
+            if self.report is not None:
+                self.report.allowed += 1
+            return {**v, "sent": False, "pending_approval": a["approval_id"]}
+
+        m = METER.get()
+        if m is not None:
+            m.charge("sends")
+        res = await self.mcp.tool("send_message", {"agent_id": self.agent_id, "signature": sig, "to": to, "body": body,
+                                                   "scope": scope, **self._today()})
+        rec.update(state="sent" if res.get("sent") else "blocked", decision=res["decision"],
+                   guard_entry=res.get("ledger_entry"))
+        self.log(f"  send      {'SENT ' if res.get('sent') else 'BLOCK'}  {who}"
+                 + (": written to the outbox (never emailed)" if res.get("sent") else f": {'; '.join(blocked_by(res))}"))
+        self._verdict("send", res, (f"Sent to {who}" if res.get("sent") else f"Blocked at send: {who}"), to)
+        _add_send(tid, rec)
+        if self.report is not None:
+            self.report.allowed += int(bool(res.get("sent")))
+        return res
+
+
+def _add_send(task_id: str, rec: dict) -> None:
+    store.task_mutate(task_id, lambda t: t["output"].setdefault("sends", []).append(rec))
+
+
+async def execute_approval(approval_id: str, by: str, mcp: Any = None) -> dict:
+    """A person approved a held draft: re-run the guard at send time and, only if it still clears, write the outbox."""
+    a = store.claim_approval(approval_id, by)
+    if a is None:
+        cur = store.get_approval(approval_id)
+        raise ValueError(f"approval is {cur['status'] if cur else 'unknown'}")
+    mcp = mcp or InprocMCP()
+    try:
+        rec = registry.get_agent(a["agent_id"])
+        pol = store.policy(a["agent_id"])["budget"]
+        if store.usage(a["agent_id"])["sends"] >= pol["sends_per_day"]:
+            raise BudgetExceeded(f"daily sends budget reached ({pol['sends_per_day']})")
+        args = {"agent_id": a["agent_id"], "signature": a["signature"], "to": a["to"], "body": a["body"],
+                "scope": a["scope"]}
+        if a.get("today"):
+            args["today"] = a["today"]
+        res = await mcp.tool("send_message", args)
+        sent = bool(res.get("sent"))
+        if sent:
+            store.add_usage(a["agent_id"], sends=1)
+        status = "sent" if sent else "blocked_at_send"
+        result = {"sent": sent, "decision": res["decision"], "checks": res.get("checks", []),
+                  "ledger_entry": res.get("ledger_entry"), "agent_status": rec.get("status")}
+    except BudgetExceeded as e:
+        status, result = "blocked_at_send", {"sent": False, "error": str(e)}
+    except Exception as e:  # noqa: BLE001 - fail closed: nothing was sent
+        log.exception("approval %s failed", approval_id)
+        status, result = "blocked_at_send", {"sent": False, "error": f"{type(e).__name__}: {e}"}
+    entry = ledger.append("runtime.approval", {"agent_id": a["agent_id"], "approval_id": approval_id, "task_id": a["task_id"],
+                                                "decision": "approved", "by": by, "outcome": status,
+                                                "to": a["to"], "guard_entry": result.get("ledger_entry")})
+    out = store.update_approval(approval_id, status=status, result={**result, "approval_entry": entry})
+    _sync_send(a["task_id"], approval_id, status)
+    return out
+
+
+def reject_approval(approval_id: str, by: str, note: str | None = None) -> dict:
+    a = store.get_approval(approval_id)
+    if not a or a["status"] != "pending":
+        raise ValueError(f"approval is {a['status'] if a else 'unknown'}")
+    entry = ledger.append("runtime.approval", {"agent_id": a["agent_id"], "approval_id": approval_id, "task_id": a["task_id"],
+                                                "decision": "rejected", "by": by, "note": note, "to": a["to"]})
+    out = store.update_approval(approval_id, status="rejected", decided_by=by, decided_at=store.now(), note=note,
+                                result={"sent": False, "approval_entry": entry})
+    _sync_send(a["task_id"], approval_id, "rejected")
+    return out
+
+
+def _sync_send(task_id: str, approval_id: str, state: str) -> None:
+    def fn(t):
+        for s in t["output"].get("sends", []):
+            if s.get("approval_id") == approval_id:
+                s["state"] = state
+    store.task_mutate(task_id, fn)
