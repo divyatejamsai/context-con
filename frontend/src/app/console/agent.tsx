@@ -5,7 +5,7 @@ import { appFor } from "@/lib/apps";
 import { Logo } from "@/components/app-header";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft, Ban, Check, Copy, FileClock, IdCard, KeyRound, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
+  OctagonX, ArrowLeft, Ban, Check, Copy, FileClock, IdCard, KeyRound, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -143,7 +143,11 @@ export function AgentDetail({
             <Button onClick={recheck} disabled={!!busy} title={`Look up ${s.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}>
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check sponsor
             </Button>
-            {a.status === "suspended" ? (
+            {a.status === "suspended" && a.suspended_by?.startsWith("emergency stop") ? (
+              <Button onClick={() => window.location.assign(`/console?view=estop`)} disabled={!!busy} title="Frozen by an emergency stop: lift the stop to bring it back after a fresh sponsor check">
+                <OctagonX className="size-3.5" /> Review emergency stop
+              </Button>
+            ) : a.status === "suspended" ? (
               <Button onClick={reinstate} disabled={!!busy} title="Run a fresh sponsor check. If it passes, the passport is valid again.">
                 {busy === "reinstate" ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reinstate
               </Button>
@@ -155,6 +159,12 @@ export function AgentDetail({
             <Button variant="ghost" className="text-contradicted hover:bg-contradicted/10 hover:text-contradicted" onClick={() => setConfirm("offboard")} disabled={!!busy} title="Retire it for good: its passport is revoked permanently">
               <UserMinus className="size-3.5" /> Offboard
             </Button>
+            {a.status === "active" && (
+              <Button variant="danger" onClick={() => window.location.assign(`/console?view=estop&freeze=${encodeURIComponent(a.agent_id)}`)} disabled={!!busy}
+                title="Freeze it now: passport revoked, running work stopped, drafts pulled. See what it touched in the last 24 hours first">
+                <OctagonX className="size-3.5" /> Emergency stop
+              </Button>
+            )}
             </>}
           </div>
         )}

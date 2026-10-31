@@ -59,7 +59,7 @@ export function DashboardView({
 
       <section className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-3 lg:grid-cols-6">
         <Kpi label="Agents" value={agents.length} sub={`${active} active`} onClick={() => onGo("employees")} />
-        <Kpi label="Suspended" value={suspended.length} tone={suspended.length ? "bad" : undefined} sub={suspended.length ? "sponsor checks failed" : "none"} onClick={() => onGo("employees")} />
+        <Kpi label="Suspended" value={suspended.length} tone={suspended.length ? "bad" : undefined} sub={suspended.length ? (suspended.some((a) => a.suspended_by?.startsWith("emergency stop")) ? "incl. an emergency stop" : "sponsor checks failed") : "none"} onClick={() => onGo("employees")} />
         <Kpi label="Waiting on you" value={pending} tone={pending ? "warn" : undefined} sub="sends to approve" onClick={() => onGo("work")} />
         <Kpi label="Working now" value={st?.totals.working ?? "–"} sub={st ? `${st.totals.queued} queued` : ""} onClick={() => onGo("work")} />
         <Kpi label="Sent today" value={st?.totals.sent_today ?? "–"} sub={st ? `${st.totals.blocked_today} blocked by Send Guard` : ""} onClick={() => onGo("work")} />
