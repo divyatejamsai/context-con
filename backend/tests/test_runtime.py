@@ -465,3 +465,26 @@ async def test_edit_then_approve_resigns_and_reguards(tmp_path):
         assert e[0]["payload"]["edited"] is True
     finally:
         await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_agent_holding_its_own_key_never_runs_in_house_work(slow_kind):
+    """An agent whose key Agaxes doesn't hold (enrolled, or rotated to its own key) can't be signed for: in-house kinds
+    are refused at assign time, and one already queued fails with the reason instead of crashing the runtime."""
+    from app.agents import registry
+    aid = fleet()["pipeline"]["agent_id"]
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    queued = rt.assign(aid, "slow", {"n": 2}, by="test")
+    with registry._lock:
+        agents = registry._load()
+        agents[aid]["key_custody"], agents[aid]["private_key"] = "agent", None
+        registry._save(agents)
+    with pytest.raises(ValueError, match="outside-agent task"):
+        rt.assign(aid, "slow", {"n": 2}, by="test")
+    assert rt.assign(aid, "assignment", {"instructions": "write a note"}, by="test")["status"] == "queued"
+    await rt.start()
+    try:
+        await until(lambda: status(queued["task_id"]) == "failed")
+        assert "outside-agent task" in store.get_task(queued["task_id"])["error"]
+    finally:
+        await rt.stop()
