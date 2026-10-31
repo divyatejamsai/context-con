@@ -119,3 +119,15 @@ def test_demo_stream_over_http(tmp_path, monkeypatch):
     assert payroll["Closer"] == "block" and payroll["Pipeline"] == "allow"
     assert any(v["action"] == "ledger_audit" and v["decision"] == "block" for v in verdicts)
     assert any(e["type"] == "artifact" and "Razorpay" in e["content"] for e in events)
+
+
+def test_demo_run_needs_the_admin_token_when_one_is_set(monkeypatch):
+    monkeypatch.setenv("COUNTERSIGN_ADMIN_TOKEN", "s3cret")
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    with TestClient(app) as c:
+        assert c.get("/api/demo/run").status_code == 401
+        assert c.get("/api/demo/run", params={"token": "wrong"}).status_code == 401
+        assert c.get("/api/demo/beats").status_code == 200  # the outline stays public
