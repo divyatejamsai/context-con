@@ -38,7 +38,7 @@ QUANT = "need a junior quant trader ,prestige college in  india,"
 
 # brief -> (role, seniority, locations) the rule pass must get without any LLM
 MESSY = [
-    (QUANT, "Quantitative Trader", "junior", []),
+    (QUANT, "Quantitative Trader", "junior", ["India"]),
     ("need a junior quant trader from a tier 1 college", "Quantitative Trader", "junior", []),
     ("lookin for equity research analyst mumbai 3+ yrs CFA preferred", "Equity Research Analyst", None, ["Mumbai"]),
     ("hiring fresher data analysts from IITs or BITS Pilani, remote in india", "Data Analyst", "junior", ["India"]),
@@ -69,7 +69,9 @@ def test_quant_brief_is_not_software_engineer_and_education_is_shown():
     assert "software" not in c.role.lower()
     assert "Quant Trader" in c.title_variants
     assert c.education_note == "prestige college in india"
-    assert c.locations == []  # "college in india" describes the school, not where they must live
+    # "college in india" names the school's country: searched first, and said so (the ladder drops it if thin)
+    assert c.locations == ["India"]
+    assert any("searching India first" in x for x in a.assumptions)
     # without the AI parser the tier can't be expanded: say so instead of silently ignoring it
     assert any("prestige college in india" in x and "not filtering" in x for x in a.assumptions)
 
@@ -123,7 +125,8 @@ def test_llm_expands_school_tier_and_keeps_it_out_of_skills(monkeypatch):
         education_note="prestige college in India",
         schools=["IIT", "Indian Institute of Technology", "ISI", "Indian Statistical Institute", "BITS Pilani",
                  "IIM", "IISc", "Indian Institute of Science"],
-        assumptions=["No location given, searching globally"]))
+        assumptions=["No location given, searching globally",
+                     "'prestige college in India' read as top IITs, ISI, BITS Pilani and the IIMs"]))
     a = analyze(QUANT)
     c = a.criteria
     assert "prestige college" in calls[0]  # the brief went to the model
@@ -131,6 +134,11 @@ def test_llm_expands_school_tier_and_keeps_it_out_of_skills(monkeypatch):
     assert "ISI" in c.schools and "BITS Pilani" in c.schools
     assert c.skills == ["Options"] and c.must_haves == []  # education lives in schools, not skills/must-haves
     assert any(x.startswith("'prestige college in India' read as: IIT") for x in a.assumptions)
+    # the model's own reading of the education ask is dropped so it can't contradict the schools searched,
+    # and "no location" is gone because India is searched first
+    assert not any("top IITs" in x for x in a.assumptions)
+    assert not any("No location given" in x for x in a.assumptions)
+    assert c.locations == ["India"]
 
 
 def test_llm_drifting_to_software_engineer_is_corrected_by_rules(monkeypatch):
@@ -233,14 +241,14 @@ def test_degree_matching():
     assert not degree_matches("PhD", "Bachelor of Engineering - BE")
 
 
-def _person(school: str) -> dict:
+def _person(school: str, end_year: int = 2024) -> dict:
     return {
         "basic_profile": {"name": "Asha Rao", "headline": "Quantitative Trader at Graviton",
                           "location": {"city": "Mumbai", "country": "India"}},
         "experience": {"employment_details": {"current": [
             {"title": "Quantitative Trader", "name": "Graviton Research Capital", "start_date": "2024-07-01"}],
             "past": []}},
-        "education": {"schools": [{"school": school, "degree": "Bachelor of Technology - BTech", "end_year": 2024}]},
+        "education": {"schools": [{"school": school, "degree": "Bachelor of Technology - BTech", "end_year": end_year}]},
         "_source": {"endpoint": "person/enrich"},
     }
 
@@ -261,3 +269,48 @@ def test_education_claim_and_ranking_prefer_the_asked_schools():
     _, s_other, reasons_o = asyncio.run(score("Gujarat Technological University"))
     assert any("not one of the schools" in r.text for r in reasons_o)
     assert s_iit > s_other
+
+
+def test_junior_brief_caps_a_twenty_year_career():
+    c = Criteria(role="Quantitative Trader", title_variants=["Quantitative Trader"], seniority="junior",
+                 schools=["IIT"], education_note="prestige college in India")
+    senior = _person("Indian Institute of Technology, Kanpur", end_year=2004)
+    senior["experience"]["employment_details"]["past"] = [
+        {"title": "Trader", "name": "Old Bank", "start_date": "2004-07-01", "end_date": "2024-06-30"}]
+    fresh = _person("Indian Institute of Technology, Kanpur")
+
+    async def score(p):
+        claims, _ = await verify_candidate(p, None, c, None)
+        return await rank_candidate(p, claims, c)
+
+    s_senior, reasons = asyncio.run(score(senior))
+    s_fresh, _ = asyncio.run(score(fresh))
+    assert any(r.text.startswith("Too senior for a junior role") for r in reasons)
+    assert s_senior <= 60 < s_fresh
+
+
+def test_student_roles_do_not_count_as_experience():
+    """Live run: 2026 graduates showed ~3.6 yrs from E-Cell and hostel roles, a 2015 grad ~14 yrs from a 2013
+    internship. Only work after (or alongside, once graduated) counts."""
+    c = Criteria(role="Quantitative Trader", seniority="junior", schools=["IIT"])
+    p = _person("Indian Institute of Technology Delhi", end_year=2026)
+    p["experience"]["employment_details"]["current"] = [
+        {"title": "Quantitative Trader", "name": "Tower Research Capital", "start_date": "2026-07-01"}]
+    p["experience"]["employment_details"]["past"] = [
+        {"title": "Overall Coordinator", "name": "E-Cell, IIT Delhi", "start_date": "2023-01-01", "end_date": "2024-01-01"},
+        {"title": "Secretary", "name": "Hostel Board", "start_date": "2022-08-01", "end_date": "2023-05-01"},
+        {"title": "Quant Research Intern", "name": "Graviton", "start_date": "2025-05-01", "end_date": "2025-07-01"},
+    ]
+    claims, _ = asyncio.run(verify_candidate(p, None, c, None, today=__import__("datetime").date(2026, 10, 31)))
+    exp = next(k for k in claims if k.claim.endswith("of experience"))
+    assert exp.claim == "~0.3 yrs of experience"
+    assert "3 internship/student roles not counted" in exp.evidence
+
+    q = _person("Indian Institute of Technology Delhi", end_year=2015)
+    q["experience"]["employment_details"]["current"] = [
+        {"title": "Quantitative Trader", "name": "AlphaGrep", "start_date": "2015-07-01"}]
+    q["experience"]["employment_details"]["past"] = [
+        {"title": "Summer Intern", "name": "Goldman Sachs", "start_date": "2013-05-01", "end_date": "2013-07-01"}]
+    claims, _ = asyncio.run(verify_candidate(q, None, c, None, today=__import__("datetime").date(2026, 10, 31)))
+    exp = next(k for k in claims if k.claim.endswith("of experience"))
+    assert exp.claim == "~11 yrs of experience"

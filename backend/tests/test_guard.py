@@ -329,3 +329,30 @@ async def test_mcp_by_agent_id_no_key_on_the_wire(fake_registry):
 
     text, err = await _mcp_call("check_before_send", {**args, "agent_id": "agt_nope"})
     assert err and "agt_nope" in text
+
+
+class _OneGraph(Graph):
+    def __init__(self, url, rec):
+        super().__init__(None, mode="replay")
+        self.url, self.rec = url, rec
+
+    async def person(self, profile_url):
+        return self.rec if profile_url == self.url else await super().person(profile_url)
+
+
+@pytest.mark.asyncio
+async def test_non_latin_company_names_match():
+    # Live regression: "no role at 群益金鼎證券股份有限公司 ... now Quantitative Trader at 群益金鼎證券股份有限公司"
+    import copy
+
+    co = "群益金鼎證券股份有限公司"
+    rec = copy.deepcopy(Graph(None, mode="replay")._fx()["linkedin.com/in/vinod-sonagara"])
+    jobs = rec["experience"]["employment_details"]["current"]
+    for j in jobs:
+        for k in ("name", "employer_name", "company_name"):
+            if k in j:
+                j[k] = co
+    url = "https://www.linkedin.com/in/cjk-test"
+    v = await guard("Hi, open to a quick chat?", to={"name": "Vinod Sonagara", "profile_url": url, "company": co},
+                    graph=_OneGraph(url, rec))
+    assert check(v, "recipient_still_at_company")[0].status == "pass", [c.model_dump() for c in v.checks]

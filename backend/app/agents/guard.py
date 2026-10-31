@@ -320,7 +320,7 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
     pr = load_person(rec)
     who = pr.name or name
     checks: list[Check] = []
-    cur = next((j for j in pr.current if same_company(company, j.company)), None)
+    cur = next((j for j in pr.current if _co_match(company, j.company)), None)
     if not company:
         checks.append(Check(id=cid, name=cname, status="unverifiable", detail="no recipient company given", source=_src(rec, None, url)))
     elif cur:
@@ -329,7 +329,7 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
                             detail=f"{who} is currently {cur.title or 'employed'} at {cur.company}{since}",
                             source=_src(rec, cur.path, url)))
     else:
-        left = next((j for j in pr.past if same_company(company, j.company)), None)
+        left = next((j for j in pr.past if _co_match(company, j.company)), None)
         now = pr.current[0] if pr.current else None
         if left:
             detail = f"{who} left {left.company}" + (f" on {left.end.isoformat()}" if left.end else "")
@@ -391,7 +391,10 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
     claimed = {k: getattr(stated, k) for k in rest}
     claimed["_source"] = "the draft message"
     try:
-        found, _ = await verify_candidate({**rec, "claimed": claimed}, None, Criteria(), client, today=today)
+        # Company Enrich is only needed for stage claims and industry evidence for skills; skip it otherwise
+        # ({} = "no company record", so the verifier doesn't fetch one). Saves a rate-limited call per draft.
+        need_company = bool({"company_stage", "skills"} & set(rest))
+        found, _ = await verify_candidate({**rec, "claimed": claimed}, None if need_company else {}, Criteria(), client, today=today)
     except Exception as e:  # noqa: BLE001 - verify_candidate shouldn't raise, but fail closed if it does
         found = []
         log.warning("guard: verify_candidate raised: %s", e)

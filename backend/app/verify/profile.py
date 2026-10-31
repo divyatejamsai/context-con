@@ -6,6 +6,7 @@ several known paths and records which one hit. That path becomes Source.field on
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
@@ -67,7 +68,11 @@ def parse_date(v: Any) -> date | None:
 
 
 def norm(s: Any) -> str:
-    return re.sub(r"[^a-z0-9 ]+", " ", str(s or "").lower()).strip()
+    """Lowercase, accents folded (Nestlé -> nestle), punctuation to spaces. Non-Latin letters (群益金鼎, Яндекс) are kept,
+    so names in other scripts don't normalise to an empty string and fail every comparison."""
+    t = unicodedata.normalize("NFKD", str(s or "")).lower()
+    t = "".join(ch for ch in t if not unicodedata.combining(ch))
+    return re.sub(r"[^\w ]+|_", " ", t).strip()
 
 
 _COMPANY_SUFFIX = re.compile(
