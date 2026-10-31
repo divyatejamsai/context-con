@@ -10,6 +10,7 @@ Cases per recipient (only those the record supports):
   false     tenure +3y, a different company, inflated title, another city, experience +6y
   stale     past employer named as current (in the claim, or as the recipient's company), past title at past employer
   subtle    tenure +1.5y, "Senior" added, start year 2 years early, nearby-but-wrong city
+  sourced   Sourced's own outreach for that person (verifier + draft_outreach, Gemini when live): must be allowed
   sender    facts about the sender (founded in 2019, 40-person team, Senior Engineer pitch) that must not block
   paraphrase  held-out wordings the offline rule extractor was not tuned on (number words, "since you joined",
             "Director of Engineering"); with LLM_MODE=live Gemini extracts them, offline they show the regex's limits
@@ -265,6 +266,21 @@ def make_cases(people: dict[str, dict], today: date, rng: random.Random) -> list
         add("sender", "sender_office_you", f"Hi {first}, our office is in Bengaluru, and you could work from there or remotely.", "allow",
             "facts about the sender")
 
+        # skills and past roles (live run found these blocked wrongly)
+        if pr.skills:
+            sk = rng.choice(pr.skills[:8])
+            add("true", "skill", f"Hi {first}, your experience with {sk} stands out for this role.", "allow", f"skill {sk} on profile")
+        add("false", "skill_fake", f"Hi {first}, your experience with Quantum Chromodynamics stands out for this role.", "block",
+            "skill not in record")
+        if past:
+            if past.title:
+                add("true", "past_role", f"Hi {first}, you were previously {past.title} at {past.company}, which is relevant here.", "allow",
+                    f"past role {past.title} at {past.company}")
+            add("true", "past_experience", f"Hi {first}, your earlier work at {past.company} was impressive. Now you're at {co}.", "allow",
+                f"past employer {past.company}")
+            add("false", "past_role_fake", f"Hi {first}, you were previously at {other}, which is relevant here.", "block",
+                f"never at {other}")
+
         # false employer / title
         add("false", "employer_other", f"Hi {first}, your work at {other} caught our eye. Open to a chat?", "block",
             f"works at {', '.join(concurrent)}, not {other}")
@@ -315,6 +331,32 @@ def tamper_cases(people: dict[str, dict]) -> list[Case]:
 
 
 # ---- run --------------------------------------------------------------------
+
+async def sourced_cases(people: dict[str, dict], today: date, client, sem: asyncio.Semaphore) -> list[Case]:
+    """Sourced's own outreach, made the way the pipeline makes it (verifier claims -> draft_outreach, Gemini when live),
+    with a brief built from each person's record so the domain/skill facts show up. All must be allowed."""
+    from app.outreach import draft_outreach
+    from app.schemas import Candidate, Criteria
+    from app.verify.verifier import verify_candidate
+
+    async def one(url: str, rec: dict) -> Case | None:
+        pr = load_person(rec)
+        if not pr.current or not pr.name:
+            return None
+        cur = pr.current[0]
+        skills = pr.skills[:2] + (["Payments"] if "payment" in (pr.headline or "").lower() else [])
+        crit = Criteria(role=cur.title or "Engineer", skills=skills, locations=[_city(pr)] if _city(pr) else [])
+        async with sem:
+            claims, flags = await verify_candidate(rec, None, crit, client, today=today)
+            c = Candidate(id="x", name=pr.name, title=cur.title, company=cur.company, location=pr.location,
+                          profile_url=pr.profile_url, claims=claims, flags=flags)
+            draft = await draft_outreach(c, crit)
+        return Case(id=f"sourced-{norm_url(url).rsplit('/', 1)[-1]}", category="sourced", template="sourced_draft", person=url,
+                    name=pr.name, to={"name": pr.name, "profile_url": pr.profile_url, "company": cur.company}, body=draft,
+                    expect="allow", why="Sourced's own draft from verified facts")
+
+    return [c for c in await asyncio.gather(*(one(u, r) for u, r in people.items())) if c]
+
 
 class EvalGraph(Graph):
     """Serves the eval's records by URL (so labels and the guard read the same data), else the normal path."""
@@ -368,7 +410,7 @@ def report(cases: list[Case], meta: dict) -> str:
              f"**False-allow** (should block, allowed): {rate(cases, 'block')}  ",
              f"**False-block** (should allow, blocked): {rate(cases, 'allow')}", "",
              "| Category | Cases | False-allow | False-block |", "|---|---|---|---|"]
-    for cat in ("true", "sender", "false", "stale", "subtle", "tamper", "paraphrase"):
+    for cat in ("sourced", "true", "sender", "false", "stale", "subtle", "tamper", "paraphrase"):
         xs = [c for c in cases if c.category == cat]
         if xs:
             lines.append(f"| {cat} | {len(xs)} | {rate(xs, 'block')} | {rate(xs, 'allow')} |")
@@ -416,11 +458,21 @@ async def main() -> None:
         people = dict(list(people.items())[: a.max_people])
 
     rng = random.Random(a.seed)
-    cases = make_cases(people, today, rng) + tamper_cases(people)
-    graph = EvalGraph(people, client, mode="replay" if client is None else None)
     sem = asyncio.Semaphore(a.concurrency)
+    cases = make_cases(people, today, rng) + tamper_cases(people) + await sourced_cases(people, today, client, sem)
+    print(f"{len(cases)} cases over {len(people)} people", flush=True)
+    graph = EvalGraph(people, client, mode="replay" if client is None else None)
     t0 = time.perf_counter()
-    await asyncio.gather(*(run_case(c, graph, today, sem) for c in cases))
+    done = 0
+
+    async def tracked(c: Case) -> None:
+        nonlocal done
+        await run_case(c, graph, today, sem)
+        done += 1
+        if done % 100 == 0 or done == len(cases):
+            print(f"  {done}/{len(cases)} cases, {time.perf_counter() - t0:.0f}s", flush=True)
+
+    await asyncio.gather(*(tracked(c) for c in cases))
     print(f"{len(cases)} cases over {len(people)} people in {time.perf_counter() - t0:.1f}s")
 
     md = report(cases, {"when": time.strftime("%Y-%m-%d %H:%M"), "people": len(people), "llm": os.getenv("LLM_MODE", "live"), "crust": mode})
