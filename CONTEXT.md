@@ -5,6 +5,8 @@
 
 Last updated: 2026-10-31 ~10:35 IST (wall clock; earlier timestamps in this doc ran ahead and are approximate)
 
+> **STANDING RULE (user, ~11:42 IST): this must be a real product, not a faked demo.** Agent management, tests and the demo all run on real data: live Crustdata, live Gemini, real signatures and real ledger entries. Mocks and fixtures are only for offline unit tests and as a fallback, never for what judges see. A gap audit ("Audit gaps for a real product" thread) is running.
+
 ---
 
 ## 1. The event in one screen
@@ -91,6 +93,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:42 | **Standing rule: real product, not a faked demo.** Agent management, tests and demo run on real data (live Crustdata + Gemini). Mocks only for offline unit tests and as a fallback | User: "i want the final product to actually be a product and not just a faked demo" | dummyanaxes |
 | ~11:37 | **Standing approval: push fixtures/recordings whenever** (incl. real-person data to the public repo); no need to ask again | User: "you can push whenever man" | dummyanaxes |
 | ~11:41 | UI look changed again: Sourced dark theme replaced by neo-brutalist bento | User wanted it more creative; the earlier look read as default GitHub | dummyanaxes (via WS4) |
 | ~11:31 | Thin shortlists: show 30-39 scorers as "near misses" instead of lowering the 40 bar | Keeps the bar honest while still showing options | WS2 |
