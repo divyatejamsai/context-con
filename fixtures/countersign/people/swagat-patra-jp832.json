@@ -1,0 +1,335 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Swagat",
+  "headline": "SSE | ex-Airtel Payments Bank | BIT Mesra",
+  "languages": [],
+  "last_name": "Patra",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "swagat patra",
+  "professional_network_name": "swagat patra",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/194eafcd78276ba96ef194ca7a05212c95c87dbc564a800e21eb783a9b37b105.jpg",
+  "summary": "Versatile senior software engineer with 10 years of experience in IT industry, works well both as part of team and as an independent contributor. Proficient in data structures and algorithms with focus on developing scalable, high-performance applications."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Engineering",
+    "description": "",
+    "end_year": 2016,
+    "field_of_study": "Production Engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/690958e2ed27c4b7359c6c3feb14af6a03e9a632ab3808e8b37027553d95dae8.jpg",
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": "",
+     "state": null
+    },
+    "professional_network_id": "80775292",
+    "school": "BIT MESRA",
+    "start_year": 2012
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "Higher Secondary",
+    "description": "",
+    "end_year": 2011,
+    "field_of_study": "",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0eb701de99f4375bd20679d203237a077ef024b75e27663fabec170eb2721208.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C560BAQH8LrE04GfbsQ/company-logo_400_400/company-logo_400_400/0/1631345008970?e=1792627200&v=beta&t=v8Rb4woZzzujYZIiNWKfJ1lln-bGB3lGj7l5ZP9yjI0",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Sector-IV",
+     "state": "Jharkhand"
+    },
+    "professional_network_id": "27062603",
+    "school": "Delhi Public School, Bokaro Steel City.",
+    "start_year": 2009
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "Secondary",
+    "description": "",
+    "end_year": 2009,
+    "field_of_study": "",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Chinmaya Vidyalaya, Bokaro",
+    "start_year": 2008
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "",
+    "description": "",
+    "end_year": 2008,
+    "field_of_study": "",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Dav Public School MCL Sambalpur",
+    "start_year": 1997
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Moniepoint Inc. is Africa’s all-in-one financial ecosystem, helping 10 million businesses and individuals access seamless payments, banking, credit, and business management tools since 2019.As Nigeria’s largest merchant acquirer, it powers most of the country’s Point of Sale (POS) transactions. Through its subsidiaries, Moniepoint Inc. processes $22 billion monthly for its customers while operating profitably.Moniepoint Inc. is a fully remote tech company with a diverse workforce worldwide and is headquartered in London, with offices in the US, Nairobi and Lagos. Join us as a #DreamMaker to help power the dreams of businesses globally.",
+     "company_headcount_latest": 5760,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/88068264",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e31a6e296968cfec0c1b7ba25395fe05aa72068207fdb13f8e07785752983fec.jpg",
+     "company_status": "active",
+     "company_website": "http://www.moniepoint.com",
+     "company_website_domain": "moniepoint.com",
+     "crustdata_company_id": 900405,
+     "description": "Built and launched the Moniemarket logistics platform from scratch, enabling direct manufacturer-to-retailer transactions. Developed a remote sales platform for loan processing, allowing field officers to submit applications on behalf of business owners. Owned end-to-end system design and development: UI integration (Figma), schema design, validations, idempotency, async processing, distributed locking and transaction management. Designed modular, scalable services using status-driven workflows and Strategy design pattern. Ensured data consistency across microservices using event-driven architecture, Outbox pattern and fault-tolerant retry strategies.",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": ""
+     },
+     "name": "Moniepoint Group",
+     "position_id": 2662375394,
+     "professional_network_id": "88068264",
+     "seniority_level": "Senior",
+     "start_date": "2025-06-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "For more than 35 years, Edelman Financial Engines has been helping people move their financial lives forward.Our founders set the tone for our mission – giving individual investors access to sophisticated investment modeling tools that were previously available only to institutional investors, and providing financial planning and wealth management advice with the belief that everyone should have a trusted financial advocate who is always acting in their best interests. Today, we’re one of America’s top independent wealth planning and workplace investment advisory firms, serving more than 1.3 million clients (as of Dec. 2024).Our unique combination of high-tech and high-touch services helps people wherever they are on their personal financial journey. Through our Wealth Management services, we deliver straightforward wealth planning and investment advice to help individuals and families connect the dots between key parts of their financial life so they can build, grow, protect and preserve their wealth. Through our Employer Services, we work with many of the nation’s leading employers, offering an integrated suite of personalized financial solutions to support employees across their major life events and milestones – from their first paycheck all the way through retirement.In serving clients from coast to coast, we know that when individuals have better confidence and command over their own financial journey, this can have a positive lasting impact on families, communities, and generations over time. This mission-driven purpose is deeply embedded in our values, our culture, and across all of our teams.",
+     "company_headcount_latest": 1609,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/58931",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/fda76288b9405dab98deb8ca9b34bfccc42b96c4d871c95b6bd962c8e213271a.jpg",
+     "company_status": "active",
+     "company_website": "https://www.edelmanfinancialengines.com/",
+     "company_website_domain": "edelmanfinancialengines.com",
+     "crustdata_company_id": 1155071,
+     "description": "Working as part of team handling onboarding of millions of company-sponsored employee 401k accounts. Involved in validation, cleansing of data records, aws sdk upgrade. Integrated Lambda, Amazon DynamoDB with secondary indexing. Built a UI dashboard for efficient range-based querying (vanilla js).",
+     "employment_type": "",
+     "end_date": "2025-05-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Edelman Financial Engines",
+     "position_id": 2250386486,
+     "professional_network_id": "58931",
+     "seniority_level": "Entry Level",
+     "start_date": "2023-04-01T00:00:00+00:00",
+     "title": "SSE",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "Join #CventNation! www.cvent.com/careersWhat We Do: Cvent is a global market-leading meetings, events, & hospitality technology provider. Our Mission: To bring people together, power the human connection and transform the meetings & events industry through innovative technology.Who We Are: With 5,500+ employees & 30,000 customers, we're one of the largest event technology companies in the world, & we're always looking for the next generation of Cventers to join #CventNation!Cvent is consistently recognized as a Top Workplace by The Washington Post, Washington Business Journal, & certified as a Great Place to Work in the US, UK, & India, among other regional & international accolades.**Career Fraud Alert: In today's digital-first world, fraudulent job offers and hiring manager impersonations, often via social media or chat/messaging apps, continue to increase. To protect yourself, verify all communications come from a legitimate Cvent email (name@cvent.com) and be cautious of requests for personal information, unsolicited messages, and offers via chat or social media. If you suspect fraud, contact HRHelp@cvent.com immediately and apply for positions directly through our careers site at https://careers.cvent.com. Your safety and security are our priority.",
+     "company_headcount_latest": 6834,
+     "company_headcount_range": "5001-10000",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/18125",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ba3caaa1f0ce00163e45c256159a5153561e6b0e2ffbe7fdb32d8953aa68f3c1.jpg",
+     "company_status": "active",
+     "company_website": "https://utm.io/uowED",
+     "company_website_domain": "cvent.com",
+     "crustdata_company_id": 1036970,
+     "description": "Vendor Recommendation utility (Recommending vendors to suppliers based on ratings, prices and categories using Priority Queue with backtracking) which fetched the recommended vendors for each category with minimal latency and duplicacy - handling. Involved in migration of vendor data from NA to EU for GDPR compliance. Created apis for adding vendor contacts and sending updates.",
+     "employment_type": "",
+     "end_date": "2023-01-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Gurugram, Haryana, India"
+     },
+     "name": "Cvent",
+     "position_id": 1961928198,
+     "professional_network_id": "18125",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-05-01T00:00:00+00:00",
+     "title": "SSE",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "Airtel Payments Bank is one of India’s fastest‐growing digital banks, built to deliver safe, smart, and simple banking through powerful, intuitive digital platforms. With customers at the heart of everything we do, we design solutions that make everyday digital banking and payments effortless and accessible for all.Leveraging cutting‐edge technology, we continually innovate to meet the evolving needs of a mobile‐first India. In this journey, our Safe Second Account has emerged as a trusted way for customers to manage daily digital transactions and keep their main bank account safe.Our NCMC enabled RuPay On-the-Go Cards and FASTag services provide smooth travel and frictionless payments nationwide. Together, these offerings and our digital solutions for businesses form an integrated ecosystem that makes transactions effortless for all. Supporting this digital framework is India’s most extensive technology‐led banking network, with over 500,000 active banking points enabling customers in urban and rural regions to access secure banking services with ease.We are equally committed to fostering a workplace where people can thrive. Our culture emphasizes flexibility, continuous learning, and growth - earning us the prestigious Great Place to WorkTM️ certification for four years in row.Join Airtel Payments Bank and be part of our mission to serve India well with safe and effortless digital banking.",
+     "company_headcount_latest": 7138,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13361480",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/5b461674af15886de5a63cdebf67508245c410ff9e57adb862373f93361895eb.jpg",
+     "company_status": "active",
+     "company_website": "https://www.airtelpayments.bank.in",
+     "company_website_domain": "airtelpayments.bank.in",
+     "crustdata_company_id": 1131730,
+     "description": "Utilities Vertical (Involved in the integration of new features into Airtel Thanks App). Wrote scripts to generate queries for on-boarding of schools pan-India. Handled integration and deployment of Redbus into Thanks app. Fixed a persistent issue with recharge data packs using cron job and handling duplicate entries without changing schema.",
+     "employment_type": "",
+     "end_date": "2022-05-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Airtel Payments Bank",
+     "position_id": 2943199875,
+     "professional_network_id": "13361480",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-03-01T00:00:00+00:00",
+     "title": "SDE 2",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "For more than two decades, CareerBuilder has helped millions of professionals turn ambition into progress. Designed for those ready to take the next step, whether that means advancement, greater rewards, or a clearer growth path, CareerBuilder offers trusted job search tools and access to an extensive employer network. With a 4.3 out of 5 rating on G2 for its ease of use and comprehensive features, the platform empowers driven individuals to pursue career goals with confidence, while enabling businesses to build stronger teams and lasting success.Follow CareerBuilder as a preferred source in Google to receive more workforce trends, career insights, and labor market research in your personalized search experience.",
+     "company_headcount_latest": 1559,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/4162",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/241ef6560b8f8329b01e083a84a184d0081f07cea81697317a0eafcafb65612e.jpg",
+     "company_status": "active",
+     "company_website": "http://www.careerbuilder.com",
+     "company_website_domain": "careerbuilder.com",
+     "crustdata_company_id": 821782,
+     "description": "Email Subscriptions Module (Handling of users and their job and notification preferences, mapping candidates to talent networks). Integrated AWS Lambda functions for scheduled jobs and for unpausing of paused notifications. Integrated retrials in case of error responses which reduced the error rates from 12% to 3.5%. Was included in the \"CB Employees of the Month newsletter\" for integration of Kafka Implemented schema changes using nested JSON in SQL. Rewrote auth token generator npm library.",
+     "employment_type": "",
+     "end_date": "2021-03-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Noida, Uttar Pradesh, India"
+     },
+     "name": "CareerBuilder",
+     "position_id": 1544788491,
+     "professional_network_id": "4162",
+     "seniority_level": "Entry Level",
+     "start_date": "2019-04-01T00:00:00+00:00",
+     "title": "Software Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": null,
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": null,
+     "company_profile_picture_permalink": null,
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "Epricer India (Portal for displaying products available in a particular country with pricing and features' specifications). Used Future and Executor for parallel processing. Code migration from Angular.js to Angular 4 (TypeScript). Fetching data from REST APIs and displaying prices and products in an interactive format.",
+     "employment_type": "",
+     "end_date": "2018-12-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "IBM India Pvt Ltd",
+     "position_id": 2943199873,
+     "professional_network_id": null,
+     "seniority_level": "Entry Level",
+     "start_date": "2016-10-01T00:00:00+00:00",
+     "title": "Associate System Engineer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Parallel Processing",
+   "MySQL",
+   "Docker Products",
+   "API Development",
+   "Data Structures",
+   "AngularJS",
+   "Kubernetes",
+   "Express.js",
+   "Software Design Patterns",
+   "Data Migration",
+   "AWS Lambda",
+   "Amazon Web Services (AWS)",
+   "Java 8",
+   "SQL",
+   "Angular 6",
+   "JavaScript",
+   "MongoDB",
+   "Node.js",
+   "Git",
+   "Public Speaking",
+   "Redis",
+   "Spring Boot",
+   "Apache Kafka"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/swagat-patra-jp832"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 79011908
+}

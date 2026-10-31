@@ -1,0 +1,312 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Shubham",
+  "headline": "Senior Backend Engineer | Ex-Visa, ServiceNow | Distributed Systems, Microservices | Payments & Enterprise Platform Systems | Building with LLMs & AI agents | Immediate Joiner",
+  "languages": [
+   "English (Full professional proficiency)",
+   "French (Elementary proficiency)",
+   "Hindi (Full professional proficiency)"
+  ],
+  "last_name": "A.",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Shubham A.",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Backend Engineer",
+   "similarity": 0.9998999834060669,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Shubham A.",
+  "profile_picture_permalink": "",
+  "summary": "I am a Senior Backend Engineer with 10 years of experience designing, building, and scaling distributed systems, payment platforms, and enterprise SaaS products for global organizations including Equal Experts, Moveworks, ServiceNow, Visa, PwC India, and Publicis Sapient.I specialize in:🔧 Distributed systems, microservices, and API platform design💳 Payments, financial workflows, compliance-driven systems, and auditability🚀 Performance optimization and scalability (2M+ daily users, sub-200ms latency)☁️ Cloud-native engineering with AWS, Kubernetes, Docker, and CI/CD📊 Event-driven architectures using Kafka, Redis, and asynchronous processing🤝 Technical leadership, system design, mentoring, and cross-functional collaborationOver the years, I have built and operated high-scale backend platforms, payment processing workflows, search systems, automation platforms, and customer-facing APIs serving millions of users globally. I enjoy solving complex engineering problems, driving architectural decisions, and building systems that are reliable, scalable, and easy to evolve.I am always interested in connecting with engineers, founders, and teams working on challenging problems in platform engineering, fintech, AI, SaaS, and large-scale distributed systems.📬 Contact📧 asthana.shubham3092@gmail.com🔗 github.com/shubham-asthana🌐 linkedin.com/in/shubham-asthana3092"
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor’s Degree",
+    "description": "Graduated as a Bachelor of Technology (Honours) in Electronics and Communication Engineering.",
+    "end_year": 2015,
+    "field_of_study": "Electronics and Communications Engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ff88ce6c94a44fb242163be418bcd335ced2081a49e1deaf4f960fb09c9efc0d.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQHn7jfCd8lURw/company-logo_400_400/company-logo_400_400/0/1686635689100/lnmiitjpr_logo?e=1785974400&v=beta&t=6GIEZV88nsNpEO4tI4PjTMxFLjPYmeHbJMzdtVQeVPs",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Rupa ki Nangal Post-Sumel, Via-Jamdoli",
+     "state": "Rajasthan"
+    },
+    "professional_network_id": "15132857",
+    "school": "The LNM Institute of Information Technology",
+    "start_year": 2011
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "",
+    "description": "",
+    "end_year": 2010,
+    "field_of_study": "",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Study Hall School, Lucknow",
+    "start_year": 2003
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "We are honoured to be recognised as one of the Top 10 Best Places to Work in the UK for the third year running, according to Glassdoor’s prestigious 2026 list.Equal Experts is a global technology consultancy built on experience. With over 4,000 skilled and trusted consultants, our network is the highest concentration of digital technology expertise in the world. We combine speed, precision and pragmatism to solve complex challenges, deliver lasting value and turn ambition into reality.Since 2007, we have collaborated with forward-looking businesses across sectors, from scale-ups to government organisations and global enterprises, to solve complex challenges and deliver lasting value.Bringing deep experienceOur customers benefit from smaller, senior teams with an average of 17+ years in the industry. This depth of experience helps us reduce risk, accelerate decision-making and build practical solutions.Keeping you innovatingWith expertise across data, AI, technology strategy, customer experience, product design, software engineering and platform modernisation, our trusted network of specialists help you navigate complexity and accelerate pragmatic innovation.Easy to work withValuing context, we never offer cookie-cutter solutions. Treating each other and our customers as equals, we work side by side to create long-lasting value.A 100% network-owned organisationWe believe that to be successful for the long term, we need to succeed together. As associates, employees and customers, we all have a vested interest in making Equal Experts the best it can possibly be.If you are looking for a thoughtful and experienced partner to solve complex challenges and unlock new opportunities, we would love to talk.",
+     "company_headcount_latest": 1549,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/252335",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/120bc9166cc16cf2a318ea75fba1f38386b8852dfd7e796f7e79b80de27ca2b3.jpg",
+     "company_status": "active",
+     "company_website": "http://www.equalexperts.com",
+     "company_website_domain": "equalexperts.com",
+     "crustdata_company_id": 1044392,
+     "description": "Client: IG Group\nOwn the architecture of the payments module in IG's agent dashboard: Java/Spring Boot APIs that servicing agents use to move client money across 5 payment rails (card, bank transfer, PayPal, Apple Pay and US rails), each with different authorisation rules, processing 1,000s of withdrawal and deposit requests a day. \nDesigned the withdrawal workflow end to end: multi-account fund selection with balance and margin checks, request queues, payment runs and archival. Server-side eligibility rules block ~15% of requests that would previously have reached the payments team as invalid. \nConsolidated client and account data from 6 upstream systems (Salesforce, Genesys, IGIP) into one low-latency API, replacing 6 separate tool logins for hundreds of internal agents and cutting the time to resolve a payment query by roughly a third. \nBuilt the compliance and privacy layer: card data stays tokenised and never enters the dashboard, verification checks gate every fund movement, and every state change lands in an audit trail — zero compliance findings since launch. \nSenior-most engineer in a squad of 6: review designs, write the decision records, and ship to production every 2 weeks with a 100% on-time release record.",
+     "employment_type": "Full-time",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Equal Experts",
+     "position_id": 2929868756,
+     "professional_network_id": "252335",
+     "seniority_level": "Senior",
+     "start_date": "2025-10-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Moveworks is the AI Assistant platform the world’s foremost organizations trust to empower their entire workforce with AI that gets work done. We cut through operational complexity by unifying siloed business applications — from HR and IT to Finance, Procurement, and beyond — with an intuitive, AI-native experience that meets employees where they work, and in over 100 languages. Moveworks combines both search and action in one interface, eliminates AI sprawl, offers hundreds of built-in integrations, and enables developers to quickly deploy specialized AI agents that can solve for almost any business need. Our sophisticated Reasoning Engine works to select the right tools to achieve every employee’s end goal, automating complex, multi-step processes reliably and efficiently. Surrounded by rigorous security protocols and real-time governance, Moveworks delivers agentic AI with substantial ROI for today’s leading enterprises including Toyota, Instacart, CVS Health, Marriott, HP, GitHub, Hearst, Databricks, and Micron.",
+     "company_headcount_latest": 654,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/18311685",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/59853f6432d6ad56315d76743c4a16a9e9b51afc64f2629b1dd87f8525a57f68.jpg",
+     "company_status": "active",
+     "company_website": "https://moveworks.ai/?utm_source=soc&utm_medium=li",
+     "company_website_domain": "moveworks.com",
+     "crustdata_company_id": 631503,
+     "description": "Built the backend integration that captured lead-gen form submissions from the company website and synced them into Marketo in real time, with validation, deduplication, and retry logic to guarantee delivery. \nHired and built the platform's backend team of 6 from scratch in six months, then set its architecture standards and code-review practices that the team still runs on; structured onboarding cut new-engineer ramp-up time by 30%. \nBuilt GitHub Actions CI/CD pipelines that held a 99.5% deployment success rate with zero-downtime releases, drove test-driven development adoption to 85% coverage, and cut post-release defects by 40%. \nAutomated review and approval routing through a Slack/JIRA integration, cutting SLA breaches by 40%.",
+     "employment_type": "Full-time",
+     "end_date": "2025-05-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Moveworks",
+     "position_id": 2393529618,
+     "professional_network_id": "18311685",
+     "seniority_level": "Senior",
+     "start_date": "2024-02-01T00:00:00+00:00",
+     "title": "Senior Software Engineer II",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "ServiceNow (NYSE: NOW) makes the world work better for everyone. Our cloud-based platform and solutions help digitize and unify organizations so that they can find smarter, faster, better ways to make work flow. So employees and customers can be more connected, more innovative, and more agile. And we can all create the future we imagine. The world works with ServiceNow. For more information, visit www.servicenow.com.",
+     "company_headcount_latest": 34824,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/29352",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/aba589597fea6bd6a06e78507a7324d4da7fb91a84cf266c99e7450c130a1d14.jpg",
+     "company_status": "active",
+     "company_website": "http://www.servicenow.com",
+     "company_website_domain": "service-now.com",
+     "crustdata_company_id": 662500,
+     "description": "Built an automated data ingestion and publishing pipeline on an event-driven architecture, cutting manual effort by 75% and scaling throughput 3x. \nStrengthened monitoring and alerting around critical data pipelines so failures surfaced before customers reported them, shortening mean time to detection. \nHandled production escalations on the on-call rotation: triaged customer-impacting incidents, drove root cause analysis with engineering and support teams, and shipped permanent fixes that reduced recurring incident volume. \nLed a large-scale codebase audit: removed 5,000+ lines of dead code, resolved 97% of SonarQube issues and measurably reduced build times. \nDrove the geo-site rollout for ANZ and LATAM regions, automating provisioning and deployment to cut perregion engineering effort by 30%. \nOptimised backend data delivery pipelines, reducing payload sizes and contributing to 20% faster page loads. Owned technical screening and structured mentoring for 5+ new hires in the Centre of Excellence.",
+     "employment_type": "Full-time",
+     "end_date": "2024-02-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "ServiceNow",
+     "position_id": 1994471064,
+     "professional_network_id": "29352",
+     "seniority_level": "Senior",
+     "start_date": "2022-05-01T00:00:00+00:00",
+     "title": "Senior Software Engineer (IC3)",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Visa (NYSE: V) is a world leader in digital payments, facilitating transactions between consumers, merchants, financial institutions and government entities across more than 200 countries and territories. Our purpose is to uplift everyone, everywhere by being the best way to pay and be paid. Learn more at Visa.com.",
+     "company_headcount_latest": 31513,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/2190",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c75d408c6e508f5ffccc5508826526c5fc6b3fdb866b74d5938f17748c8776a6.jpg",
+     "company_status": "active",
+     "company_website": "https://corporate.visa.com/en/careers.html",
+     "company_website_domain": "visa.com",
+     "crustdata_company_id": 6047212,
+     "description": "Built and owned consumer-facing REST APIs for visa.com across 150+ global markets, sustaining 2M+ daily users at sub-200ms response times with 99.9% uptime. \nBuilt a backend reporting service on top of an existing Elasticsearch index, letting internal teams query by keyword within a chosen region and country to keep result sets manageable across 150+ countries, with matches exported to Excel via a scheduled backend job. Cut retrieval time by 60%. \nOwned production support for these APIs end to end: led incident bridges during high-severity outages, restored service within SLA, and ran post-incident reviews with preventive fixes, using Splunk dashboards for diagnosis. Built a distributed cache invalidation system that reduced propagation delays by 70% across global CDN nodes. Delivered an internal approval-workflow tool that cut processing time by 85% and saved around $100K a year. Redesigned core visa.com UI components in Angular/TypeScript as part of a platform redesign, contributing to a 25% lift in mobile engagement and 18% longer page dwell time.",
+     "employment_type": "Full-time",
+     "end_date": "2022-05-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Visa",
+     "position_id": 1658166376,
+     "professional_network_id": "2190",
+     "seniority_level": "Senior",
+     "start_date": "2019-10-01T00:00:00+00:00",
+     "title": "Senior Software Engineer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "At PwC, we help clients build trust and reinvent so they can turn complexity into competitive advantage. We’re a tech-forward, people-empowered network with more than 364,000 people in 136 countries and 137 territories. Across audit and assurance, tax and legal, deals and consulting, we help clients build, accelerate, and sustain momentum. Find out more at www.pwc.com.   PwC refers to the PwC network and/or one or more of its member firms, each of which is a separate legal entity. Please see www.pwc.com/structure for further details.",
+     "company_headcount_latest": 29703,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Business Consulting and Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Business Consulting and Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1092713",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f2cbaf547bf37bbffbee55ed98648838e21713382f3af12c78eb77d142404b9b.jpg",
+     "company_status": "active",
+     "company_website": "http://www.pwc.in",
+     "company_website_domain": "pwc.in",
+     "crustdata_company_id": 1032977,
+     "description": "Upgraded backend services for a major bank's enterprise platform, reducing production incidents by 40% and improving system performance by 15%. \nBuilt server-side personalisation logic for user segmentation; pilot deployments showed a 22% lift in engagement.",
+     "employment_type": "Full-time",
+     "end_date": "2019-10-01T00:00:00+00:00",
+     "function_category": "Consulting",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "PwC India",
+     "position_id": 1447785280,
+     "professional_network_id": "1092713",
+     "seniority_level": "Entry Level",
+     "start_date": "2018-11-01T00:00:00+00:00",
+     "title": "Technology Consultant",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "Publicis Sapient is a technology company that provides enterprise AI platforms and services. With over 30 years of digital business transformation experience, we enable enterprise clients to transform how they operate and serve their customers, unlocking new value and enabling them to thrive in an AI-driven world. Our platforms use AI built off this deep enterprise context to help them modernize, build agentic solutions, and sustain their competitive advantage. The combination of our AI platforms and the expertise of our people enables us to deliver faster and more effective outcomes through solutions that are specific to the unique needs of our clients’ businesses, their industries and their customers.  Publicis Sapient is the technology hub of Publicis Groupe, uniting 20,000 people worldwide across 28 countries. For more information, visit publicissapient.com.",
+     "company_headcount_latest": 23993,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Business Consulting and Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Business Consulting and Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/10801655",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3397a1c2a82f246a38c6bdc524ad05d0eae0fd06612af134a48cb6e34faf7370.jpg",
+     "company_status": "active",
+     "company_website": "http://publicissapient.com/",
+     "company_website_domain": "publicissapient.com",
+     "crustdata_company_id": 701616,
+     "description": "Built a reusable component and template framework adopted across multiple Fortune 500 client platforms, cutting new-page and campaign turnaround time in half. \nIntegrated third-party media APIs and optimised asset-serving pipelines, cutting load times by 30% through caching and CDN configuration. \nEstablished code quality standards with static analysis and automated testing (JUnit/Mockito), reducing production defects by 35%.",
+     "employment_type": "Full-time",
+     "end_date": "2018-10-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Noida"
+     },
+     "name": "Publicis Sapient",
+     "position_id": 1321844687,
+     "professional_network_id": "10801655",
+     "seniority_level": "Entry Level",
+     "start_date": "2015-09-01T00:00:00+00:00",
+     "title": "Associate Technology",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 3.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Oracle Database",
+   "PostgreSQL",
+   "Claude Code Subagents",
+   "Honeycomb",
+   "Software Design",
+   "Apache Kafka",
+   "Distributed Systems",
+   "Team Leadership",
+   "Kubernetes",
+   "Docker Products",
+   "Software Development",
+   "Amazon Web Services (AWS)",
+   "Elasticsearch",
+   "Jenkins",
+   "SQL",
+   "DevOps",
+   "RESTful WebServices",
+   "Spring MVC",
+   "Angular",
+   "Microservices"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/shubham-asthana3092"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 35011170
+}

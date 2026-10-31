@@ -6,6 +6,7 @@ GET  /api/replay?delay=0.6                  -> streams fixtures/run.jsonl (demo 
 GET  /api/health
 GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Countersign AI employee (app/sourced_agent.py)
 POST /api/verify_resume                     -> check a resume's claims against Crustdata
+POST /api/auth/{lookup,signup,login,demo,logout}, GET /api/auth/me -> company accounts (app/accounts/)
 GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
 """
 from __future__ import annotations
@@ -31,6 +32,7 @@ from .schemas import RunRequest  # noqa: E402
 from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
+from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -39,6 +41,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(agents_router)
 app.include_router(sourced_router)
 app.include_router(demo_router)
+app.include_router(auth_router)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 

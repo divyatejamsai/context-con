@@ -28,7 +28,7 @@ from pydantic import BaseModel
 
 from .. import llm
 from ..schemas import Claim, Criteria, Source
-from ..verify.profile import Job, Profile, load_person, norm, parse_date, same_company, seniority_rank, title_similarity
+from ..verify.profile import Job, Profile, company_key, load_person, norm, parse_date, same_company, seniority_rank, title_similarity
 from ..verify.verifier import verify_candidate
 from . import ledger
 from .graph import Graph
@@ -51,8 +51,13 @@ def outbox_path() -> Path:
 
 # ---- claim extraction ---------------------------------------------------------
 
+class PastRole(BaseModel):
+    employer: str
+    title: str | None = None
+
+
 class BodyClaims(BaseModel):
-    """Facts a draft states about its recipient. Keys mirror verify_candidate's person["claimed"]."""
+    """Facts a draft states about its recipient. Scalar keys mirror verify_candidate's person["claimed"]."""
     employer: str | None = None
     title: str | None = None
     start_date: str | None = None
@@ -60,10 +65,12 @@ class BodyClaims(BaseModel):
     years_experience: float | None = None
     location: str | None = None
     company_stage: str | None = None
+    skills: list[str] = []          # skills, technologies or domains they're said to have or work in
+    past_roles: list[PastRole] = []  # roles described as past ("you were Tech Lead at TransFi")
     other: list[str] = []  # LLM only: other factual claims about the recipient that fit no field (checked as unverifiable)
 
     def facts(self) -> list[str]:
-        return [k for k, v in self.model_dump(exclude={"other"}).items() if v not in (None, "")]
+        return [k for k, v in self.model_dump(exclude={"other"}).items() if v not in (None, "", [])]
 
 
 # A capitalised or camelCase ("dataZen") word; a trailing "." only on abbreviations ("Pvt.", "Inc."), not sentence ends.
@@ -83,6 +90,13 @@ _PATTERNS: list[tuple[str, tuple[str, ...]]] = [
     (rf"\b(?i:you(?:'re| are)\s+(?:based\s+)?in)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", ("location",)),
     (rf"\b{_CO_GREEDY}\s+(?:is|being)\s+(?:a\s+|an\s+)?((?i:(?:pre-?)?seed|series [a-j]|public|ipo'?d))\b", ("employer", "company_stage")),
 ]
+
+_SKILL_RE = (r"\b(?:(?i:experience (?:with|in)|expertise in|background in|skilled in|depth in|knowledge of)\s+"
+             r"(?!(?:a|an|the|this|that|our|your|their|building|working|leading)\b)([A-Za-z][\w+#./\-]*(?:\s+[A-Z][\w+#./\-]*){0,2})"
+             r"|(?i:work(?:ing)? (?:with|on|in))\s+([A-Z][\w+#./\-]*(?:\s+[A-Z][\w+#./\-]*){0,2}))")
+_PAST_ROLE_RE = (rf"\b(?i:you were|you'd been|you worked as|you served as|previously|formerly|back when you were|"
+                 rf"your (?:time|stint|days|years) as)\s+(?i:an?\s+|the\s+)?(?:(?P<title>[A-Z][\w.&/()\-]*(?:\s+[\w.&/()\-|]+){{0,7}}?)\s+)?"
+                 rf"(?i:at|with)\s+(?P<co>{_CO_GREEDY[1:-1]})")
 
 # Same city, different spelling: the claim is rewritten to the record's spelling before checking.
 CITY_ALIASES = [
@@ -128,6 +142,8 @@ _FIRST_PERSON_LEAD = re.compile(r"^\s*(?:i|i'm|i've|we|we're|we've|our|my)\b", r
 def missed_claims(body: str, stated: BodyClaims) -> list[str]:
     """Kinds of fact a second-person sentence seems to state that the extractor did not return."""
     got = set(stated.facts())
+    if stated.past_roles:
+        got |= {"employer", "title"}
     out: list[str] = []
     for sent in re.split(r"(?<=[.!?])\s+|\n+", body):
         if not _SECOND_PERSON.search(sent) or _FIRST_PERSON_LEAD.search(sent):
@@ -153,19 +169,29 @@ def extract_claims_rules(body: str) -> BodyClaims:
                 continue
             v = re.sub(r"\s+(?:and|&)$", "", v.strip().rstrip(".!,"))
             found[k] = float(v) if k in ("tenure_years", "years_experience") else v
-    return BodyClaims(**found)
+    skills = [(m.group(1) or m.group(2)).strip() for m in re.finditer(_SKILL_RE, body)]
+    past = []
+    for m in re.finditer(_PAST_ROLE_RE, body):
+        title, co = (m.group("title") or "").strip() or None, re.sub(r"\s+(?:and|&)$", "", m.group("co").strip().rstrip(".!,"))
+        if found.get("employer") == co and found.get("title") == title:
+            found.pop("employer", None), found.pop("title", None)  # "as a X at Y" inside a past-tense phrase
+        past.append(PastRole(employer=co, title=title))
+    return BodyClaims(**found, skills=list(dict.fromkeys(skills)), past_roles=past)
 
 
 _EXTRACT_PROMPT = """Extract the factual claims this outbound message makes ABOUT ITS RECIPIENT ({name}).
 Ignore anything the sender says about themselves or their own company, opinions, and questions.
 Only fill a field when the message states it; leave the rest null.
-  employer: the company the message says the recipient works at
-  title: the recipient's job title as stated
-  start_date: when the message says they joined (YYYY or YYYY-MM)
+  employer: the company the message says the recipient works at NOW. A company mentioned as past goes in past_roles.
+  title: the recipient's CURRENT job title as stated
+  start_date: when the message says they joined their current employer (YYYY or YYYY-MM)
   tenure_years: years at their current employer, as stated ("5 years at Razorpay" -> 5)
   years_experience: total career years, as stated
   location: where the message says they are based
-  company_stage: funding stage the message attributes to their employer (seed, series b, public...)
+  company_stage: funding stage the message attributes to their current employer (seed, series b, public...)
+  skills: skills, technologies or domains the message says they have or work in ("your experience with Payments" -> "Payments")
+  past_roles: roles the message describes as in the past ("you were Tech Lead at TransFi", "your earlier work at Cvent"),
+              each as {{employer, title or null}}
   other: any OTHER checkable fact the message asserts about the recipient's career that fits none of the fields
          above (e.g. "you led the payments team", "you were at Google before"), each as a short phrase. Not opinions.
 
@@ -277,7 +303,8 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
 
     stated, used_llm = await extract_claims(body, who)
     keys = stated.facts()
-    stale = _former_employers_named(body, pr, stated.employer)
+    named = {r.employer for r in stated.past_roles}
+    stale = _former_employers_named(body, pr, stated.employer, named)
     # With Gemini, its "other" list names facts that fit no field; without it, the keyword safety net does.
     missed = [f'"{o}"' for o in stated.other if o.strip()] if used_llm else missed_claims(body, stated)
     if not keys and not stale and not missed:
@@ -306,6 +333,11 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
         checks.append(Check(id=f"g{n}", name="claims_in_body_true", status=status, detail=f"{text}. {detail}", source=source))
 
     # Tenure, start date and title are checked against the job the draft names (a concurrent or past role counts).
+    for r in stated.past_roles:
+        status, detail, fld = _past_role_claim(r, pr)
+        add(status, f"Draft says {who} was " + (f"{r.title} at {r.employer}" if r.title else f"at {r.employer}"), detail, _src(rec, fld, url))
+    keys = [k for k in keys if k != "past_roles"]
+
     own = {k for k in ("tenure_years", "start_date", "title") if k in keys}
     for k in ("tenure_years", "start_date", "title"):
         if k in own:
@@ -330,6 +362,15 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
         if k and k not in by_key:
             by_key[k] = c
     for k in rest:
+        if k == "skills":
+            for sk in stated.skills:
+                c = next((x for x in found if x.claim.lower() == f"skill: {sk}".lower()), None)
+                text = f"Draft says {who} has {sk} experience"
+                if c and c.status == "verified":
+                    add("pass", text, f"Record: {c.evidence}", c.source)
+                else:
+                    add("unverifiable", text, "Not in their skills, headline, titles or employers' industries", _src(rec, pr.skills_field or "skills", url))
+            continue
         c = by_key.get(k)
         text = f"Draft says {who} {_describe(k, stated)}"
         if c is None:
@@ -340,29 +381,64 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
     return checks
 
 
-def _former_employers_named(body: str, pr: Profile, claimed_employer: str | None) -> list[Job]:
-    """Past employers the draft names (when the recipient has no current role there). The claimed employer is
-    handled by the employer check, so it is skipped here."""
+_PAST_TENSE = re.compile(r"\b(?:was|were|had|previously|formerly|earlier|before|prior|back (?:at|in|when)|used to|ex-?|"
+                         r"past|stint|days at|time at|worked|led|built|spent|served|joined .* (?:after|from))\b", re.I)
+
+
+def _former_employers_named(body: str, pr: Profile, claimed_employer: str | None, past_named: set[str] = frozenset()) -> list[Job]:
+    """Former employers the draft talks about as if the recipient were still there. A mention in past tense
+    ("you were Tech Lead at TransFi", "your earlier work at Cvent") is a past-role claim, not stale; the claimed
+    current employer is handled by the employer check."""
     out: list[Job] = []
     for j in pr.past:
         if not j.company or any(same_company(j.company, c.company) for c in pr.current):
             continue
-        if claimed_employer and same_company(claimed_employer, j.company):
+        if (claimed_employer and _co_match(claimed_employer, j.company)) or any(_co_match(n, j.company) for n in past_named):
             continue
         key = re.sub(r"\s+(?:pvt|private|ltd|limited|inc|llc|technologies|technology|solutions|software)\b.*$", "", j.company, flags=re.I).strip()
-        if len(key) >= 3 and re.search(rf"(?<![\w-]){re.escape(key)}(?![\w-])", body, re.I) and j not in out:
+        if len(key) < 3:
+            continue
+        pat = re.compile(rf"(?<![\w-]){re.escape(key)}(?![\w-])", re.I)
+        sents = [x for x in re.split(r"(?<=[.!?])\s+|\n+", body) if pat.search(x)]
+        if sents and not all(_PAST_TENSE.search(x) for x in sents) and j not in out:
             out.append(j)
     return out
+
+
+def _past_role_claim(r: PastRole, pr: Profile) -> tuple[str, str, str | None]:
+    """A role the draft calls past: the employer must appear in the record (past, or current), and the title match it."""
+    jobs = [j for j in pr.past + pr.current if _co_match(r.employer, j.company)]
+    if not jobs:
+        return "fail", f"No role at {r.employer} in the record", "experience.employment_details"
+    if not r.title:
+        j = jobs[0]
+        when = f" until {j.end.isoformat()}" if j.end else ""
+        return "pass", f"Record: {j.title or 'role'} at {j.company}{when}", j.path
+    best = max(jobs, key=lambda j: title_similarity(r.title, j.title))
+    rank = max(seniority_rank(best.title), seniority_rank(best.seniority_level) if best.seniority_level else 0)
+    if best.title and seniority_rank(r.title) <= rank and (title_similarity(r.title, best.title) >= 0.5
+                                                             or norm(r.title) in norm(best.title) or norm(best.title) in norm(r.title)):
+        when = f" until {best.end.isoformat()}" if best.end else ""
+        return "pass", f"Record: {best.title} at {best.company}{when}", f"{best.path}.title"
+    return "fail", f"Record says '{best.title}' at {best.company}", f"{best.path}.title"
+
+
+def _co_match(a: str | None, b: str | None) -> bool:
+    """same_company, plus a name cut short in the draft ("Samsung R&D Institute India" vs "... India - Bangalore")."""
+    if same_company(a, b):
+        return True
+    ka, kb = company_key(a), company_key(b)
+    return min(len(ka), len(kb)) >= 4 and (ka.startswith(kb) or kb.startswith(ka))
 
 
 def _job_for_claim(pr: Profile, employer: str | None) -> tuple[Job | None, bool]:
     if not employer:
         return (pr.current[0], True) if pr.current else (None, False)
     for j in pr.current:
-        if same_company(employer, j.company):
+        if _co_match(employer, j.company):
             return j, True
     for j in pr.past:
-        if same_company(employer, j.company):
+        if _co_match(employer, j.company):
             return j, False
     return None, False
 

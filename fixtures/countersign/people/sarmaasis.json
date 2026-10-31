@@ -1,0 +1,235 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Developer",
+  "first_name": "Ashish",
+  "headline": "Senior Backend Engineer | Node.js, Python, AWS, Cloudflare | Scaling APIs to 4M+ Requests/Day | Payments (Stripe/Razorpay) & API Performance",
+  "languages": [
+   "Assamese",
+   "English",
+   "Hindi"
+  ],
+  "last_name": "Sharma",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Ashish Sharma",
+  "professional_network_name": "Ashish Sharma",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/9dc0d4a26814e3ec1b7654fd1a79ab23290e6732c2fdb4823f4a54350b412ef6.jpg",
+  "summary": "I build and run backend systems for SaaS at scale. At Whydonate, a European fundraising platform, I'm the backend engineer, responsible for infrastructure that handles 4M+ API requests/day and processes significant monthly payment volume.The problems I spend my time on: API performance (cut response times 70% on a system serving 60k+ users), payment infrastructure (Stripe, Razorpay, webhooks, failed-payment recovery), and scaling data systems (PostgreSQL, Redis, Elasticsearch, AWS, Cloudflare Workers). Lately, a lot of production RAG and LLM API work too"
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Higher Secondary",
+    "description": "",
+    "end_year": 2014,
+    "field_of_study": "Science",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Tinsukia English Academy",
+    "start_year": 2012
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Technology (B.Tech.)",
+    "description": "",
+    "end_year": 2019,
+    "field_of_study": "Computer Science and Engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/9e0b75f8460e20f2fbf069c894a7cd3babd600461d34524e1ad5b3a11133c6de.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQF9YbRGZb8a9w/company-logo_400_400/company-logo_400_400/0/1630600549849/assam_don_bosco_university_guwahati_logo?e=1767225600&v=beta&t=4Fp6Tbgm_bdUQb3b7NxFH-EfVejAShuwJOLiv-Qqg8Y",
+    "location": {
+     "city": "Guwahati",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Assam Don Bosco University Airport Road, Azara",
+     "state": "Assam"
+    },
+    "professional_network_id": "15108803",
+    "school": "Assam Don Bosco University, Guwahati",
+    "start_year": 2015
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Whydonate is the best personal crowdfunding site & global fundraising platform that connects good causes with donors all over the world. It is the best peer to peer fundraising platform for nonprofits, individuals causes, schools, startups, NGO’s, charities and community groups to collect donations.Whydonate charges 0% platform costs and no subscription costs. Online Fundraising features:1. Global Fundraising2. Custom Branding3. Recurring Donations4. Peer to peer fundraisingOur Products:1. Online fundraising platform2. Donation button plugin for WordPress3. Collectin Digital Collection BoxIn addition to your own network, reach 300,000+ donors and 1,000,000+ visitors a month on Whydonate, so let's start.",
+     "company_headcount_latest": 44,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Fundraising",
+      "Administrative and Support Services"
+     ],
+     "company_professional_network_industry": "Fundraising",
+     "company_professional_network_profile_url": "https://linkedin.com/company/3167469",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7782d699dea27a4ce3479668ced3d06774daeeff0eec06e17c09857f4c3fd339.jpg",
+     "company_status": "active",
+     "company_website": "https://whydonate.com",
+     "company_website_domain": "whydonate.com",
+     "crustdata_company_id": 2094979,
+     "description": "• Re-architected the authentication system, fixing long-standing reliability and security issues\n• Cut database CPU usage to a steady ~10% through query optimization, indexing, memory tuning, and read replicas, eliminating performance degradation at peak load\n• Self-hosted Typesense search infrastructure with 99.9% uptime and zero data loss, including automated backfill triggers for recovery\n• Built AI integrations into the core product (LLM APIs, retrieval pipelines)\n• Platform monthly turnover grew ~35x during this period, backend reliability, payment infrastructure, and restored checkout were among the contributing factors\n• Established logging, monitoring, and alerting across services, cutting time-to-detection for production issue",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "India"
+     },
+     "name": "Whydonate: Crowdfunding & Fundraising Platform",
+     "position_id": 2754956836,
+     "professional_network_id": "3167469",
+     "seniority_level": "Senior",
+     "start_date": "2024-10-01T00:00:00+00:00",
+     "title": "Senior Backend Developer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Whydonate is the best personal crowdfunding site & global fundraising platform that connects good causes with donors all over the world. It is the best peer to peer fundraising platform for nonprofits, individuals causes, schools, startups, NGO’s, charities and community groups to collect donations.Whydonate charges 0% platform costs and no subscription costs. Online Fundraising features:1. Global Fundraising2. Custom Branding3. Recurring Donations4. Peer to peer fundraisingOur Products:1. Online fundraising platform2. Donation button plugin for WordPress3. Collectin Digital Collection BoxIn addition to your own network, reach 300,000+ donors and 1,000,000+ visitors a month on Whydonate, so let's start.",
+     "company_headcount_latest": 44,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Fundraising",
+      "Administrative and Support Services"
+     ],
+     "company_professional_network_industry": "Fundraising",
+     "company_professional_network_profile_url": "https://linkedin.com/company/3167469",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7782d699dea27a4ce3479668ced3d06774daeeff0eec06e17c09857f4c3fd339.jpg",
+     "company_status": "active",
+     "company_website": "https://whydonate.com",
+     "company_website_domain": "whydonate.com",
+     "crustdata_company_id": 2094979,
+     "description": "• Achieved a 70% reduction in API response time, driving a 20% increase in user engagement\n• Scaled backend infrastructure to support 60K+ users\n• Developed a Python ETL pipeline with PostgreSQL and Elasticsearch for real-time data synchronization\n• Implemented security hardening across backend services\n• Built and optimized scheduled jobs (cron) for core backend processes",
+     "employment_type": "",
+     "end_date": "2024-10-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Whydonate: Crowdfunding & Fundraising Platform",
+     "position_id": 2069832629,
+     "professional_network_id": "3167469",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-10-01T00:00:00+00:00",
+     "title": "Backend Developer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "Seezil Technologies, a Technology startup building an Enterprise SAAS solution for the Tea Industry. We are leveraging the power of AI/ML and IoT to transform how the Tea industry functions.",
+     "company_headcount_latest": null,
+     "company_headcount_range": "2-10",
+     "company_industries": [
+      "Information Technology & Services"
+     ],
+     "company_professional_network_industry": "Information Technology & Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/72724388",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8d92a40b7aa877651079bc4aa157d7e7db49b6c9fe48db87540e7a7eb947fbfa.jpg",
+     "company_status": "active",
+     "company_website": "http://www.seezil.in",
+     "company_website_domain": "seezil.in",
+     "crustdata_company_id": 10994969,
+     "description": "",
+     "employment_type": "",
+     "end_date": "2021-09-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Guwahati, Assam, India"
+     },
+     "name": "Seezil Tech - A revolution brewing in your Tea Cup.",
+     "position_id": 1800011738,
+     "professional_network_id": "72724388",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-04-01T00:00:00+00:00",
+     "title": "Software Developer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": null,
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": null,
+     "company_profile_picture_permalink": null,
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "",
+     "employment_type": "",
+     "end_date": "2021-03-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Guwahati, Assam, India"
+     },
+     "name": "Blue Bell",
+     "position_id": 2033485149,
+     "professional_network_id": null,
+     "seniority_level": "Entry Level",
+     "start_date": "2020-01-01T00:00:00+00:00",
+     "title": "Software Developer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Elasticsearch",
+   "JavaScript",
+   "AngularJS",
+   "Cloudflare Workers",
+   "TypeScript",
+   "MySQL",
+   "Odoo",
+   "OpenERP",
+   "React.js",
+   "PostgreSQL",
+   "Node.js",
+   "Django",
+   "Python (Programming Language)",
+   "Django REST Framework",
+   "Social Media Marketing",
+   "Linux",
+   "C++",
+   "REST APIs",
+   "Data Structures",
+   "Algorithms"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/sarmaasis"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 114437797
+}

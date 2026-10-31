@@ -13,6 +13,7 @@ import { download, toCSV, toMarkdown } from "@/lib/export";
 import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductNav } from "@/components/app-header";
+import { AccountMenu } from "@/components/account-menu";
 
 function useWide() {
   const [wide, setWide] = useState(true);
@@ -506,6 +507,7 @@ function TopBar({
             <Keyboard className="size-4" />
           </button>
           <ThemeToggle />
+          <AccountMenu />
         </div>
       </div>
     </header>

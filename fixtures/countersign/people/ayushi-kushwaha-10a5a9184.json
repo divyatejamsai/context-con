@@ -1,0 +1,325 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Software Engineer",
+  "first_name": "Ayushi",
+  "headline": "Technical Product Management | Product Ownership | E-commerce & Payments | IIM Mumbai EMBA | 6+ Years in Digital Products & Engineering",
+  "languages": [],
+  "last_name": "Kushwaha",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Ayushi Kushwaha",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Backend Software Engineer",
+   "similarity": 0.9998999834060669,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Ayushi Kushwaha",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/4d238918bea7ffdafd47a8346148e134295b1f5514bdf7c8305bcb5c31a520ad.jpg",
+  "summary": "Hey there,\n\nI am Ayushi, currently working as a Senior Backend Software Engineer for Falabella Ecommerce company. Previously, I have worked for one of the leading airlines globally, Delta Airlines . Prior to Delta, I had the opportunity to work with one of the big four firms, Deloitte. With Deloitte, I gained expertise in several technologies, including Kotlin, Reactive Programming, and Spring Framework, Gradle, Swagger, JWT, Apache Camel. A full-stack developer, I'm proficient in Java, Maven, spring framework, spring Webflux, Kotlin.\n\nDuring my final year in college, I was offered a paid internship at the FinTech company Highradius Corporation, which provides Software-as-a-Service. I gained knowledge of different marketing and sales strategies. I was also responsible for Account-Based Marketing.\n\nI am a versatile and quick learner with a broad range of experience in both the technical and marketing fields. Having an experience of more than two years, I am a technical enthusiast who enjoys exploring new domains and technologies."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Technology - BTech",
+    "description": "",
+    "end_year": 2020,
+    "field_of_study": "Information Technology",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0d92de542a16733e038739c8b349270bdc770b8a451c81c0e401a42fe2b1d166.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C560BAQE4UC9Z_k3c7A/company-logo_400_400/company-logo_400_400/0/1630615451068/kalinga_institute_of_industrial_technology_bhubaneswar_logo?e=1781740800&v=beta&t=n9H53EUU55_Qqv6oW3iF-BDKSGGvNl1uer5d0ryOGDo",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "AT/PO- KIIT",
+     "state": "Odisha"
+    },
+    "professional_network_id": "15118714",
+    "school": "Kalinga Institute of Industrial Technology, Bhubaneswar",
+    "start_year": 2016
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "",
+    "description": "",
+    "end_year": 2016,
+    "field_of_study": "",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3a9c2e4c1b65499abdad2fde61bf5381199f4bb5b6fc98353a45d98e5c936e74.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQFJWBCrV-fjMg/company-logo_400_400/company-logo_400_400/0/1630577490421/delhi_public_school___india_logo?e=1781740800&v=beta&t=AFLZ6vTgSe8qggsc0icTJ-NmXAiHi-PzFRHt_abBw3U",
+    "location": {
+     "city": "Fatehpur",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Delhi",
+     "state": "Uttar Pradesh"
+    },
+    "professional_network_id": "7808340",
+    "school": "Delhi Public School - India",
+    "start_year": 2014
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "Executive MBA",
+    "description": "",
+    "end_year": null,
+    "field_of_study": "",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/22d2362da72460ed9fdb437a97d54d53b3af2936ea47be205c2344381e171487.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQG2p_m0m9bbhw/company-logo_400_400/company-logo_400_400/0/1734438341229?e=1781740800&v=beta&t=eQi9Gn-nWXtcWPHxZDiXjaTV7hd7xX47JUdxmr2WuUQ",
+    "location": {
+     "city": "Mumbai",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Vihar Lake, Mumbai",
+     "state": "Maharashtra"
+    },
+    "professional_network_id": "15108983",
+    "school": "Indian Institute of Management Mumbai",
+    "start_year": null
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Somos un espacio físico y digital que por más de 135 años ha inspirado y enriquecido la vida de nuestros clientes. Trabajamos con las mejores marcas del mundo para brindar una experiencia especialista omnicanal en vestuario, belleza, calzado, tecnología y hogar. Buscamos ser un espacio de encuentro entre nuestros clientes y las últimas tendencias del mundo.   Más de 20 mil colaboradores en Chile, Perú y Colombia, atienden cada año a más de 16 millones de clientes en distintos puntos de contacto físico y digital entre tiendas de especialidad, sitios web y operaciones, donde se expresan y viven las mejores marcas del mundo.Falabella te inspira con lo último primero.",
+     "company_headcount_latest": 27218,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Retail"
+     ],
+     "company_professional_network_industry": "Retail",
+     "company_professional_network_profile_url": "https://linkedin.com/company/20882",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0ff116caffa5969f370ce8fd14fcbea5d74abfd76f4334bf8390d7e575279a7b.jpg",
+     "company_status": "active",
+     "company_website": "http://www.falabella.com",
+     "company_website_domain": "falabella.com",
+     "crustdata_company_id": 6033731,
+     "description": "Product-focused technology professional and IIM Mumbai EMBA candidate with 6+ years of experience building scalable digital products across e-commerce, payments, order management and airline loyalty. Currently a Senior Software Engineer at Falabella, driving end-to-end product and engineering delivery across payments, cancellations, refunds and fulfilment. Experienced in requirement discovery, customer journey analysis, product prioritization, stakeholder management, technical feasibility and translating business problems into scalable solutions. Combine strong engineering expertise with product thinking and business strategy, with hands-on experience working across Product, Engineering and QA teams. Targeting Technical Product Manager, Product Owner and Platform Product roles.",
+     "employment_type": "Full-time",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Falabella",
+     "position_id": 2710048555,
+     "professional_network_id": "20882",
+     "seniority_level": "Senior",
+     "start_date": "2025-04-01T00:00:00+00:00",
+     "title": "Senior Backend Software Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Delta Air Lines (NYSE: DAL) is the U.S. global airline leader in safety, innovation, reliability and customer experience. Powered by our employees around the world, Delta has for a decade led the airline industry in operational excellence while maintaining our reputation for award-winning customer service.With our mission of connecting the people and cultures of the globe, Delta strives to foster understanding across a diverse world and serve as a force for social good.",
+     "company_headcount_latest": 77103,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Airlines and Aviation",
+      "Transportation, Logistics, Supply Chain and Storage"
+     ],
+     "company_professional_network_industry": "Airlines and Aviation",
+     "company_professional_network_profile_url": "https://linkedin.com/company/2272",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/744c1ad755be2704e48b2fb6d595731d3c5659ffe3afb0c80d82d07c42635811.jpg",
+     "company_status": "active",
+     "company_website": "http://www.delta.com",
+     "company_website_domain": "delta.com",
+     "crustdata_company_id": 681753,
+     "description": "",
+     "employment_type": "Full-time",
+     "end_date": "2025-03-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Delta Air Lines",
+     "position_id": 2268227513,
+     "professional_network_id": "2272",
+     "seniority_level": "Entry Level",
+     "start_date": "2023-10-01T00:00:00+00:00",
+     "title": "Developer 1",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Delta Air Lines (NYSE: DAL) is the U.S. global airline leader in safety, innovation, reliability and customer experience. Powered by our employees around the world, Delta has for a decade led the airline industry in operational excellence while maintaining our reputation for award-winning customer service.With our mission of connecting the people and cultures of the globe, Delta strives to foster understanding across a diverse world and serve as a force for social good.",
+     "company_headcount_latest": 77103,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Airlines and Aviation",
+      "Transportation, Logistics, Supply Chain and Storage"
+     ],
+     "company_professional_network_industry": "Airlines and Aviation",
+     "company_professional_network_profile_url": "https://linkedin.com/company/2272",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/744c1ad755be2704e48b2fb6d595731d3c5659ffe3afb0c80d82d07c42635811.jpg",
+     "company_status": "active",
+     "company_website": "http://www.delta.com",
+     "company_website_domain": "delta.com",
+     "crustdata_company_id": 681753,
+     "description": "- Developed and maintained business rules using Red Hat Decision Manager (RHDM) to streamline decision-making processes.\n\n-Implemented and managed decision tables, decision trees, and rule flows within RHDM to optimize business logic.\n\n-Conducted rule evaluations, testing, and performance tuning to ensure efficient and accurate decision executions.\n\n-Assisted in the integration of RHDM with existing systems and applications, enabling seamless rule execution.\n\n-Stayed updated on RHDM features and best practices, contributing to the continuous improvement of rule management.",
+     "employment_type": "Full-time",
+     "end_date": "2023-10-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Delta Air Lines",
+     "position_id": 1984065283,
+     "professional_network_id": "2272",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-06-01T00:00:00+00:00",
+     "title": "Associate Developer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Deloitte drives progress. Our firms around the world help clients become leaders wherever they choose to compete. Deloitte invests in outstanding people of diverse talents and backgrounds and empowers them to achieve more than they could elsewhere. Our work combines advice with action and integrity. We believe that when our clients and society are stronger, so are we. Deloitte refers to one or more of Deloitte Touche Tohmatsu Limited (“DTTL”), its global network of member firms, and their related entities. DTTL (also referred to as “Deloitte Global”) and each of its member firms are legally separate and independent entities. DTTL does not provide services to clients. Please see www.deloitte.com/about to learn more.The content on this page contains general information only, and none of Deloitte Touche Tohmatsu Limited, its member firms, or their related entities (collectively the “Deloitte Network”) is, by means of this publication, rendering professional advice or services. Before making any decision or taking any action that may affect your finances or your business, you should consult a qualified professional adviser. No entity in the Deloitte Network shall be responsible for any loss whatsoever sustained by any person who relies on content from this page.",
+     "company_headcount_latest": 538821,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Business Consulting and Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Business Consulting and Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1038",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7a6db6a026a81e773b27ea0933d12bb1d04e52181c5ae951f043a12b8c094c28.jpg",
+     "company_status": "active",
+     "company_website": "http://www.deloitte.com/",
+     "company_website_domain": "deloitte.com",
+     "crustdata_company_id": 6038606,
+     "description": "- Responsible for backend development for loan system. Working on Kotlin/Gradle and Reactive Programming.\n- Work for Client - AXIS BANK .\n- Have thorough knowledge of Kotlin, Gradle, React, Java, Spring framework, Swagger, Spring Webflux, JWT token, Maven, Hibernate.",
+     "employment_type": "Full-time",
+     "end_date": "2022-05-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Deloitte",
+     "position_id": 1764323482,
+     "professional_network_id": "1038",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-03-01T00:00:00+00:00",
+     "title": "Analyst",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Accenture is a global professional services company with leading capabilities in digital, cloud and security. Combining unmatched experience and specialized skills across more than 40 industries, we offer Strategy and Consulting, Interactive, Technology and Operations services — all powered by the world’s largest network of Advanced Technology and Intelligent Operations centers. Our 699,000 people deliver on the promise of technology and human ingenuity every day, serving clients in more than 120 countries. We embrace the power of change to create value and shared success for our clients, people, shareholders, partners and communities. Visit us at accenture.com.",
+     "company_headcount_latest": 83541,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/9215331",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/07ca3374eebb954741428b1dc7e7427ac32eec4fdfd130428f9d5ee6c9f3bdad.jpg",
+     "company_status": "active",
+     "company_website": "http://www.accenture.com/india",
+     "company_website_domain": "accenture.com",
+     "crustdata_company_id": 1088826,
+     "description": "",
+     "employment_type": "Full-time",
+     "end_date": "2021-03-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Accenture in India",
+     "position_id": 2624203905,
+     "professional_network_id": "9215331",
+     "seniority_level": "Entry Level",
+     "start_date": "2020-08-01T00:00:00+00:00",
+     "title": "Application Development Associate",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "HighRadius provides a single Agentic AI platform for the Office of the CFO. It integrates 180+ agents that orchestrate end-to-end processes across Order-to-Cash, Close & Reconciliation,  Consolidation & Reporting, Accounts Payable, B2B Payments, and Treasury. HighRadius guarantees operational KPI improvements by mapping them to specific agents on the platform. With a 3-6 month go-live period, HighRadius drives value creation at 1300+ enterprises such as 3M, Unilever, Bristol-Myers Squibb Company, Red Bull, Lufthansa, and more. HighRadius has been consistently recognized as a market leader by Gartner, IDC, and Forrester.",
+     "company_headcount_latest": 4652,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/835110",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/03904e626039b1d369c847adb559c81572e86123d7fd1b6d44d05df99ea5341e.jpg",
+     "company_status": "active",
+     "company_website": "https://www.highradius.com/",
+     "company_website_domain": "highradius.com",
+     "crustdata_company_id": 665643,
+     "description": "- Responsible for Account Based Marketing\n- Reach out to leads by inbound and outbound marketing\n- Learnt about cold calling, campaigns etc.\n- Responsible for In-depth Research and reaching out to prospects through emails and calls for selling the autonomous systems.",
+     "employment_type": "Internship",
+     "end_date": "2020-04-01T00:00:00+00:00",
+     "function_category": "Finance",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "HighRadius",
+     "position_id": 1635633898,
+     "professional_network_id": "835110",
+     "seniority_level": "Entry Level",
+     "start_date": "2019-07-01T00:00:00+00:00",
+     "title": "Financial Technology Adivsor",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Core Java",
+   "Business rule",
+   "Product Management",
+   "Finance Transformation",
+   "Sales",
+   "Process Automation",
+   "Finance",
+   "Salesforce",
+   "Account Marketing",
+   "Java",
+   "React.js",
+   "Next.js",
+   "HTML5",
+   "Cascading Style Sheets (CSS)",
+   "TypeScript",
+   "Spring MVC",
+   "Spring Framework",
+   "Kotlin",
+   "Maven",
+   "Hibernate"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/ayushi-kushwaha-10a5a9184"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 104376411
+}
