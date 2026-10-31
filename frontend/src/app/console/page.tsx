@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BadgeCheck, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send, ShieldAlert,
-  ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
+  Play, ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
@@ -18,9 +18,10 @@ import {
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
+import { DemoView } from "./demo";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "verify" | "guard" | "ledger";
+type View = "employees" | "verify" | "guard" | "ledger" | "demo";
 type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
@@ -30,6 +31,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType }[] = [
   { v: "verify", label: "Verify passport", icon: ShieldCheck },
   { v: "guard", label: "Send Guard", icon: Send },
   { v: "ledger", label: "Ledger", icon: Link2 },
+  { v: "demo", label: "Demo", icon: Play },
 ];
 const ALL_SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -177,6 +179,8 @@ export default function Console() {
         <VerifyView agents={agents} scenarios={scenarios} />
       ) : view === "guard" ? (
         <GuardView agents={agents} onSent={refresh} />
+      ) : view === "demo" ? (
+        <DemoView onChanged={refresh} onOpen={setView} />
       ) : view === "ledger" ? (
         <LedgerExplorer agents={agents} onChain={setChain} />
       ) : (
