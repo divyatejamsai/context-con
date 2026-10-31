@@ -15,6 +15,7 @@ export const AGENT_APPS: Record<string, AgentApp> = {
     href: "/sourced",
     pages: [
       { href: "/sourced", label: "Shortlist", what: "Paste a brief, get a ranked shortlist with every claim checked" },
+      { href: "/searches", label: "Searches", what: "Every past brief, its shortlist, and each candidate's stage" },
       { href: "/campaigns", label: "Campaigns", what: "One brief to a signed offer, about 100 conversations at once" },
       { href: "/staffing", label: "Shift staffing", what: "Fill 1,000 shifts and catch applicants who lie" },
     ],

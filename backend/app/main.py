@@ -49,6 +49,7 @@ from .accounts.api import router as auth_router  # noqa: E402  (company sign-up,
 from .accounts.members_api import platform as platform_router  # noqa: E402  (operator: every company)
 from .accounts.members_api import router as members_router  # noqa: E402  (workspace roles: app/accounts/authz.py)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
+from .talent.searches import router as searches_router  # noqa: E402  (past searches and candidate stages)
 from .alerts.api import router as alerts_router  # noqa: E402  (email/Slack/bell alerts, one-click approve links)
 from .rules.api import router as rules_router  # noqa: E402  (company rules set without code: app/rules, docs/RULES.md)
 
@@ -66,6 +67,7 @@ app.include_router(auth_router)
 app.include_router(members_router)
 app.include_router(platform_router)
 app.include_router(talent_router)
+app.include_router(searches_router)
 app.include_router(alerts_router)
 app.include_router(rules_router)
 

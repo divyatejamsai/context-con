@@ -225,7 +225,8 @@ def new(brief: str, job: dict, criteria: Criteria, agent_id: str, *, mode: str =
         start: datetime | None = None) -> dict:
     start = start or datetime.combine(datetime.now(timezone.utc).date(), time(9, 0))
     return {"id": "cmp_" + uuid.uuid4().hex[:10], "brief": brief, "job": job, "criteria": criteria.model_dump(),
-            "agent_id": agent_id, "mode": mode, "seed": seed, "started_at": start.isoformat(), "clock": start.isoformat(),
+            "agent_id": agent_id, "mode": mode, "seed": seed, "created_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": start.isoformat(), "clock": start.isoformat(),
             "status": "open", "conversations": {}, "hires": [], "events": [], "records": [],
             "stats": {"guard_allowed": 0, "guard_blocked": 0, "replies": 0, "offers": 0}}
 

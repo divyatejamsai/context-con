@@ -9,9 +9,10 @@ import { SourcedMark } from "@/components/sourced-mark";
 import { AccountMenu } from "@/components/account-menu";
 import { NotificationBell } from "@/components/notification-bell";
 
-/** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
+/** Sourced's pages, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
   { href: "/sourced", label: "Shortlist", title: "Paste a brief and get a ranked shortlist where every claim is checked against Crustdata" },
+  { href: "/searches", label: "Searches", title: "Every brief you've run, its shortlist, and where each candidate is now" },
   { href: "/campaigns", label: "Campaigns", title: "Take one brief all the way to a signed offer: Sourced runs about 100 conversations at once" },
   { href: "/staffing", label: "Shift staffing", title: "Fill 1,000 shifts from applicants and catch the ones who lie on their application" },
 ] as const;
