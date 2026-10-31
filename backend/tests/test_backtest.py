@@ -239,3 +239,12 @@ def test_talent_flow_brings_the_hire_into_the_pool_and_is_flagged():
     op.hires, _ = asyncio.run(bt.find_hires(FakeClient([HIRE]), op))
     r = asyncio.run(bt.run_opening(FakeClient([HIRE, *EMPLOYEES, *OTHERS]), op))
     assert r["feeder_rows"] > 0 and r["hire_in_pool"]
+
+
+def test_out_of_credits_stops_the_run_instead_of_skipping():
+    class Broke(FakeClient):
+        async def person_search(self, *a, **kw):
+            from app.crustdata.client import CrustdataError
+            raise CrustdataError("POST /person/search -> 402: insufficient_credits", status=402)
+    with pytest.raises(bt.OutOfCredits):
+        asyncio.run(bt.find_hires(Broke([]), OPENING))

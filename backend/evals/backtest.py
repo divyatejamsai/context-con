@@ -448,6 +448,14 @@ def _and(*conds):
     return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
 
 
+class OutOfCredits(SystemExit):
+    pass
+
+
+def _out_of_credits(e: BaseException) -> bool:
+    return getattr(e, "status", None) == 402 or "insufficient_credits" in str(e) or " 402" in str(e)
+
+
 async def _first_ok(label: str, attempts: list[tuple[str, Any]]):
     """Run (name, coroutine factory) in order; return (name, rows) of the first one the API accepts."""
     last = None
@@ -457,6 +465,9 @@ async def _first_ok(label: str, attempts: list[tuple[str, Any]]):
             log.info("%s: %s -> %d rows", label, name, len(rows))
             return name, rows
         except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402) at {label}; stopping. "
+                                   "Rerun after a top-up: cached calls and finished openings are reused.") from e
             last = e
             log.info("%s: %s refused (%s)", label, name, str(e)[:200])
     raise RuntimeError(f"{label}: every filter shape was refused; last error: {last}")
@@ -494,6 +505,10 @@ async def fetch_jobs(client, start: str, end: str, country: str | None, categori
         except RuntimeError as e:
             log.warning("%s", e)
             continue
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopping. {e}")
+            raise
         rows += got
     if shape is None:
         raise RuntimeError("job_search: every month's query was refused")
@@ -579,6 +594,8 @@ async def build_openings(client, args) -> list[Opening]:
         try:
             hires, info = await find_hires(client, op)
         except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopping after {i - 1} postings. {e}")
             why["error"] += 1
             log.warning("hire lookup failed for %s: %s", op.company, e)
             continue
@@ -1061,6 +1078,9 @@ async def main_async(args) -> int:
                             r = await run_opening(client, op, slate=args.slate, verbose=args.verbose,
                                                   talent_flow=not args.no_talent_flow)
                         except Exception as e:  # noqa: BLE001
+                            if _out_of_credits(e):
+                                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopped at "
+                                                   f"opening {i}. Finished ones are saved in {res_path}. {e}")
                             log.exception("run failed")
                             r = {"job_id": op.job_id, "company": op.company, "title": op.title, "posted": op.posted,
                                  "n_hires": len(op.hires), "error": f"{type(e).__name__}: {e}"}
