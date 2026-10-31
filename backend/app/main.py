@@ -41,6 +41,7 @@ from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, 
 from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
 from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
+from .accounts.members_api import platform as platform_router  # noqa: E402  (operator: every company)
 from .accounts.members_api import router as members_router  # noqa: E402  (workspace roles: app/accounts/authz.py)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
 
@@ -55,6 +56,7 @@ app.include_router(runtime_api.router)
 app.include_router(outbound_router)
 app.include_router(auth_router)
 app.include_router(members_router)
+app.include_router(platform_router)
 app.include_router(talent_router)
 
 

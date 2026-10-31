@@ -64,7 +64,7 @@ class RevokeRequest(BaseModel):
 
 # Issuing and revoking passports needs an admin (workspace admin/owner session, or COUNTERSIGN_ADMIN_TOKEN) once
 # auth is on; see app/accounts/authz.py. Verify stays public: anyone may check an agent.
-from ..accounts.authz import require_admin, require_operate, require_read  # noqa: E402,F401  (re-exported)
+from ..accounts.authz import require_admin, require_audit, require_operate, require_read  # noqa: E402,F401  (re-exported)
 from ..accounts import authz  # noqa: E402
 
 
@@ -104,7 +104,7 @@ async def scenarios():
 
 
 @router.get("/ledger")
-async def ledger_view(agent_id: str | None = None, kind: str | None = None, p=Depends(require_read)):
+async def ledger_view(agent_id: str | None = None, kind: str | None = None, p=Depends(require_audit)):
     """A signed-in user sees only their workspace's entries; chain_ok is always for the whole file."""
     ok, bad = ledger.verify_chain()
     ids = authz.visible_agent_ids(p)
@@ -114,7 +114,7 @@ async def ledger_view(agent_id: str | None = None, kind: str | None = None, p=De
 
 @router.get("/ledger/export")
 async def ledger_export(format: str = "jsonl", agent_id: str | None = None, kind: str | None = None,
-                        since: str | None = None, until: str | None = None, p=Depends(require_read)):
+                        since: str | None = None, until: str | None = None, p=Depends(require_audit)):
     """Signed audit export (app/agents/audit.py). jsonl = evidence (manifest + entries); csv = for reading."""
     from fastapi.responses import Response
     from . import audit

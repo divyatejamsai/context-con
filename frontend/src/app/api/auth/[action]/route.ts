@@ -42,7 +42,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ act
     return res;
   }
 
-  const body = action === "demo" ? "{}" : await req.text();
+  // Demo sign-in: only the level is passed on ("admin" = the demo company, "recruiter", "operator" = the platform).
+  let body: string;
+  if (action === "demo") {
+    const asked = ((await req.json().catch(() => ({}))) as { as?: unknown }).as;
+    body = JSON.stringify(typeof asked === "string" && ["admin", "recruiter", "operator"].includes(asked) ? { as: asked } : {});
+  } else {
+    body = await req.text();
+  }
   const upstream = await forward(action, {
     method: "POST",
     headers: { "Content-Type": "application/json", "User-Agent": req.headers.get("user-agent") || "" },
