@@ -1,0 +1,318 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer ( Quantitative Developer )",
+  "first_name": "Shreehari",
+  "headline": "Senior Software Engineer | Python | Microservices | AI Generalist | Quantitative Developer",
+  "languages": [],
+  "last_name": "Aramanadka",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Shreehari Aramanadka",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Backend Developer",
+   "similarity": 0.9236999750137329,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Shreehari Aramanadka",
+  "profile_picture_permalink": "",
+  "summary": "I am primarily a programmer, proficient in designing, developing and delivering solutions to difficult technical challenges. My key skills include analytical prowess, communication adeptness, and an unquenching thirst for learning. Currently immersed in the pursuit of exploring complex technical concepts, I always look forward to learning new technologies."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor's degree",
+    "description": "",
+    "end_year": 2018,
+    "field_of_study": "Computer Science",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b5647b06c67a18d4d4adbd37b25196d1d0e587550c692ea1ad56c3b33b830e88.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQHQuInSU0Wy3Q/company-logo_400_400/company-logo_400_400/0/1630609374155/bms_institute_of_technology_and_management_logo?e=1776902400&v=beta&t=zm4m-cnY4x4Jd-xgHCEKFkqu3TzjvV-GNxN1JkQG_0U",
+    "location": {
+     "city": "Bengaluru",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Avalahalli, Dodaballarpur Main Road",
+     "state": "Karnataka"
+    },
+    "professional_network_id": "15135492",
+    "school": "BMS Institute Of Technology Management",
+    "start_year": 2014
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Founded in 2002, Brevan Howard is a leading global alternative investment management platform, specialising in global macro. We manage assets for institutional investors around the world including sovereign wealth funds, corporate and public pension plans, foundations and endowments.We have over 1,100 team members and 150 portfolio managers with global offices including London, New York, Geneva, Jersey, Hong Kong, Austin, Abu Dhabi-ADGM, Bengaluru and Singapore.",
+     "company_headcount_latest": 1129,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Investment Management",
+      "Capital Markets",
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Investment Management",
+     "company_professional_network_profile_url": "https://linkedin.com/company/17873",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e31dae9c7dd288360abbd07d56bf985b7a5e80eca63777c518496fff0888eada.jpg",
+     "company_status": "active",
+     "company_website": "http://www.brevanhoward.com",
+     "company_website_domain": "brevanhoward.com",
+     "crustdata_company_id": 6035792,
+     "description": "Merlin, QuestAPI, Level Monitor\n\n+ Architected a self-service platform for historical market data backpopulation and snapshot generation, enabling large-scale backtesting workflows for quantitative research.\n+ Led migration of market data from a legacy vendor-hosted database to an in-house platform, redesigning bulk-update workflows and improving data processing efficiency.\n+ Designed and maintained data pipelines for daily market data generation, intraday snapshots, end-of-day processing, and multi-currency instrument ingestion.\n+ Integrated enterprise SSO into internal research platforms and established engineering standards through automated quality controls and CI/CD processes.\n+ Increased automated test coverage of critical backtesting systems from 10% to 80% and built real-time monitoring solutions for market threshold tracking and risk visibility.",
+     "employment_type": "Full-time",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "Brevan Howard",
+     "position_id": 2476748186,
+     "professional_network_id": "17873",
+     "seniority_level": "Senior",
+     "start_date": "2024-09-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer ( Quantitative Developer )",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Impact Analytics delivers AI-native SaaS and consulting that maximize profitability through Agentic AI. Only With Impact Analytics do organizations gain an AI-native platform unifying planning, forecasting, merchandising, pricing, promotions, and autonomous decision-making in one retail-first solution.",
+     "company_headcount_latest": 968,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/4867362",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ae81482d0ae79f66126f7ff01fbb1d47e682a1b290319a433853a32103d8512e.jpg",
+     "company_status": "active",
+     "company_website": "https://www.impactanalytics.ai",
+     "company_website_domain": "impactanalytics.ai",
+     "crustdata_company_id": 635195,
+     "description": "InventorySmart\n\n+ Designed and built a custom query builder in python for PostgresSQL. \n+ Proposed and built a generic framework for data validation.\n+ Code reviews, participation in hiring software engineers, mentoring juniors and interns. \n+ Proposed organisation wide branching strategy for the client/feature specific releases.",
+     "employment_type": "Full-time",
+     "end_date": "2024-09-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Impact Analytics",
+     "position_id": 2476747305,
+     "professional_network_id": "4867362",
+     "seniority_level": "Senior",
+     "start_date": "2024-06-01T00:00:00+00:00",
+     "title": "Senior Software Engineer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "YouGov is a global research data and analytics group, powered by reality. Thanks to a unique panel of millions of verified members across 55 countries, we deliver unsurpassed accuracy to inform better, more impactful decisions.In an independent study of market research users, YouGov was named the most trusted research provider — the highest-rated among competitors1. 95% of our customers agree we provide consistent, accurate, and trustworthy real-world data1. And among the world's leading research panels, YouGov holds the highest Trustpilot rating2.When you want unsurpassed accuracy to inform more impactful decisions, you need real-time, real-world data from real people.YouGov / Research Reality1 Independent third-party study of 3,290 market research users across 24 countries, August 2025. 2 Based on publicly available Trustpilot ratings across the top 22 global research panels (100,000+ reviews).",
+     "company_headcount_latest": 4675,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Market Research",
+      "Advertising Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Market Research",
+     "company_professional_network_profile_url": "https://linkedin.com/company/109731",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/80faca5f8c9219159c64be58fa032105caff19aad12ae80017f3592b4895024c.jpg",
+     "company_status": "active",
+     "company_website": "https://yougov.com",
+     "company_website_domain": "yougov.com",
+     "crustdata_company_id": 6042921,
+     "description": "YouGov Platform Product - SaaS - Profiles Lite, BrandIndex Lite, Codebook\n\n+ Building scalable backend services for delivering top notch market research data insights. \n+ Designing workflows for handling various processes for building SaaS products. \n+ Architect custom cli based data pipelines for data extractions and automations. \n+ Design architecture for codebook revamp. Improved average api response time of apis from 4s to below 200ms.\n+ Maintaining codebase with 100% test case coverage.\n+ TDD, Test planning.",
+     "employment_type": "Full-time",
+     "end_date": "2024-06-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "YouGov",
+     "position_id": 1681025761,
+     "professional_network_id": "109731",
+     "seniority_level": "Entry Level",
+     "start_date": "2020-09-01T00:00:00+00:00",
+     "title": "Software Engineer - Python",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 3.0
+    },
+    {
+     "company_description": "K12 Techno Services Pvt. Ltd. is a leading education services provider in India, offering comprehensive support to K–12 schools across academic, administrative, technological, and operational domains. Established in 2010 and headquartered in Bengaluru, the company partners with educational institutions to create high-quality, student-focused learning environments.With a network of 110+ schools across major metro cities including Hyderabad, Chennai, Mumbai, Bengaluru, Gurgaon, Kolkata, and Pune, K12 Techno Services plays a significant role in enabling educational excellence at scale. Its integrated approach helps schools operate more efficiently while delivering better learning outcomes.Backed by renowned investors such as Kedaara Capital, Kenro Capital, Peak XV Partners (formerly Sequoia Capital India), and Navneet Learning LLP, the company reflects a strong foundation of trust, growth, and long-term vision.Driven by a culture of innovation, K12 brings together creative and committed professionals who are constantly working to build better learning ecosystems. From academic enrichment to institutional transformation, the organization is focused on reshaping school education in India through forward-thinking strategies and scalable execution.K12 Techno Services continues to be a trusted partner for schools seeking to elevate their standards, streamline operations, and prepare students for the challenges of tomorrow.",
+     "company_headcount_latest": 3131,
+     "company_headcount_range": "5001-10000",
+     "company_industries": [
+      "Education"
+     ],
+     "company_professional_network_industry": "Education",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1289979",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fa966d1190f8a08609e81fa68b8a613a392ea01f2beb66d7797ea61361fc674.jpg",
+     "company_status": "active",
+     "company_website": "http://www.k12technoservices.com/",
+     "company_website_domain": "k12technoservices.com",
+     "crustdata_company_id": 6325,
+     "description": "Eduvate ERP\n\n+ Participation in architecting backend system for enterprise level educational ERP system.\n+ DevOps engineering for the server architecture and automations of data pipelines.\n+ Improved performance of educational erp, by implementing caching and optimizing api designs.\n+ Being responsible for end to end delivery of edTech ERP components.\n+ Mentoring and guiding junior team members in terms of software development life cycle best practices.",
+     "employment_type": "",
+     "end_date": "2020-09-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "K12 Techno Services Pvt. Ltd.",
+     "position_id": 1461365868,
+     "professional_network_id": "1289979",
+     "seniority_level": "Senior",
+     "start_date": "2019-03-01T00:00:00+00:00",
+     "title": "Senior Software Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "K12 Techno Services Pvt. Ltd. is a leading education services provider in India, offering comprehensive support to K–12 schools across academic, administrative, technological, and operational domains. Established in 2010 and headquartered in Bengaluru, the company partners with educational institutions to create high-quality, student-focused learning environments.With a network of 110+ schools across major metro cities including Hyderabad, Chennai, Mumbai, Bengaluru, Gurgaon, Kolkata, and Pune, K12 Techno Services plays a significant role in enabling educational excellence at scale. Its integrated approach helps schools operate more efficiently while delivering better learning outcomes.Backed by renowned investors such as Kedaara Capital, Kenro Capital, Peak XV Partners (formerly Sequoia Capital India), and Navneet Learning LLP, the company reflects a strong foundation of trust, growth, and long-term vision.Driven by a culture of innovation, K12 brings together creative and committed professionals who are constantly working to build better learning ecosystems. From academic enrichment to institutional transformation, the organization is focused on reshaping school education in India through forward-thinking strategies and scalable execution.K12 Techno Services continues to be a trusted partner for schools seeking to elevate their standards, streamline operations, and prepare students for the challenges of tomorrow.",
+     "company_headcount_latest": 3131,
+     "company_headcount_range": "5001-10000",
+     "company_industries": [
+      "Education"
+     ],
+     "company_professional_network_industry": "Education",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1289979",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fa966d1190f8a08609e81fa68b8a613a392ea01f2beb66d7797ea61361fc674.jpg",
+     "company_status": "active",
+     "company_website": "http://www.k12technoservices.com/",
+     "company_website_domain": "k12technoservices.com",
+     "crustdata_company_id": 6325,
+     "description": "Eduvate ERP\n\n+ Being a full stack web developer, involved in design and implementation of core features of School ERP System.\n+ Brain storming for DB schema modelling.\n+ Involved in REST API design discussion.\n+ Participated in code reviews.\n+ Played key role in DB migrations.\n+ Hotfix expert.",
+     "employment_type": "",
+     "end_date": "2019-03-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "K12 Techno Services Pvt. Ltd.",
+     "position_id": 1360852800,
+     "professional_network_id": "1289979",
+     "seniority_level": "Entry Level",
+     "start_date": "2018-09-01T00:00:00+00:00",
+     "title": "Software Developer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "Our technology is intelligent, secure, and built for you. So, you can focus on what matters most.",
+     "company_headcount_latest": 124350,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Computer Hardware Manufacturing",
+      "Computers and Electronics Manufacturing",
+      "Manufacturing"
+     ],
+     "company_professional_network_industry": "Computer Hardware Manufacturing",
+     "company_professional_network_profile_url": "https://linkedin.com/company/15088102",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/2106871b7bc048f4fd32781c950c44d06631acb7ac9322bf63bbd3dd268787ff.jpg",
+     "company_status": "active",
+     "company_website": "http://www.delltechnologies.com",
+     "company_website_domain": "dell.com",
+     "crustdata_company_id": 1239024,
+     "description": "SAP Technical\n\n+ Developed a dashboard using Django, for monitoring operational status of SAP servers.\n+ Formulated idea on full fledged automation tool for report generation.",
+     "employment_type": "",
+     "end_date": "2018-09-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Dell Technologies",
+     "position_id": 1337932738,
+     "professional_network_id": "15088102",
+     "seniority_level": "Entry Level",
+     "start_date": "2018-07-01T00:00:00+00:00",
+     "title": "Software Development Analyst",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Python",
+   "FastAPI",
+   "Snowflake",
+   "Apache Airflow",
+   "Go (Programming Language)",
+   "Amazon Web Services (AWS)",
+   "Flask",
+   "Django",
+   "Quant Libraries",
+   "Github workflow",
+   "Datadog",
+   "VMware",
+   "Redis",
+   "Agile Methodologies",
+   "Google Cloud Platform (GCP)",
+   "Prompt Engineering",
+   "Snowflake Cloud",
+   "Data Structures",
+   "Amazon S3",
+   "Algorithms",
+   "Cloud Computing",
+   "Technical Recruiting",
+   "Object-Oriented Programming (OOP)",
+   "Git",
+   "Scrapy",
+   "HTML",
+   "Cascading Style Sheets (CSS)",
+   "JavaScript",
+   "C",
+   "C++",
+   "jQuery",
+   "PHP",
+   "Node.js",
+   "MySQL",
+   "PostgreSQL",
+   "Github",
+   "SQLite",
+   "Bash",
+   "Operating Systems",
+   "REST API",
+   "OpenCV",
+   "Neural Networks",
+   "Unix Administration",
+   "AWS EC2",
+   "Software Architectural Design",
+   "Test Driven Development",
+   "Product Road Mapping",
+   "Kubernetes",
+   "Microservices"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/shreehari-a"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 1061757
+}

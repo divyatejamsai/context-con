@@ -1,0 +1,469 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Software Engineer — Backend & Platform",
+  "first_name": "Shreyans",
+  "headline": "Founding Engineer | Backend + Infra | Built fintech payments at ₹90Cr/mo & EKS at 2M req/day | Node.js · TypeScript · Python · AWS · Kubernetes · NACH · NBFC",
+  "languages": [],
+  "last_name": "Sonthalia",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Shreyans Sonthalia",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Software Engineer Backend",
+   "similarity": 0.9833999872207642,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Shreyans Sonthalia",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/62846e92f704fa10f8dab27f03461699fabcf660fe2bf0f5553aeb4f77211807.jpg",
+  "summary": "I'm a backend + platform engineer with 5+ years of building and operating production fintech systems end-to-end — from MySQL schema to the Kubernetes Job that runs in production at 2 a.m. At Propelld (NBFC lending), I've shipped both sides of the stack: Backend / product (what I built) • JIT NACH presentation system processing 2L+ presentations worth ₹90Cr+/month across multiple lenders, with idempotency and double-debit prevention. • Automated lender-reallocation engine that recovers 13% of rejections — ~₹6.52Cr/month — with zero manual review. • Edgro NBFC onboarding backend: credit consent, PAN encryption-at-rest, co-applicant risk, audit-traceable consent revocation. • Cut daily support tickets from 20–25 to 2–3 by fixing root causes in 6 months. Platform / infra (what I operate) • Migrated 100+ microservices from VMs to EKS with zero downtime; scaled to 3× traffic. • Cut AWS spend 25–30% ($30K+/yr) via RI planning, ECR lifecycle, self-hosted Prometheus/Grafana replacing CloudWatch. • Project Milkyway: zero-downtime RDS Blue/Green migration io1 → gp3, 88% cost cut, sub-1-min switchover. • Mitigated a live DDoS using Athena + Glue + WAF rules written under pressure. • Owned VAPT audits, BCP/DR strategy, and led a 4-person platform team. Stack: Node.js, TypeScript, Python, AWS (EKS, RDS, WAF, Athena, Glue, Lambda), Kubernetes, Helm, Terraform, Jenkins, Prometheus, Grafana, MySQL, MongoDB, RabbitMQ, Redis. Domain depth: NACH / NACH JIT, NBFC lending, disbursals, collections, KYC (HyperVerge, Digio), Account Aggregator."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "",
+    "description": "",
+    "end_year": 2015,
+    "field_of_study": "",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Delhi Public School,Guwahati",
+    "start_year": 2005
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor's degree",
+    "description": "",
+    "end_year": 2021,
+    "field_of_study": "Computer Science",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/1865c92a47fa4946a9d2ce81364a89a5a04037a50b69c46bf88d4064b1ce2e3d.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQGoV8jFVU1H9A/company-logo_400_400/company-logo_400_400/0/1630571517771/dayananda_sagar_college_of_engineering_bangalore_logo?e=1784764800&v=beta&t=TESep2aByE49_WP_sLXD4JljlTX2hzImc6pvgWSzp7c",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "SHAVIGE MALLESHWARA HILLS KUMARASWAMY LAYOUT",
+     "state": "Karnātaka"
+    },
+    "professional_network_id": "15105214",
+    "school": "Dayananda Sagar College of Engineering, BANGALORE",
+    "start_year": 2017
+   },
+   {
+    "activities_and_societies": "",
+    "degree": "",
+    "description": "",
+    "end_year": 2017,
+    "field_of_study": "",
+    "institute_logo_permalink": null,
+    "institute_logo_url": "",
+    "location": {
+     "city": null,
+     "continent": null,
+     "country": null,
+     "raw": null,
+     "state": null
+    },
+    "professional_network_id": "",
+    "school": "Shiv Jyoti Convent Senior Secondary School, kota",
+    "start_year": 2015
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Propelld is a series-B funded fintech company that enables flexible financing solutions through fully digital journeys for learners pursuing education programs at vetted partner institutions.Having vertical expertise in the education segment, Propelld provides tailored financing solutions for various educational programs and goes beyond traditional credit parameters to focus on students' learning capabilities and employment potential to assess their eligibility for a loan, all backed by an agile tech infrastructure.From our origin in 2017, we have been driven by the mission of truly democratizing access to education by revolutionizing the face of financing for the entire educational ecosystem. On this journey, we've added more than 2000+ institute partners, with which we're leading in the Ed-tech, Skill-Up, and Job-focused education segment and now expanding in other education segments.We're growing, and our strength, backing us, is our team, which encompasses the potential to create an empire from scratch, performs best on role autonomy, and is data-driven.",
+     "company_headcount_latest": 507,
+     "company_headcount_range": "201-500",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13297947",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ff843fe4b3f82a7ab1d328195ed05e9326a14f9909e326b945d000a0bf59bedd.jpg",
+     "company_status": "active",
+     "company_website": "https://propelld.com/site",
+     "company_website_domain": "propelld.com",
+     "crustdata_company_id": 6636,
+     "description": "• Designed & shipped an automated lender-reallocation engine that re-routes rejected applications to eligible lenders — recovers 13% of rejections (~₹6.52Cr/month, ~652 apps) with zero manual review.\n\n• Built JIT NACH presentation as a Kubernetes Job across multiple lenders (incl. ABFL): 2L+ presentations worth ₹90Cr+/month, with idempotency, double-debit prevention, and failure recovery.\n\n• Led Edgro NBFC infra from greenfield to production — VPC, EKS, MongoDB (managed + self-hosted), CI/CD, observability. Serves 2M+ requests/day with zero-downtime cutover.\n\n• Project Milkyway: zero-downtime RDS Blue/Green migration (io1 1TB → gp3 200GB), <1 min switchover, 88% cost cut ($633 → $76/month, ~$6,683/yr saved), IOPS held at 3000.\n\n• Cut total AWS spend 25–30% via RI planning, ECR lifecycle policies, and replacing CloudWatch with self-managed Prometheus + Grafana.\n\n• Owned the Communications Platform end-to-end — RabbitMQ priority queues for WhatsApp/Email/SMS, EMI reminder scheduling, Digio webhook handling.\n\n• Built Edgro onboarding backend: credit consent flow, PAN blacklist API, PAN encryption-at-rest, co-applicant risk, audit-traceable consent revocation.\n\n• Mitigated a live DDoS using AWS Athena + Glue for log analysis and writing WAF rules in real time.\n\n• Led VAPT security audits — cut audit cycle time 50% YoY; integrated ClamAV scanning, executed secrets cleanup, enforced WAF IP whitelisting.\n\n• Wrote Jenkins Shared Libraries standardising CI/CD across 100+ services; rebuilt Docker pipeline with multi-stage builds (60–70% smaller images).\n\n• Support-ticket reduction: daily volume from 20–25 → 2–3. Designed BCP/DR for all of Propelld infra. Led & mentored a 4-person platform team.\n\nStack: Node.js, TypeScript, AWS (EKS, RDS, WAF, Athena, Glue), Kubernetes, Helm, Terraform, Jenkins, Prometheus, Grafana, MySQL, MongoDB, RabbitMQ.",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "propelld",
+     "position_id": 2180450564,
+     "professional_network_id": "13297947",
+     "seniority_level": "Senior",
+     "start_date": "2023-05-01T00:00:00+00:00",
+     "title": "Senior Software Engineer — Backend & Platform",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 3.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Propelld is a series-B funded fintech company that enables flexible financing solutions through fully digital journeys for learners pursuing education programs at vetted partner institutions.Having vertical expertise in the education segment, Propelld provides tailored financing solutions for various educational programs and goes beyond traditional credit parameters to focus on students' learning capabilities and employment potential to assess their eligibility for a loan, all backed by an agile tech infrastructure.From our origin in 2017, we have been driven by the mission of truly democratizing access to education by revolutionizing the face of financing for the entire educational ecosystem. On this journey, we've added more than 2000+ institute partners, with which we're leading in the Ed-tech, Skill-Up, and Job-focused education segment and now expanding in other education segments.We're growing, and our strength, backing us, is our team, which encompasses the potential to create an empire from scratch, performs best on role autonomy, and is data-driven.",
+     "company_headcount_latest": 507,
+     "company_headcount_range": "201-500",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13297947",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ff843fe4b3f82a7ab1d328195ed05e9326a14f9909e326b945d000a0bf59bedd.jpg",
+     "company_status": "active",
+     "company_website": "https://propelld.com/site",
+     "company_website_domain": "propelld.com",
+     "crustdata_company_id": 6636,
+     "description": "• Architected and executed migration of 100+ microservices from bare VMs to EKS across dev, staging, and production — scaled to handle 3× traffic growth with zero downtime.\n\n• Built the company's Jenkins CI/CD pipeline from scratch, cutting manual deployment effort 70%+ and enabling rapid automated releases across the engineering team.\n\n• Set up Prometheus + Grafana monitoring from scratch for services, infra, and application-level metrics.\n\n• Implemented AWS WAF rate limiting and IP whitelisting, hardening edge security for all public-facing services.\n\n• Integrated HyperVerge into the InstaKYC flow, lifting identity-verification accuracy from 6% to 17%.\n\n• Developed a shared MySQL utility library using connection-pool promises — reduced total DB connection count and improved query throughput under concurrent load.\n\n• Built a loan-journey event tracking system giving product and ops visibility into TAT and application blockers at each stage of the loan funnel.\n\nStack: Node.js, TypeScript, MySQL, AWS, EKS, Jenkins, Docker, Terraform, Prometheus, Grafana.",
+     "employment_type": "",
+     "end_date": "2023-05-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "propelld",
+     "position_id": 1923945214,
+     "professional_network_id": "13297947",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-03-01T00:00:00+00:00",
+     "title": "Software Engineer — Backend & Platform",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Practo is dedicated to improving health outcomes by enabling patients and healthcare providers to make informed decisions. The platform leverages computer science and data science to ensure that every interaction contributes to better health outcomes.Founded 17 years ago, Practo is a homegrown healthcare technology company that has continuously evolved, setting benchmarks in the industry. From building practice management software and helping doctors go digital to pioneering telemedicine before the pandemic, launching Clinic Excellence Scores for greater transparency, and now rolling out AI-powered tools to support clinical decision-making, Practo has stayed at the forefront of innovation. As technology becomes integral to healthcare, Practo plays a crucial role in helping doctors manage and securely store health data. Practo encrypts all data with 256-bit encryption, uses HIPAA-compliant data centres, and is ISO 27001 certified, making it one of the few healthcare companies to achieve this level of security. Demonstrating its commitment to the highest standards of medical quality and patient care, Practo became the first digital healthcare company to receive QAI accreditation for its medical quality. This prestigious accreditation underscores Practo's dedication to excellence in healthcare.Now operating in 22+ countries, Practo recently expanded its consumer platform to the UAE, building on its existing presence on the provider side. The platform has, to date, connected over 50 crore patients and now brings together more than 5 lakh doctors and healthcare providers across 900 cities. In the UAE alone, Practo now has over 50,000 monthly active users, with 3,000 healthcare facilities and 31,000+ doctors already live. This expansive reach and robust infrastructure generate a staggering ₹3,500 crore+ of value every year, underscoring Practo’s growing impact not just in India but across the global healthcare landscape.",
+     "company_headcount_latest": 1683,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "Hospitals and Health Care"
+     ],
+     "company_professional_network_industry": "Hospitals and Health Care",
+     "company_professional_network_profile_url": "https://linkedin.com/company/2390063",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ecff20e72f5ae2072959ca5b9d1dc68eee0db3ec27325a1a356e31f2214cbe10.jpg",
+     "company_status": "active",
+     "company_website": "http://www.practo.com",
+     "company_website_domain": "practo.com",
+     "crustdata_company_id": 5727,
+     "description": "• Built an E-Invoice generation system for Middle East clients to meet regional tax compliance requirements — covered invoice numbering, VAT breakdown, and regulator-compliant XML output.\n\n• Integrated third-party APIs to onboard a major enterprise client under a tight delivery deadline.\n\nStack: Java, Spring Boot, PostgreSQL, AWS.",
+     "employment_type": "",
+     "end_date": "2022-02-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Practo",
+     "position_id": 1833002938,
+     "professional_network_id": "2390063",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-09-01T00:00:00+00:00",
+     "title": "Software Development Engineer - 1",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": null,
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": null,
+     "company_profile_picture_permalink": null,
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "The Sustainable Development Goals are the blueprint to achieve a better and more sustainable future for all. They address the global challenges we face, including those related to poverty, inequality, climate, environmental degradation, prosperity, and peace and justice.",
+     "employment_type": "",
+     "end_date": "2021-09-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "YLIUNSDG",
+     "position_id": 1522416671,
+     "professional_network_id": null,
+     "seniority_level": "Senior",
+     "start_date": "2019-08-01T00:00:00+00:00",
+     "title": "Secretary and  Lead Developer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "Practo is dedicated to improving health outcomes by enabling patients and healthcare providers to make informed decisions. The platform leverages computer science and data science to ensure that every interaction contributes to better health outcomes.Founded 17 years ago, Practo is a homegrown healthcare technology company that has continuously evolved, setting benchmarks in the industry. From building practice management software and helping doctors go digital to pioneering telemedicine before the pandemic, launching Clinic Excellence Scores for greater transparency, and now rolling out AI-powered tools to support clinical decision-making, Practo has stayed at the forefront of innovation. As technology becomes integral to healthcare, Practo plays a crucial role in helping doctors manage and securely store health data. Practo encrypts all data with 256-bit encryption, uses HIPAA-compliant data centres, and is ISO 27001 certified, making it one of the few healthcare companies to achieve this level of security. Demonstrating its commitment to the highest standards of medical quality and patient care, Practo became the first digital healthcare company to receive QAI accreditation for its medical quality. This prestigious accreditation underscores Practo's dedication to excellence in healthcare.Now operating in 22+ countries, Practo recently expanded its consumer platform to the UAE, building on its existing presence on the provider side. The platform has, to date, connected over 50 crore patients and now brings together more than 5 lakh doctors and healthcare providers across 900 cities. In the UAE alone, Practo now has over 50,000 monthly active users, with 3,000 healthcare facilities and 31,000+ doctors already live. This expansive reach and robust infrastructure generate a staggering ₹3,500 crore+ of value every year, underscoring Practo’s growing impact not just in India but across the global healthcare landscape.",
+     "company_headcount_latest": 1683,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "Hospitals and Health Care"
+     ],
+     "company_professional_network_industry": "Hospitals and Health Care",
+     "company_professional_network_profile_url": "https://linkedin.com/company/2390063",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ecff20e72f5ae2072959ca5b9d1dc68eee0db3ec27325a1a356e31f2214cbe10.jpg",
+     "company_status": "active",
+     "company_website": "http://www.practo.com",
+     "company_website_domain": "practo.com",
+     "crustdata_company_id": 5727,
+     "description": "",
+     "employment_type": "",
+     "end_date": "2021-08-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "Practo",
+     "position_id": 1755114414,
+     "professional_network_id": "2390063",
+     "seniority_level": "In Training",
+     "start_date": "2021-03-01T00:00:00+00:00",
+     "title": "Software Development Intern",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": null,
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": null,
+     "company_profile_picture_permalink": null,
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "The Mobileand Web Innovation lab in DSCE works on new and upcoming advancements in the field of Mobile and Web  Development . We conduct workshops for the students to make them aware about these technologies,help them apply the knowledge using projects and organize hackathons to encourage people to build products and research on cutting edge tech.",
+     "employment_type": "",
+     "end_date": "2021-03-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru Area, India"
+     },
+     "name": "Mobile and Web Innovation Lab",
+     "position_id": 1522413504,
+     "professional_network_id": null,
+     "seniority_level": "Senior",
+     "start_date": "2019-08-01T00:00:00+00:00",
+     "title": "Team Lead",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "ACM, the Association for Computing Machinery, is the world's largest educational and scientific computing society, uniting educators, researchers and professionals to inspire dialogue, share resources and address the field's challenges.As a leading global source for scientific information, ACM promotes computer research and innovation through its journals, magazines, and the proceedings of more than 170 annual conferences and symposia. ACM authors are among the world's leading thinkers in computing and information technologies, providing original research and firsthand perspectives.Founded at the dawn of the computer age, ACM’s reach extends to every part of the globe, with more than half of its more than 100,000 members residing outside the U.S. Its growing membership has led to Councils in Europe, India, and China, fostering networking opportunities that strengthen ties within and across countries and technical communities. Their actions enhance ACM’s ability to raise awareness of computing’s important technical, educational, and social issues around the world.",
+     "company_headcount_latest": 1778,
+     "company_headcount_range": "51-200",
+     "company_industries": [
+      "Non-profit Organizations",
+      "Consumer Services"
+     ],
+     "company_professional_network_industry": "Non-profit Organizations",
+     "company_professional_network_profile_url": "https://linkedin.com/company/785681",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbab03f2189033a6cbf0b2eb9a9297071be3fdbef33a9618c0af35a6fed30578.jpg",
+     "company_status": "active",
+     "company_website": "https://linktr.ee/theofficialacm",
+     "company_website_domain": null,
+     "crustdata_company_id": 1386860,
+     "description": "",
+     "employment_type": "",
+     "end_date": "2021-03-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "ACM, Association for Computing Machinery",
+     "position_id": 1642207146,
+     "professional_network_id": "785681",
+     "seniority_level": "Entry Level",
+     "start_date": "2019-08-01T00:00:00+00:00",
+     "title": "Webmaster",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": null,
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": null,
+     "company_profile_picture_permalink": null,
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "• Built a serverless backend framework from scratch on AWS Lambda, API Gateway, Cognito, RDS, and S3 — covering auth, API management, and schema design. Cut fixed backend infra costs by 60%.\n\n• Led a small team and owned architecture decisions across authentication, API design, and database schema.\n\nStack: Node.js, AWS Lambda, API Gateway, Cognito, RDS, S3.",
+     "employment_type": "",
+     "end_date": "2021-01-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "TuitionBud ",
+     "position_id": 1726462162,
+     "professional_network_id": null,
+     "seniority_level": "Senior",
+     "start_date": "2020-09-01T00:00:00+00:00",
+     "title": "Lead Backend Developer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "Settlrs revolutionizes the business space infrastructure by providing a comprehensive one-stop solution for asset rentals and management services, fundamentally reshaping the operational landscape for businesses, tackling capex challenges, and accelerating their growth trajectory.Since our launch in 2017, we have successfully driven our vision for solving the capex issue for over 100+ business partners. By providing 90000+ assets across PAN India through our solid network, Settlrs has successfully boosted the scalability and profitability of young start-ups and businesses that aim for quick growth. Our clientele is enriched with young market disruptors who are now recognized as pioneers in their industry by opting for Settlrs Leasing & business solutions.Our partners rely on us for our prime services like- Affordable Rates | Product Quality | Door-step delivery  & Relocation assistance | Hassle-free installation & maintenance | Tech-driven easy procurement | Flexible Tenures. We also deal in multiple leasing formats like- Dry Leasing, Wet Leasing, Rent-To-Own based on our client's requirements and flexibility.",
+     "company_headcount_latest": 17,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Commercial and Industrial Equipment Rental",
+      "Equipment Rental Services",
+      "Real Estate and Equipment Rental Services"
+     ],
+     "company_professional_network_industry": "Commercial and Industrial Equipment Rental",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13419088",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/466344091e7f1f9c2cb3d9b94073c21e855acf5a3db6fb2f799a577125dac76d.jpg",
+     "company_status": "active",
+     "company_website": "http://www.settlrs.com",
+     "company_website_domain": "settlrs.com",
+     "crustdata_company_id": 610571,
+     "description": "Working as a Full-Stack Developer for the company.",
+     "employment_type": "",
+     "end_date": "2019-08-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru Area, India"
+     },
+     "name": "Settlrs",
+     "position_id": 1471421263,
+     "professional_network_id": "13419088",
+     "seniority_level": "Entry Level",
+     "start_date": "2019-03-01T00:00:00+00:00",
+     "title": "Web Developer Internship",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "Team Arcis is the official aero modelling team of Dayananda Sagar College of Engineering.We represent college in International Aerodesign Events such as SAE Aero-design Competition and AIAA",
+     "company_headcount_latest": 15,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Non-profit Organization Management"
+     ],
+     "company_professional_network_industry": "Non-profit Organization Management",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13402744",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/71dadb958c0e3f09bf87c845305ab1144a68b706ac6bf43ef3e085bbb91a7517.jpg",
+     "company_status": "active",
+     "company_website": "https://teamarcis.com/",
+     "company_website_domain": "teamarcis.com",
+     "crustdata_company_id": 3979242,
+     "description": "I worked as a Web Developer for the Team and developed the official website for the team.",
+     "employment_type": "",
+     "end_date": "2018-11-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru Area, India"
+     },
+     "name": "Team Arcis",
+     "position_id": 1409708715,
+     "professional_network_id": "13402744",
+     "seniority_level": "Entry Level",
+     "start_date": "2018-09-01T00:00:00+00:00",
+     "title": "Web Developer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "",
+     "company_headcount_latest": null,
+     "company_headcount_range": null,
+     "company_industries": null,
+     "company_professional_network_industry": null,
+     "company_professional_network_profile_url": "https://linkedin.com/company/13688048",
+     "company_profile_picture_permalink": "",
+     "company_status": null,
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": null,
+     "description": "Worked as a front-end app developer for 2 months during my summer break.",
+     "employment_type": "",
+     "end_date": "2018-08-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Guwahati Area, India"
+     },
+     "name": "Happy Housekeeping",
+     "position_id": 1409708599,
+     "professional_network_id": "13688048",
+     "seniority_level": "Entry Level",
+     "start_date": "2018-06-01T00:00:00+00:00",
+     "title": "Application Developer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "NBFC",
+   "Payments",
+   "FinTech",
+   "Continuous Integration and Continuous Delivery (CI/CD)",
+   "Terraform",
+   "Helm Charts",
+   "Platform Engineering",
+   "Site Reliability Engineering",
+   "Distributed Systems",
+   "Systems Design",
+   "Founding Engineer",
+   "Scalability",
+   "Root Cause Analysis",
+   "Grafana",
+   "Problem Solving",
+   "Amazon EKS",
+   "Microservices",
+   "Amazon S3",
+   "AWS Lambda",
+   "Amazon Relational Database Service (RDS)"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/shreyans-sonthalia-13413b169"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 229911322
+}
