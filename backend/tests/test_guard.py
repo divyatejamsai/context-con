@@ -124,7 +124,9 @@ async def test_send_writes_outbox_only_on_allow(tmp_path):
     _, sent = await send_if_allowed(p, sign_message(p, key, ok_body), VINOD, ok_body, "outreach.hiring", today=TODAY, graph=g)
     _, blocked = await send_if_allowed(p, sign_message(p, key, bad_body), VINOD, bad_body, "outreach.hiring", today=TODAY, graph=g)
     rows = [json.loads(line) for line in (tmp_path / "outbox.jsonl").read_text().splitlines()]
-    assert sent and not blocked and [r["body"] for r in rows] == [ok_body]
+    from app.agents import seal
+    assert sent and not blocked and [seal.split(r["body"])[0] for r in rows] == [ok_body]
+    assert "Verify: " in rows[0]["body"] and seal.get(rows[0]["seal_id"])["sha256"] == seal.sha(ok_body)
 
 
 @pytest.mark.parametrize("body,expect", [

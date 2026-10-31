@@ -129,6 +129,8 @@ class Runtime:
         self.enforce(agents)
         self._schedules(agents)
         self._payroll()
+        from . import flow
+        await flow.tick(self)
         self._start_queued(agents)
 
     def enforce(self, agents: dict[str, dict] | None = None) -> None:
@@ -516,6 +518,11 @@ def _brief_task(t: dict) -> dict:
                        "shortlist": len(out.get("shortlist", [])), "artifacts": len(out.get("artifacts", []))}}
 
 
+def _flows() -> list[dict]:
+    from . import flow
+    return [flow.public(f) for f in flow.flows()][-10:]
+
+
 def state(rt: Runtime | None) -> dict:
     snap = store.snapshot()
     tasks = sorted(snap["tasks"].values(), key=lambda t: t["created_at"])
@@ -573,6 +580,7 @@ def state(rt: Runtime | None) -> dict:
         "agents": agents,
         "tasks": [_brief_task(t) for t in recent],
         "approvals": {"pending": pending, "decided": decided},
+        "flows": _flows(),
         "schedules": snap["schedules"] and sorted(snap["schedules"].values(), key=lambda s: s["created_at"]) or [],
         "payroll": store.payroll(),
         "ledger": {"chain_ok": chain_ok, "first_bad_seq": bad},

@@ -559,3 +559,83 @@ def test_out_of_credits_route_answers_402_with_the_message(broke):
         app.add_api_route("/api/_test_out_of_credits", boom)
     r = TestClient(app).get("/api/_test_out_of_credits")
     assert r.status_code == 402 and r.json() == {"detail": OUT_OF_CREDITS, "code": "out_of_credits"}
+
+
+@pytest.mark.asyncio
+async def test_hiring_flow_hands_work_between_agents_with_passport_checks():
+    from app.runtime import flow
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        f = await flow.start(rt, {"brief": "Senior backend engineer, payments, Bangalore, 5+ years",
+                                  "compensation": "₹42 LPA fixed + ESOPs"}, by="test")
+        assert set(f["hired"]) == {"Scheduler", "Offer"}
+        await until(lambda: flow.get(f["flow_id"])["status"] != "running", 240)
+        f = flow.get(f["flow_id"])
+        print(flow.packet(f))
+        assert f["status"] == "done", f
+        st = {s["key"]: s for s in f["stages"]}
+        assert st["shortlist"]["agent"] == "Sourced"
+        assert st["verify"]["agent"] != "Sourced" and st["verify"]["checks"][0]["decision"] == "deny"  # separation of duties
+        assert st["schedule"]["agent"] == "Scheduler"
+        assert st["offer"]["agent"] == "Offer"
+        deny = st["offer"]["checks"][0]
+        assert deny["agent"] == "Scheduler" and deny["decision"] == "deny" and "contract.sign" in deny["why"]
+        offer = store.get_task(st["offer"]["task_id"])["output"]["offer"]
+        assert offer["state"] == "waiting for your approval"
+        a = rt.approve if False else None
+        from app.runtime.worker import execute_approval
+        res = await execute_approval(offer["approval_id"], "employer", rt.mcp)
+        assert res["status"] == "signed", res
+        assert store.get_task(st["offer"]["task_id"])["output"]["offer"]["state"] == "signed"
+        assert "signed" in flow.packet(flow.get(f["flow_id"]))
+        ics = next(x for x in store.get_task(st["schedule"]["task_id"])["output"]["artifacts"] if x["kind"] == "interview_holds")
+        assert "DTSTART:" in ics["content"]
+
+        # the receiving end: the signed letter carries a verify link anyone can check, and tampering is caught
+        from app.agents import seal
+        letter = store.get_task(st["offer"]["task_id"])["output"]["offer"]["letter"]
+        assert "Verify: http" in letter and "vouched for by" in letter
+        from app.main import app
+        c = TestClient(app)
+        sid = seal.split(letter)[1]
+        r = c.get(f"/api/verify/{sid}").json()
+        assert r["verdict"] == "genuine", r
+        assert {"issued_by_agaxes", "agent_signature", "in_scope", "agent_in_good_standing"} <= {x["name"] for x in r["checks"]}
+        assert c.post("/api/verify", json={"text": letter}).json()["verdict"] == "genuine"
+        forged = letter.replace("₹42 LPA", "₹92 LPA")
+        bad = c.post("/api/verify", json={"text": forged}).json()
+        assert bad["verdict"] == "invalid"
+        assert {x["name"] for x in bad["checks"] if x["status"] == "fail"} == {"agent_signature", "content_untampered"}
+        registry.suspend(registry.get_agent(store.get_task(st["offer"]["task_id"])["agent_id"])["agent_id"], "test")
+        assert c.get(f"/api/verify/{sid}").json()["verdict"] == "invalid"  # a suspended agent's letters stop verifying
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_signed_email_reaches_the_test_inbox_and_verifies_from_the_mail(monkeypatch):
+    """The demo: an agent's signed note is emailed to our own inbox; pasting the email as received verifies."""
+    from app.agents import seal
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    from app.outbound import mailer
+    got = {}
+
+    async def fake_send(env):
+        got["text"] = mailer._text(env, "me@example.com")
+        return mailer.Delivery(provider="smtp", mode="test", delivered_to="me@example.com", provider_id=None,
+                               message_id="<x@y>", status="sent", from_addr="me@example.com")
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("SMTP_USER", "me@example.com")
+    monkeypatch.setenv("OUTBOUND_TEST_TO", "me@example.com")
+    monkeypatch.setattr(mailer, "send", fake_send)
+    rec = fleet()["sourced"]
+    p = Passport.model_validate(rec["passport"])
+    body = "Hi Divya,\n\nA signed note from Sourced.\n\nSourced"
+    sid, _ = seal.issue(p, sign_message(p, registry.private_key(rec["agent_id"]), body), body, "outreach.hiring")
+    res = await seal.email_copy(seal.get(sid), "please verify me")
+    assert res["emailed"] and f"/verify/{sid}" in got["text"] and "vouched for by" in got["text"]
+    v = await seal.verify(text=got["text"].replace("\n", "\r\n"))  # as a mail client hands it back
+    assert v["verdict"] == "genuine", v

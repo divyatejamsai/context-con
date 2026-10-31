@@ -7,8 +7,10 @@ ledger entries) is collected on the task as the agent works.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 
@@ -66,7 +68,9 @@ async def sourcing(ctx: RuntimeCtx, inp: dict) -> dict:
         {"name": c.get("name"), "title": c.get("title"), "company": c.get("company"), "location": c.get("location"),
          "score": c.get("score"), "profile_url": c.get("profile_url"),
          "reasons": [r.get("text") if isinstance(r, dict) else str(r) for r in (c.get("reasons") or [])][:3],
-         "guard": (c.get("guard") or {}).get("decision")} for c in short]))
+         "guard": (c.get("guard") or {}).get("decision"),
+         "claims": [{"claim": cl.get("claim"), "status": cl.get("status"), "evidence": cl.get("evidence")}
+                    for cl in (c.get("claims") or [])][:10]} for c in short]))
     # Drafts Send Guard already cleared go to the employer's approval inbox (or out, if approvals are off).
     held = 0
     for c in short:
@@ -205,6 +209,11 @@ def title_for(kind: str, inp: dict) -> str:
         return f"Schedule {n} interview(s)" + (f": {inp['role']}" if inp.get("role") else "")
     if kind == "assignment":
         return (inp.get("instructions") or "Task").strip().splitlines()[0][:80]
+    if kind == "candidate_verification":
+        return f"Verify {len(parse_people(inp.get('candidates')))} candidate record(s)"
+    if kind == "offer_letter":
+        p = parse_people(inp.get("candidate"))
+        return f"Offer letter: {p[0]['name'] if p else 'candidate'}" + (f", {inp['role']}" if inp.get("role") else "")
     if kind == "reference_check":
         return "Check the applicant pile" if not (inp.get("resumes") or "").strip() else "Check pasted resumes"
     return kind
@@ -318,7 +327,15 @@ async def interview_scheduling(ctx: RuntimeCtx, inp: dict) -> dict:
     ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Agaxes//Scheduler//EN"]
     for p in plan:
         for s in p["slots"]:
-            ics += ["BEGIN:VEVENT", f"SUMMARY:HOLD {role} interview: {p['candidate']} with {interviewer}",
+            when = slot_time(s)
+            if when:
+                end = when + timedelta(minutes=p["minutes"])
+                ics += ["BEGIN:VEVENT", f"UID:{ctx.task_id}-{abs(hash((p['candidate'], s))) % 10**9}@agaxes",
+                        f"DTSTAMP:{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}",
+                        f"DTSTART:{when:%Y%m%dT%H%M%SZ}", f"DTEND:{end:%Y%m%dT%H%M%SZ}"]
+            else:
+                ics += ["BEGIN:VEVENT"]
+            ics += [f"SUMMARY:HOLD {role} interview: {p['candidate']} with {interviewer}",
                     f"DESCRIPTION:Proposed slot ({s}), {p['minutes']} min. Invite {p['invite']}.", "STATUS:TENTATIVE", "END:VEVENT"]
     ics.append("END:VCALENDAR")
     store.task_mutate(ctx.task_id, lambda t: t["output"].setdefault("artifacts", []).append(
@@ -349,3 +366,169 @@ TEMPLATES = [
      "job": "Schedules interviews: checks candidates on Crustdata, proposes slots, drafts invites for approval",
      "sponsor_from": "Sourced"},
 ]
+TEMPLATES.append(
+    {"key": "offer", "name": "Offer", "role": "recruiter", "scopes": ["contract.sign", "data.read"],
+     "job": "Drafts offer letters and signs them under contract.sign, only after the employer approves each one",
+     "sponsor_from": "Sourced"})
+
+
+async def hire_template(key: str, client: Any, workspace_id: str | None = None) -> tuple[dict, Any]:
+    """Onboard an AI employee from a template, sponsored by Sourced's sponsor, and check the sponsor right away."""
+    from ..agents.models import Sponsor
+    t = next((x for x in TEMPLATES if x["key"] == key), None)
+    if not t:
+        raise KeyError(key)
+    mine = [a for a in registry.list_agents() if workspace_id is None or a.get("workspace_id") in (None, workspace_id)]
+    peer = next((a for a in mine if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
+    if peer:
+        sponsor = Sponsor.model_validate(peer["passport"]["sponsor"])
+    else:
+        from ..fleet.roster import PANKAJ as sponsor
+    rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house",
+                           workspace_id=workspace_id)
+    v = await registry.recheck(rec["agent_id"], client)
+    return registry.get_agent(rec["agent_id"]), v
+
+
+_SLOT = re.compile(r"(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4}),?\s+(\d{1,2}):(\d{2})\s*IST", re.I)
+
+
+def slot_time(s: str) -> datetime | None:
+    """'Tue 3 Nov 2026, 11:00 IST' -> the UTC datetime (None when the slot isn't written that way)."""
+    m = _SLOT.search(s or "")
+    if not m:
+        return None
+    try:
+        d = datetime.strptime(f"{m[1]} {m[2].title()} {m[3]} {m[4]}:{m[5]}", "%d %b %Y %H:%M")
+    except ValueError:
+        return None
+    return (d - timedelta(hours=5, minutes=30)).replace(tzinfo=timezone.utc)
+
+
+# ---- candidate verification (Diligence / Reference) -----------------------------------------------
+
+async def candidate_verification(ctx: RuntimeCtx, inp: dict) -> dict:
+    """Re-check every shortlisted record independently: the claims the sourcing agent verified, plus a fresh Person
+    Enrich that the person is still where we think. One verdict per candidate: clear, flag or unverified."""
+    from ..verify.profile import load_person, same_company
+    people = parse_people(inp.get("candidates"))
+    if not people:
+        raise ValueError("no candidates understood: one per line as 'Name | LinkedIn URL | Company'")
+    src = store.get_task(inp["from_task"]) if inp.get("from_task") else None
+    claims_by = {c.get("profile_url"): c.get("claims") or [] for c in ((src or {}).get("output") or {}).get("shortlist", [])}
+    if not await ctx.clock_in("data.read"):
+        return {"ok": False, "refused": True, "summary": "Refused at clock-in: the passport did not pass"}
+    verdicts, sources = [], []
+    for i, who in enumerate(people):
+        progress(ctx, i, len(people), f"verifying {who['name']}")
+        claims = claims_by.get(who["profile_url"], [])
+        bad = [c for c in claims if c.get("status") == "contradicted"]
+        ok = [c for c in claims if c.get("status") == "verified"]
+        person = await ctx.graph.person(who["profile_url"])
+        where = None
+        if person:
+            pr = load_person(person)
+            cur = [j for j in pr.current if j.company]
+            where = f"{cur[0].title or 'works'} at {cur[0].company}" if cur else "no current role on record"
+            moved = bool(who.get("company")) and not any(same_company(j.company, who["company"]) for j in pr.current)
+            sources.append({"endpoint": "person/enrich", "field": "experience.employment_details.current", "url": who["profile_url"]})
+        if not person:
+            verdict, why = "unverified", "no Crustdata record to check against"
+        elif bad:
+            verdict, why = "flag", f"{len(bad)} claim(s) contradicted: {bad[0].get('claim')} ({bad[0].get('evidence')})"
+        elif moved:
+            verdict, why = "flag", f"record says {who['company']}, Crustdata now says {where}"
+        else:
+            verdict, why = "clear", f"{len(ok)} claim(s) verified; currently {where}"
+        ctx.log(f"  verdict   {who['name']}: {verdict.upper()} ({why})")
+        verdicts.append({**who, "verdict": verdict, "why": why, "verified": len(ok), "contradicted": len(bad),
+                         "now": where, "claims": claims[:8]})
+    progress(ctx, len(people), len(people), "verdicts filed")
+    store.task_mutate(ctx.task_id, lambda t: t["output"].__setitem__("verdicts", verdicts))
+    rep = ["# Candidate verification report", ""]
+    for v in verdicts:
+        rep += [f"## {v['name']}: {v['verdict'].upper()}", "", v["why"], ""]
+        rep += [f"- [{c.get('status')}] {c.get('claim')}: {c.get('evidence') or ''}" for c in v["claims"]] + [""]
+    store.task_mutate(ctx.task_id, lambda t: t["output"].setdefault("artifacts", []).append(
+        {"kind": "verification_report", "title": "Verification report", "content": "\n".join(rep)}))
+    n = {k: sum(v["verdict"] == k for v in verdicts) for k in ("clear", "flag", "unverified")}
+    await ctx.file("candidate_verification", f"{n['clear']} clear, {n['flag']} flagged, {n['unverified']} unverified",
+                   {"verdicts": [{k: v[k] for k in ("name", "profile_url", "verdict", "why")} for v in verdicts]}, sources)
+    return {"ok": True, "summary": f"{len(verdicts)} records re-checked: {n['clear']} clear, {n['flag']} flagged, "
+                                   f"{n['unverified']} unverified"}
+
+
+# ---- offer letter (Offer) -------------------------------------------------------------------------
+
+OFFER_PROMPT = """Write a short, warm, plain offer letter (max 180 words) from {company} to {name} for the role of {role}.
+Use exactly these terms and invent none: compensation {comp}; start date {start}; the offer is subject to the usual
+background check. Don't state anything about the candidate's background. No placeholders, no subject line.
+Start with "Dear {first}," and end with exactly:
+{signoff}
+"""
+
+
+async def offer_letter(ctx: RuntimeCtx, inp: dict) -> dict:
+    from .. import llm
+    from ..fleet.base import llm_live
+    people = parse_people(inp.get("candidate"))
+    if not people:
+        raise ValueError("a candidate is required: 'Name | LinkedIn URL | Company'")
+    who = people[0]
+    if not await ctx.clock_in("contract.sign"):
+        return {"ok": False, "refused": True, "summary": "Refused at clock-in: the passport does not allow contract.sign"}
+    sp = ctx.passport.sponsor
+    role = (inp.get("role") or "the role").strip()
+    comp = (inp.get("compensation") or "").strip() or "as agreed in your interviews (to be confirmed in writing)"
+    start = (inp.get("start_date") or "").strip() or (ctx.today + timedelta(days=30)).strftime("%-d %B %Y")
+    first = who["name"].split()[0]
+    signoff = f"{sp.name}, {sp.title}, {sp.company}\n(prepared by {ctx.agent['name']}, AI offer agent)"
+    letter = (f"Dear {first},\n\nWe're delighted to offer you the role of {role} at {sp.company}. Your compensation will be "
+              f"{comp}, and we'd like you to start on {start}. This offer is subject to the usual background check.\n\n"
+              f"If you accept, reply to this letter and we'll send the paperwork. We're excited to work with you.\n\n{signoff}")
+    by = "template"
+    if llm_live():
+        try:
+            text = await llm.generate_text(OFFER_PROMPT.format(company=sp.company, name=who["name"], first=first, role=role,
+                                                               comp=comp, start=start, signoff=signoff))
+            if text and comp.split()[0] in text and first in text:
+                letter, by = f"{text.rsplit(signoff, 1)[0].rstrip()}\n\n{signoff}", "gemini"
+        except llm.LLMError:
+            pass
+    ctx.log(f"  draft     offer letter for {who['name']} ({role}), drafted by {by}")
+    sha = hashlib.sha256(letter.encode()).hexdigest()
+    a = store.add_approval(task_id=ctx.task_id, agent_id=ctx.agent_id, agent_name=ctx.agent["name"], action="sign_offer",
+                           to=who, body=letter, scope="contract.sign", signature=None, today=None,
+                           preview={"decision": "allow", "checks": [], "note": "Approve to sign: the agent's passport is "
+                                    "re-checked for contract.sign, then it signs the letter's hash."})
+    store.task_mutate(ctx.task_id, lambda t: (
+        t["output"].__setitem__("offer", {"candidate": who["name"], "profile_url": who["profile_url"], "role": role,
+                                          "compensation": comp, "start_date": start, "state": "waiting for your approval",
+                                          "approval_id": a["approval_id"], "sha256": sha, "drafted_by": by,
+                                          "letter": letter, "slot": inp.get("slot")}),
+        t["output"].setdefault("artifacts", []).append({"kind": "offer_letter", "title": f"Offer letter: {who['name']}",
+                                                         "content": letter})))
+    ctx.log(f"  hold      waiting for your approval to sign (Waiting on you)")
+    await ctx.file("offer_drafted", f"Offer for {who['name']} ({role}) drafted; held for the employer's approval",
+                   {"candidate": who["name"], "role": role, "sha256": sha, "approval_id": a["approval_id"]})
+    return {"ok": True, "summary": f"Offer letter for {who['name']} drafted and held for your approval to sign"}
+
+
+KINDS["candidate_verification"] = {
+    "label": "Verify candidate records", "scope": "data.read", "agent_hint": "Diligence",
+    "description": "Independently re-checks each candidate: the claims on their record and a fresh look at where they "
+                   "work now. One verdict each (clear, flag, unverified) and a report.",
+    "fields": [{"name": "candidates", "label": "Candidates", "type": "textarea", "required": True,
+                "placeholder": "Name | LinkedIn URL | Company (one per line)"}],
+    "handler": candidate_verification}
+KINDS["offer_letter"] = {
+    "label": "Draft an offer letter", "scope": "contract.sign", "agent_hint": "Offer",
+    "description": "Drafts the offer letter. It's signed only after you approve it, and the passport is re-checked for "
+                   "contract.sign at that moment.",
+    "fields": [{"name": "candidate", "label": "Candidate", "type": "text", "required": True,
+                "placeholder": "Name | LinkedIn URL | Company"},
+               {"name": "role", "label": "Role", "type": "text", "required": True, "placeholder": "Senior Backend Engineer"},
+               {"name": "compensation", "label": "Compensation", "type": "text", "required": False,
+                "placeholder": "₹42 LPA fixed + ESOPs"},
+               {"name": "start_date", "label": "Start date", "type": "text", "required": False, "placeholder": "1 December 2026"}],
+    "handler": offer_letter}

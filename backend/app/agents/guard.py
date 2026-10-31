@@ -598,9 +598,12 @@ async def send_if_allowed(passport: Passport | dict, signature: str, to: dict, b
     if v.decision != "allow":
         return v, False
     agent_id = passport.agent_id if isinstance(passport, Passport) else passport.get("agent_id")
+    from . import seal
+    seal_id, sealed = seal.issue(passport, signature, body, scope, "message", to)  # verify footer for the recipient
     out = outbox_path()
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("a") as f:
         f.write(json.dumps({"ts": datetime.now(timezone.utc).isoformat(), "subject": v.subject, "agent_id": agent_id,
-                            "to": to, "scope": scope, "body": body, "ledger_entry": v.ledger_entry}) + "\n")
+                            "to": to, "scope": scope, "body": sealed, "seal_id": seal_id,
+                            "verify_url": f"{seal.base_url()}/verify/{seal_id}", "ledger_entry": v.ledger_entry}) + "\n")
     return v, True
