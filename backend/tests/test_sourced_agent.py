@@ -92,3 +92,12 @@ def test_verify_resume_unknown_profile_is_unverifiable_not_invented():
         "profile_url": "https://www.linkedin.com/in/nobody-here-xyz", "claimed": {"employer": "Acme"}})
     body = r.json()
     assert not body["found"] and [c["status"] for c in body["claims"]] == ["unverifiable"]
+
+
+async def test_sourced_alias_picks_the_active_sourced():
+    old = onboard("authorised_founder", ["outreach.hiring", "data.read"])
+    registry.suspend(old, "replaced", by="sponsor")
+    new = onboard("authorised_founder", ["outreach.hiring", "data.read"])
+    events = [e async for e in run_as_agent(BRIEF, "sourced", client=DevCrustdataClient())]
+    passport = [e for e in events if e.get("step") == "passport" and e.get("data")][0]
+    assert passport["data"]["agent_id"] == new
