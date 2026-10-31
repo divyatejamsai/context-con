@@ -17,3 +17,4 @@ evals_out*.md
 
 # Countersign runtime state (ledger, issuer key, agents)
 backend/data/
+evals_out_guard*.json
