@@ -85,8 +85,17 @@ def template_brief(vendor: str, facts: list[dict]) -> Brief:
 
 
 async def run(ctx: Ctx, vendor_domain: str) -> Report:
-    rep = ctx.report = Report(agent=ctx.agent["name"], job=JOB, expected="brief filed; the pricing email is refused (no outreach scope)")
+    """Brief, then the overreach. The demo story runs the two halves as separate beats."""
+    rep = await research(ctx, vendor_domain)
+    if rep.ok and rep.vendor:
+        rep.ok = await ask_vendor(ctx, rep.vendor)
+    return rep
+
+
+async def research(ctx: Ctx, vendor_domain: str) -> Report:
+    rep = ctx.report = Report(agent=ctx.agent["name"], job=JOB, expected="cited brief filed on the ledger")
     if not await ctx.clock_in("data.read"):
+        rep.ok = False
         return rep
     sp = ctx.passport.sponsor
     ident = await ctx.client.company_identify(domain=vendor_domain) if ctx.client else None
@@ -122,18 +131,24 @@ async def run(ctx: Ctx, vendor_domain: str) -> Report:
     path = ctx.out_dir / f"brief-{re.sub(r'[^a-z0-9]+', '-', name.lower())}.md"
     path.write_text("\n".join(md) + "\n")
     rep.artifacts.append(str(path))
-    await ctx.file("vendor_brief", f"{name}: {brief.verdict}",
+    ctx._emit({"type": "artifact", "kind": "vendor_brief", "title": f"Vendor brief: {name}", "path": str(path),
+               "content": "\n".join(md)})
+    res = await ctx.file("vendor_brief", f"{name}: {brief.verdict}",
                    {"vendor": name, "domain": vendor_domain, "crustdata_company_id": cid, "drafted_by": by,
                     "brief": brief.model_dump(), "facts": [x["fact"] for x in facts], "file": path.name},
                    [x["source"] for x in facts])
+    rep.ok = bool(res.get("recorded"))
+    rep.vendor = {"name": name, "profile_url": (ident.get("basic_info") or {}).get("professional_network_url") or ""}
+    return rep
 
-    # Overreach on purpose: pricing questions go to the vendor, but this agent may only read.
+
+async def ask_vendor(ctx: Ctx, vendor: dict) -> bool:
+    """Overreach on purpose: pricing questions go to the vendor, but this agent may only read. True if refused on scope."""
+    sp, name = ctx.passport.sponsor, vendor["name"]
     ask = f"Hi, {sp.company} is evaluating {name}. Could you share pricing for our volume?\n\nDiligence (AI analyst for {sp.name})"
-    to = {"name": f"{name} sales", "profile_url": (ident.get("basic_info") or {}).get("professional_network_url") or "",
-          "company": name}
+    to = {"name": f"{name} sales", "profile_url": vendor["profile_url"], "company": name}
     v = await ctx.send(to, ask, "outreach.sales")
     refused = not v.get("sent") and any(c["name"] == "scope_in_passport" and c["status"] == "fail" for c in v["checks"])
     ctx.log("  result    the pricing email stayed in the drafts: Diligence holds data.read only. The brief goes to the sponsor."
             if refused else "  result    UNEXPECTED: an analyst without outreach scope was not refused on scope")
-    rep.ok = refused
-    return rep
+    return refused

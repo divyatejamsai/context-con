@@ -18,6 +18,7 @@ import {
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
+import { AccountMenu } from "@/components/account-menu";
 
 type Mode = "loading" | "live" | "offline";
 type View = "employees" | "verify" | "guard" | "ledger";
@@ -145,6 +146,7 @@ export default function Console() {
           <div className="flex items-center gap-2">
             <AdminToken />
             <ThemeToggle />
+            <AccountMenu />
             {chain && (
               <button onClick={() => setView("ledger")} title="Hash-chained ledger of every passport, check and decision">
                 <ChainPill {...chain} />

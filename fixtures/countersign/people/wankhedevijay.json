@@ -1,0 +1,222 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Vijay",
+  "headline": "Senior Backend Engineer — Payments, Ledgers & Settlement Infrastructure | TypeScript · Node.js · Python · PostgreSQL · Kafka | Event-Driven Systems | 7+ yrs | Open to remote roles worldwide",
+  "languages": [
+   "English (Professional working proficiency)",
+   "Hindi (Full professional proficiency)",
+   "Kannada (Elementary proficiency)",
+   "Marathi (Limited working proficiency)"
+  ],
+  "last_name": "Wankhede",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Vijay Wankhede",
+  "professional_network_name": "Vijay Wankhede",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/81c58f3063a4c08dcf71aef4a34d3b18035f2be12cad677a0a301fd81712e1b7.jpg",
+  "summary": "I build backend systems that move money and cannot lose it.Seven years across payments pipelines, ledgers and settlement infrastructure — the problems that only get hard when real value is at stake: idempotent write paths, exactly-once processing, reconciliation, replay safety, reorg handling.Where I've done it:- Catalysis Labs (current) — took a DeFi coverage protocol from zero to live on Ethereum mainnet as the senior technical partner across product and engineering. Owned the middleware guaranteeing exactly-once semantics on restake, reward and slashing flows, where a duplicate write is a financial loss. Built the reliability stack from scratch — Prometheus, Grafana, Sentry, 99.9% SLOs, on-call runbooks.- SYNTHR — owned the full backend for a production cross-chain transfer and payments product across Axelar and LayerZero: relayer, event indexer, off-chain verification, REST/GraphQL APIs. Lifted transfer completion rate 30% by re-architecting the pipeline on Kafka with consumer groups, DLQs and exactly-once semantics. Built the indexer covering Ethereum, Polygon, Optimism, Arbitrum and BNB Smart Chain, with reorg handling and resumable cursors.- NexoSphere Finance — merchant payments confirmation pipeline, thousands of events per minute, idempotent with per-merchant confirmation thresholds. HMAC-signed webhooks with backoff and DLQ. Cut p99 read latency 60% by migrating the core ledger to partitioned Postgres with read replicas.- Deqode / Volmex Finance — highest-volume contributor to Volmex's v1 on-chain volatility derivatives protocol, shipped through Certik and Coinspect audits. The resulting BVIV/EVIV indices are distributed via Bloomberg and TradingView.Open source: two changes merged into the Temporal platform — a gate-workflow failure event in the Worker Controller (Go, shipped in v1.8.1) and PodDisruptionBudget support in the temporal-proxy Helm chart. More under review at Temporal, Infisical and SigNoz.I also build the LLM and agent layer on top — RAG pipelines, tool-calling agents on the Anthropic API, eval harnesses in CI.How I work: I own services end-to-end — data model, API contract, observability, SLOs, on-call — and I'd rather set a standard the team keeps than ship something only I understand.Stack: TypeScript/Node.js (NestJS, fp-ts), Python (FastAPI), Go, Solidity · PostgreSQL, Redis, Kafka · AWS, Kubernetes, Docker · Prometheus, Grafana, OpenTelemetryBased in Bengaluru (UTC+5:30). Open to fully remote roles worldwide — Indian citizen, no sponsorship required.Code: github.com/wankhede04"
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Engineering (B.E.)",
+    "description": "",
+    "end_year": 2019,
+    "field_of_study": "Computer Engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8dde2d41a4b77859c54d4aafa1e8863c6ccf6d22e279216a1846f6c76c944dc5.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQF4CLdXqKD7mw/company-logo_400_400/company-logo_400_400/0/1631326638795?e=1776902400&v=beta&t=Ehwg5yWVdwPULIhHILa3hzv_2hmAkDWC_nfUnhENF8Y",
+    "location": {
+     "city": "Indore",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Khandwa Road",
+     "state": "Madhya Pradesh"
+    },
+    "professional_network_id": "13588592",
+    "school": "Institute of Engineering & Technology DAVV, Indore",
+    "start_year": 2015
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Catalysis is the first onchain infrastructure to natively integrate coverage into DeFi vaults.It makes risk coverage a first-class vault primitive — enabling Tier-1 DeFi protocols to offer vaults and structured yield products with embedded, programmable risk protection backed by restaked capital.",
+     "company_headcount_latest": 4,
+     "company_headcount_range": "2-10",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/107839581",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0c55b5a8b9e92e4cd1b5740d080c6032a876fba03c5223a5d7a3402825a691cc.jpg",
+     "company_status": "active",
+     "company_website": "https://catalysis.network/",
+     "company_website_domain": "catalysis.network",
+     "crustdata_company_id": 8755472,
+     "description": "DeFi coverage protocol, backed by Hashed Emergent. Live on Ethereum mainnet. Remote.\n\n- Led backend architecture from zero as senior technical partner across product and engineering, service topology, API contracts, data models, rollout strategy.\n- Architected event-driven TypeScript services on Kubernetes (AWS EKS) with NestJS and functional error handling (fp-ts Either/Task), backed by Kafka, PostgreSQL and Redis, holding sub-second read paths under sustained load.\n- Owned the Router middleware end-to-end: idempotent write paths, optimistic concurrency, replay-safe Kafka consumers guaranteeing exactly-once semantics for restake, reward and slashing flows.\n- Shipped a signature-based settlement flow on EIP-2771 meta-transactions (off-chain signer, validation pipeline, on-chain adapter), removing wallet friction while preserving cryptographic auditability.\n- Stood up the reliability stack from scratch of Prometheus, Grafana, structured JSON logs, Sentry, 99.9% SLOs on critical write paths and authored the team's on-call runbooks.\n- Built the AI layer on top of the platform: a retrieval-augmented assistant over internal docs, transaction history and live system state; a tool-calling agent on the Anthropic Claude API that triages operational queries via MCP and escalates on low confidence; and an LLM eval harness (golden datasets, LLM-as-judge) wired into CI so prompt and model changes run regression tests before shipping.\n- Implemented inference cost and latency controls, prompt and semantic caching on Redis, model routing between a small fast model and a frontier model, per-request token budgets and instrumented the stack with Langfuse and Prometheus.\n- Integrated Claude Code and Cursor across the team, building custom agent skills for codegen, architectural review and adversarial test generation.\n- Mentored engineers, ran weekly design reviews, set shared TypeScript and functional-programming standards.",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Singapore"
+     },
+     "name": "Catalysis Labs",
+     "position_id": 2613199885,
+     "professional_network_id": "107839581",
+     "seniority_level": "Senior",
+     "start_date": "2025-05-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Accepted into Y Combinator",
+     "company_headcount_latest": 1,
+     "company_headcount_range": "2-10",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/105194753",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8c61242594ddb326bbbe7f7ff70c17ecb53ce5ff6c643a806c887330f43eb305.jpg",
+     "company_status": "active",
+     "company_website": null,
+     "company_website_domain": null,
+     "crustdata_company_id": 7436052,
+     "description": "Cross-chain transfer and payments protocol. $4.22M raised (Outlier Ventures, Waterdrip Capital, NGC Ventures, Kronos Research). Remote.\n\n- Owned the full backend for a production cross-chain transfer and payments product across Axelar and LayerZero for relayer service, event indexer, off-chain verification layer, and the REST/GraphQL APIs serving end users and partner integrations.\n- Lifted transfer completion rate 30% by re-architecting the message pipeline on Apache Kafka with consumer groups, dead-letter queues and exactly-once semantics, eliminating stuck transfers and exposing real-time status to users.\n- Built a TypeScript/NestJS event indexer ingesting logs from five EVM chains: Ethereum, Polygon, Optimism, Arbitrum, BNB Smart Chain into PostgreSQL, with reorg handling, backfill and a Redis-backed cursor store for resumable consumption.\n- Defined SLIs/SLOs for relay latency and indexer lag on a Grafana + Prometheus stack built from scratch, with alerting that paged before users saw degradation.\n- Hardened the off-chain verification layer against timing and data-integrity exploits using deterministic replay tests and invariant checks in CI; led security review for every backend change.\n- Set TypeScript standards, reviewed every backend PR, and onboarded three engineers across the relayer and indexer codebases.",
+     "employment_type": "",
+     "end_date": "2025-05-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Dubai, United Arab Emirates"
+     },
+     "name": "Synthr",
+     "position_id": 2015973095,
+     "professional_network_id": "105194753",
+     "seniority_level": "Senior",
+     "start_date": "2023-07-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Nexosphere is redefining how decentralized trading works at the infrastructure level.Built as an AI native peer-to-peer exchange, Nexosphere eliminates the structural inefficiencies that have defined DeFi since its inception liquidity pools, slippage, fragmented cross-chain execution, and off-chain settlement risk. Instead, it enables direct, on-chain peer-to-peer trades with zero slippage, executed across chains through intelligent order matching powered by AI.The result is a trading experience that is faster, more capital-efficient, and architecturally cleaner than anything pool-based AMMs can offer.Nexosphere is designed for traders, institutions, and protocols that demand execution quality, not just access. In a market where most DEXs compete on liquidity incentives and token rewards, Nexosphere competes on infrastructure building primitives that are robust, chain-agnostic, and ready for institutional-grade volume.We believe the next generation of decentralized finance will not be built on liquidity mining and pool mechanics. It will be built on direct settlement, AI driven matching, and protocols that treat execution as a first-class concern. That is what Nexosphere is building.Follow us to stay updated on protocol development, product launches, and insights on the evolution of decentralized trading infrastructure.",
+     "company_headcount_latest": 2,
+     "company_headcount_range": "2-10",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/112838240",
+     "company_profile_picture_permalink": "",
+     "company_status": "active",
+     "company_website": "https://www.nexospherefinance.com/",
+     "company_website_domain": "nexospherefinance.com",
+     "crustdata_company_id": 71083566,
+     "description": "Early-stage crypto payments startup. Remote.\n\n- Built the payments confirmation pipeline in Go and Python handling thousands of transaction events per minute, with idempotent processing, mempool monitoring and per-merchant configurable confirmation thresholds.\n- Designed the merchant-facing REST API and webhook delivery system in FastAPI, HMAC-signed payloads, exponential-backoff retries, dead-letter queue for poison messages.\n- Cut p99 read latency 60% migrating the core ledger from single-node PostgreSQL to a replicated, partitioned setup with read replicas, unblocking customer-facing analytics.\n- Containerised services with Docker, deployed to AWS, built GitHub Actions CI/CD with automated migrations and the structured logging that became the team's incident response baseline.",
+     "employment_type": "",
+     "end_date": "2023-06-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "United States"
+     },
+     "name": "Nexosphere Finance",
+     "position_id": 1876619203,
+     "professional_network_id": "112838240",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-08-01T00:00:00+00:00",
+     "title": "Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "At Deqode, our purpose is to help clients build their technical workforce. We’re industry leaders in cutting-edge technologies, and we leverage our deep industry knowledge and technical expertise to optimize business processes, maximize impact, and foster business growth. Our name expresses what we have become as an organization as well as what we hope to be - a solution provider that transcends the boundaries of traditional information technology companies and decodes business problems with quality solutions, quickly delivered.",
+     "company_headcount_latest": 328,
+     "company_headcount_range": "201-500",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/14527570",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4666b0d52fc5797e25b34cc4b7d101d772715db08127759cc17fa3fa23dbbe00.jpg",
+     "company_status": "active",
+     "company_website": "https://www.deqode.com",
+     "company_website_domain": "deqode.com",
+     "crustdata_company_id": 11387,
+     "description": "Software consultancy, 200+ engineers. Fintech, supply-chain and DeFi clients.\n\n- Client engagement — Volmex Finance (on-chain volatility derivatives; backed by Alameda Research, Three Arrows Capital, DWF Labs, IOSG Ventures): highest-volume contributor to the v1 protocol repository, building and deploying index-factory, protocol and position-token contracts across Ethereum and Polygon. Shipped through Certik and Coinspect security audits; the resulting BVIV/EVIV indices are now distributed via Bloomberg, TradingView and LSEG.\n- Built TypeScript/Node.js backend services on NestJS for fintech and supply-chain clients — JWT auth with refresh rotation, RBAC, audit logging, and high-volume on-chain event listeners ingesting into PostgreSQL.\n- Raised backend test coverage on the flagship project from 35% to 80% with Jest and Supertest integration suites, catching a class of race conditions before production.\n- Worked directly with clients on API design, system trade-offs and deployment planning.",
+     "employment_type": "",
+     "end_date": "2021-05-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Indore, India"
+     },
+     "name": "Deqode",
+     "position_id": 1571799438,
+     "professional_network_id": "14527570",
+     "seniority_level": "Entry Level",
+     "start_date": "2019-02-01T00:00:00+00:00",
+     "title": "Solutions Engineer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Amazon Web Services (AWS)",
+   "NestJS",
+   "Software Industry",
+   "Engineering",
+   "Grafana",
+   "Prometheus.io",
+   "Software Infrastructure",
+   "Node.js",
+   "Bitcoin",
+   "Stacks",
+   "Ordinals",
+   "Go (Programming Language)",
+   "hardhat",
+   "slither",
+   "Openzeppelin",
+   "Subgraph",
+   "React.js",
+   "Perpetual futures",
+   "TypeScript",
+   "Solidity"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/wankhedevijay"
+  },
+  "twitter_identifier": {
+   "slug": "wankhede__"
+  }
+ },
+ "crustdata_person_id": 130860832
+}

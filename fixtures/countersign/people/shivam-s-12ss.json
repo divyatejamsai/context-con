@@ -1,0 +1,233 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Shivam",
+  "headline": "Senior Backend Engineer @ Robora | NestJS, FastAPI, Server Management",
+  "languages": [],
+  "last_name": "S.",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Shivam S.",
+  "professional_network_name": "Shivam S.",
+  "profile_picture_permalink": "",
+  "summary": "As a Back End Developer at Fello, I utilize my technical leadership and architecture skills to design and implement scalable and robust solutions for the company's investment and personal finance platform. With over a year of experience at Fello. Previously at 1K, I specialized in server-side applications, particularly in facilitating kirana shop owners experience via the Retailer app.\nI graduated from the Indian Institute of Technology, Guwahati, with a Bachelor of Technology in Electronics and Communication Engineering in 2018. My skill set includes coding standards, back-end development, web development, and cloud computing. Core competencies such as problem-solving, collaboration, communication, and creativity drive my work."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Technology",
+    "description": "",
+    "end_year": 2018,
+    "field_of_study": "Electrical, Electronics and Communications Engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/668eebe7aa446101f8d87be7e94c7ebf9ba6f227a77fd81e336d636dce07302d.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQFsVma02aZ5dg/company-logo_400_400/company-logo_400_400/0/1631325731159?e=1794441600&v=beta&t=AhLF-0SUGlXHFC15iLH0ml2RUwUDTjFAdrx5jX1I4aA",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Guwahati",
+     "state": "Assam"
+    },
+    "professional_network_id": "157270",
+    "school": "Indian Institute of Technology, Guwahati",
+    "start_year": 2014
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Robora helps businesses put idle cash to work—without changing banks or disrupting the way they operate.Built on institutional banking infrastructure and powered by trusted bank partners, Robora makes it simple to earn more on operating and reserve cash while maintaining liquidity, visibility, and the banking relationships you already rely on.Finance leaders are under increasing pressure to make every dollar work harder without taking on unnecessary complexity or risk. Robora delivers structured cash management designed to optimize idle cash with a focus on security, transparency, and operational simplicity.While many of our customers are commercial real estate owners, operators, and finance teams managing multiple accounts and significant cash balances, Robora is built for organizations across industries that want a smarter way to manage cash.Our approach is straightforward:• Earn more on idle cash.• Keep your existing bank relationships.• Maintain liquidity and bank-backed security.• Gain greater visibility into your cash position through a single platform.Robora isn't a bank. We work alongside your existing banking relationships, connecting you to institutional cash management solutions that help your capital work harder while keeping protection and trust at the center of every decision.Earn up to 3.11% APY. Keep your bank. Automate the rest.",
+     "company_headcount_latest": 11,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/104754177",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/66bb037f02a3e4d127a30a28979fe0ab7faec7fea075476357c0f3ae0be8440c.jpg",
+     "company_status": "active",
+     "company_website": "https://roborafinancial.com/",
+     "company_website_domain": "roborafinancial.com",
+     "crustdata_company_id": 2828895,
+     "description": "",
+     "employment_type": "Full-time",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Robora",
+     "position_id": 2978939414,
+     "professional_network_id": "104754177",
+     "seniority_level": "Senior",
+     "start_date": "2026-06-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "India's largest rewarding savings app.15.5% returns & assured weekly rewards.Trusted by 1M+ users.",
+     "company_headcount_latest": 12,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Financial Services"
+     ],
+     "company_professional_network_industry": "Financial Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/68856332",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eefc325cf54ff327c90b1ea6c8f31165cbc18a6aa70282c780105ad408753f30.jpg",
+     "company_status": "active",
+     "company_website": "https://fello.in",
+     "company_website_domain": "fello.in",
+     "crustdata_company_id": 610125,
+     "description": "- Successfully integrated PhonePe Payment Service Provider(PSP) for custom payment page for upi \n intent and netbanking to enhance transaction efficiency and user experience.\n\n- SuperFello‐ Its a gamified loyality program which categorise user on three level . Each level has task which gives user’s certain badges,rewards and benefits on completion of task , which eventually increase user engagement and improve retention .\n\n- Implemented dynamic Payment Service Provider(PSP) switching based on success rate of PSP, leading to a remarkable increase in payment success rate from 70% to over 98%. Additionally, refactored payment logic to decouple it from business logic, ensuring scalability and improved user experience.\n\n- Observability system : Successfully implemented Signoz for comprehensive Logs and Application Performance Monitoring(APM),elevating system observability. This strategic integration streamlined issue detection, optimizing system reliability and reduce infra cost.",
+     "employment_type": "Full-time",
+     "end_date": "2026-04-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bangalore Urban, Karnataka, India"
+     },
+     "name": "Fello",
+     "position_id": 2196442091,
+     "professional_network_id": "68856332",
+     "seniority_level": "Entry Level",
+     "start_date": "2023-05-01T00:00:00+00:00",
+     "title": "Back End Developer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "1K is on a mission to redefine offline commerce so that New India can accomplish more in their lives.Our commitment is to transform the way people shop in New India, constantly innovating to make shopping convenient and engaging. While big e-commerce companies excel in specific areas, our model offers a wider range of aspirational experiences through a streamlined delivery framework.Over the next five years, our goal is to establish 1K as the ultimate shopping destination for New India. We plan to build a network of over 25,000 partners, creating opportunities for various brands to reach consumers.",
+     "company_headcount_latest": 827,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "Retail"
+     ],
+     "company_professional_network_industry": "Retail",
+     "company_professional_network_profile_url": "https://linkedin.com/company/14570321",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/9e2a1bf9e840ad942d113cbabdb79ad6284ba73c89b94dd129c9bf416e8fd943.jpg",
+     "company_status": "active",
+     "company_website": "https://www.1knetworks.in",
+     "company_website_domain": "1knetworks.in",
+     "crustdata_company_id": 622951,
+     "description": "- RetailerApp : Built this app server side system ground up with the goal of providing a first‐class gateway experience to retailer users into our systems.\n\n- Order Processing System‐Develop the order processing system, which uses the FXFO‐(first variable first out) logic for inventory assignment to the picklist of orders. Picklist generation through FXFO reduce the liquidation of the inventory.\n\n- Picker Application : Worked on the development and architecture of the picker app for warehouse team to assign multiple orders for picking to the picker.\n\n- Krankend‐API‐Gateway : Leveraged krakend to implement an api gateway, and a unified authentication service based on oauth.",
+     "employment_type": "Full-time",
+     "end_date": "2023-05-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Gurugram, Haryana, India"
+     },
+     "name": "1K",
+     "position_id": 2196437549,
+     "professional_network_id": "14570321",
+     "seniority_level": "Senior",
+     "start_date": "2022-02-01T00:00:00+00:00",
+     "title": "Senior Engineering Associate",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "NestJS",
+   "Server Management",
+   "FastAPI",
+   "Banking",
+   "Secure Messaging",
+   "DevOps",
+   "Back-End Web Development",
+   "Amazon CloudWatch",
+   "Express.js",
+   "Clean Coding",
+   "Database Tools",
+   "BigSQL",
+   "Code Refactoring",
+   "Chatbots",
+   "Transaction Experience",
+   "Information Technology",
+   "WebSocket",
+   "Sales Ledger",
+   "Credit Card Transaction Processing",
+   "Webinar Development",
+   "Invoice Processing",
+   "Voting Systems",
+   "Technical Leadership",
+   "Technical Architecture",
+   "Coding Standards",
+   "SASS",
+   "HTML5",
+   "Bootstrap (Framework)",
+   "Redux.js",
+   "Data Structures",
+   "Object-Relational Mapping (ORM)",
+   "RDBMS",
+   "Relational Databases",
+   "MySQL",
+   "Algorithms",
+   "Model-View-Controller (MVC)",
+   "SQL",
+   "Product Requirements",
+   "Microservices",
+   "Web Services API",
+   "REST APIs",
+   "Continuous Integration and Continuous Delivery (CI/CD)",
+   "Object-Oriented Programming (OOP)",
+   "Payment Gateways",
+   "AWS Lambda",
+   "Amazon VPC",
+   "AWS CloudFormation",
+   "Serverless Framework",
+   "TypeScript",
+   "Retailer App",
+   "Amazon Web Services (AWS)",
+   "AWS Command Line Interface (CLI)",
+   "API Gateways",
+   "Payments",
+   "Wholesale Purchasing",
+   "Order Picking",
+   "Order Fulfillment",
+   "Order Processing",
+   "Order Management",
+   "Ledger Management",
+   "Inventory Management",
+   "React.js",
+   "Python (Programming Language)",
+   "Web Scraping",
+   "Automation",
+   "MongoDB",
+   "Node.js",
+   "JavaScript",
+   "C++",
+   "Software Project Management",
+   "FinTech",
+   "Retail"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/shivam-s-12ss"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 110067854
+}
