@@ -19,10 +19,13 @@ export interface DossierProps {
   onDismiss: () => void;
 }
 
-const Section = ({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) => (
+const Section = ({ title, hint, aside, children }: { title: string; hint?: string; aside?: React.ReactNode; children: React.ReactNode }) => (
   <section className="border-t border-border px-5 py-4">
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h4 className="text-[12px] font-[510] text-muted-foreground">{title}</h4>
+    <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+      <div className="min-w-0">
+        <h4 className="text-[13px] font-[590]">{title}</h4>
+        {hint && <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{hint}</p>}
+      </div>
       {aside}
     </div>
     {children}
@@ -99,27 +102,31 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           <button
             onClick={onPin}
+            title={pinned ? "Unpin this candidate" : "Keep this candidate at the top of the shortlist"}
+            aria-pressed={pinned}
             className={cn(
               "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-[510] transition",
               pinned ? "border-primary/50 bg-primary/15 text-primary" : "border-border-strong bg-elevated hover:bg-hover",
             )}
           >
-            <Pin className="size-3.5" /> {pinned ? "Pinned" : "Pin"} <kbd>P</kbd>
+            <Pin className="size-3.5" /> {pinned ? "Pinned to top" : "Pin to top"} <kbd>P</kbd>
           </button>
           <button
             onClick={onDismiss}
+            title={dismissed ? "Bring this candidate back into the shortlist" : "Not a fit: move to the bottom and leave out of exports"}
             className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12px] font-[510] transition hover:bg-hover"
           >
-            {dismissed ? <RotateCcw className="size-3.5" /> : <EyeOff className="size-3.5" />} {dismissed ? "Restore" : "Pass"} <kbd>X</kbd>
+            {dismissed ? <RotateCcw className="size-3.5" /> : <EyeOff className="size-3.5" />} {dismissed ? "Restore" : "Not a fit"} <kbd>X</kbd>
           </button>
           {c.profile_url && (
             <a
               href={c.profile_url}
               target="_blank"
               rel="noreferrer"
+              title="Open their public profile in a new tab"
               className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12px] font-[510] transition hover:bg-hover"
             >
-              Profile <ExternalLink className="size-3" />
+              Open profile <ExternalLink className="size-3" />
             </a>
           )}
         </div>
@@ -158,7 +165,7 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
         </div>
       </header>
 
-      <Section title="Why this candidate">
+      <Section title="Why this candidate" hint="The ranker's reasons. Each number jumps to the claim that backs it.">
         {c.reasons?.length ? (
           <ul className="flex flex-col gap-2">
             {c.reasons.map((r, i) => (
@@ -187,6 +194,7 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
 
       <Section
         title={`Claims checked · ${counts.total}`}
+        hint="Each fact compared with Crustdata. Verified matches, contradicted means Crustdata says otherwise, unverifiable means there was nothing to check."
         aside={
           <div className="flex gap-0.5 rounded-md border border-border bg-background/40 p-0.5 text-[11px]">
             {(["all", "contradicted", "verified", "unverifiable"] as Filter[]).map((f) => {
@@ -255,7 +263,8 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
       </Section>
 
       <Section
-        title="Outreach"
+        title="Draft message"
+        hint="Written from verified facts only. Edit it, then copy it into your own email or LinkedIn. Nothing is sent from here."
         aside={
           (c.outreach_draft || draft) && (
             <div className="flex items-center gap-2">
