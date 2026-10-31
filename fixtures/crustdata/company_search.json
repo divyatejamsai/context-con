@@ -89,7 +89,7 @@
       "endpoint": "company/search",
       "request_hash": "ee86fa15540112cf",
       "fetched_at": "2026-10-31T05:01:00+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -182,7 +182,7 @@
       "endpoint": "company/search",
       "request_hash": "ee86fa15540112cf",
       "fetched_at": "2026-10-31T05:01:00+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -275,7 +275,7 @@
       "endpoint": "company/search",
       "request_hash": "ee86fa15540112cf",
       "fetched_at": "2026-10-31T05:01:00+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -649,7 +649,7 @@
       "endpoint": "company/search",
       "request_hash": "ee86fa15540112cf",
       "fetched_at": "2026-10-31T05:01:00+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   },
   {
@@ -772,7 +772,7 @@
       "endpoint": "company/search",
       "request_hash": "ee86fa15540112cf",
       "fetched_at": "2026-10-31T05:01:00+00:00",
-      "origin": "live"
+      "origin": "cache"
     }
   }
 ]
