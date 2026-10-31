@@ -21,7 +21,10 @@ For each input profile it writes:
 
 `--companies` (map of company_id to Company Enrich response) is optional; without it the company_stage lie isn't planted.
 `check_fakes.py` runs WS3's verifier offline and prints CAUGHT / MISSED / FALSE POSITIVE per lie (exit 1 on any failure).
-Tested on WS3's verifier fixtures: 4 fakes, 8 planted lies, 8 caught, 0 false positives.
+`show_fake.py <slug>.person.json --companies ...` prints one resume and the verifier's verdict per claim, in colour (the video shot).
+
+Results: on the 5 real Person Enrich fixtures from WS1, 10 planted lies across all 7 lie types were all caught, with 0 false positives.
+On WS3's dev fixtures it also passes.
 
 **The repo is public: never commit `out/` (it holds real people's records). It's gitignored.** Generate the fakes on the demo machine from the local cache.
 
@@ -31,7 +34,7 @@ Tested on WS3's verifier fixtures: 4 fakes, 8 planted lies, 8 caught, 0 false po
 | `inflated_title` | "Staff Engineer" when profile says "Software Engineer" | current title |
 | `fake_employer` | Claims to work at a famous company that isn't in the employment history | current employer |
 | `inflated_experience` | Total years of experience +5 | earliest role start date |
-| `company_stage` | "Seed-stage startup" for a Series C+ company | Company Enrich funding round |
+| `company_stage` | "Seed-stage startup" for a Series C+ company, or "Series D" for a small one | Company Enrich stage / headcount |
 | `stretched_tenure` | Start date moved 2 years earlier | employer start date |
 | `stale_current_job` | Still claims old employer as current after a job change | current employer (freshness!) |
 | `wrong_location` | Claims a different city | location |
