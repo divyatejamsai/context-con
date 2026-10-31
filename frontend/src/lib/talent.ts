@@ -160,6 +160,14 @@ export class TalentError extends Error {
   }
 }
 
+/** The backend's own reason when it gives one; a bare 404 means this backend doesn't have the hiring-at-volume routes yet. */
+const detail = (body: { detail?: unknown } | null, status: number) =>
+  typeof body?.detail === "string" && body.detail !== "Not Found"
+    ? body.detail
+    : status === 404
+      ? "This backend doesn't have campaigns and shift staffing yet. They arrive with the brief-to-offer backend (PR #18)."
+      : `Backend returned ${status}`;
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAdminToken();
   let res: Response;
@@ -172,7 +180,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     throw new TalentError(`Can't reach the backend at ${API_URL}`, 0);
   }
   const body = await res.json().catch(() => null);
-  if (!res.ok) throw new TalentError(typeof body?.detail === "string" ? body.detail : `Backend returned ${res.status}`, res.status);
+  if (!res.ok) throw new TalentError(detail(body, res.status), res.status);
   return body as T;
 }
 
@@ -203,7 +211,7 @@ export async function* sse<T>(path: string, params: Record<string, string | numb
   }
   if (!res.ok || !res.body) {
     const body = await res.json().catch(() => null);
-    throw new TalentError(typeof body?.detail === "string" ? body.detail : `Backend returned ${res.status}`, res.status);
+    throw new TalentError(detail(body, res.status), res.status);
   }
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
