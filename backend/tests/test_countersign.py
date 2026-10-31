@@ -109,3 +109,66 @@ def test_ledger_detects_deleted_line():
     lines = ledger.path().read_text().splitlines()
     ledger.path().write_text("\n".join([lines[0], lines[2]]) + "\n")
     assert ledger.verify_chain() == (False, 1)
+
+
+def test_title_matching_regressions_from_live_eval():
+    from app.agents.passport import title_matches
+    assert not title_matches("Chief Executive Officer", "Chief Technology Officer")
+    assert not title_matches("CEO", "CFO")
+    assert not title_matches("Chief Operating Officer", "Chief Executive Officer")
+    assert not title_matches("Senior Engineer", "Engineer")
+    assert title_matches("Finance controller", "Financial Controller")
+    assert title_matches("VP Engineering", "Vice President, Engineering")
+    assert title_matches("Director of Engineering", "Senior Director of Engineering")  # understating is allowed
+
+
+@pytest.mark.asyncio
+async def test_multiple_roles_at_one_company_and_loose_company_names():
+    rec = {"basic_profile": {"name": "Asha Rao"},
+           "social_handles": {"professional_network_identifier": {"profile_url": "https://www.linkedin.com/in/asha-rao-x"}},
+           "experience": {"employment_details": {"current": [
+               {"title": "Data Engineer", "name": "Tata Technologies", "employer_company_website_domain": "tatatechnologies.com", "start_date": "2025-06-01"},
+               {"title": "Chief Technology Officer", "name": "Acme", "employer_company_website_domain": "acme.com", "start_date": "2020-01-01"},
+               {"title": "VP & Head of Engineering", "name": "Acme", "employer_company_website_domain": "acme.com", "start_date": "2019-01-01"},
+               {"title": "Data Analyst", "name": "Tata Motors", "employer_company_website_domain": "tatamotors.com", "start_date": "2024-01-01"}],
+               "past": []}}}
+
+    class G(Graph):
+        async def person(self, url):
+            return rec
+    g = G(None, mode="replay")
+    url = "https://www.linkedin.com/in/asha-rao-x"
+    ok = Sponsor(name="Asha Rao", profile_url=url, company="Acme", company_domain="acme.com", title="VP & Head of Engineering")
+    p, _ = issue_passport("X", "bot", ok, ["outreach.hiring"])
+    assert (await verify_passport(p, graph=g, today=TODAY)).decision == "allow"
+    ceo = ok.model_copy(update={"title": "Chief Executive Officer"})
+    p, _ = issue_passport("X", "bot", ceo, ["outreach.hiring"])
+    assert (await verify_passport(p, graph=g, today=TODAY)).decision == "block"
+    tata = Sponsor(name="Asha Rao", profile_url=url, company="Tata Motors", company_domain="tatamotors.com", title="Data Analyst")
+    p, _ = issue_passport("X", "bot", tata, ["data.read"])
+    assert (await verify_passport(p, graph=g, today=TODAY)).decision == "allow"
+
+
+def test_title_roles_dont_mix_round2():
+    from app.agents.passport import can_grant, title_matches
+    assert not title_matches("Chief Executive Officer", "COO and Account Executive")
+    assert not title_matches("CFO", "Head of Finance and COO")
+    assert not title_matches("CTO", "Chief Product and Technology Officer")
+    assert title_matches("COO", "COO, Account Executive")
+    assert title_matches("Co-Founder and Finance Controller", "Co-Founder & Finance Controller")
+    assert can_grant("Chief Product and Technology Officer", "outreach.hiring")
+    assert can_grant("Manager - IT - Engineering", "outreach.hiring")
+    assert not can_grant("Software Engineer", "outreach.hiring")
+
+
+def test_admin_token_guards_mutating_routes(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setenv("COUNTERSIGN_ADMIN_TOKEN", "s3cret")
+    c = TestClient(app)
+    body = {"agent_name": "X", "role": "bot", "sponsor": SCENARIOS[0]["sponsor"], "scopes": ["data.read"]}
+    assert c.post("/api/passport/issue", json=body).status_code == 401
+    assert c.post("/api/passport/revoke", json={"agent_id": "a", "reason": "r"}, headers={"x-admin-token": "nope"}).status_code == 401
+    r = c.post("/api/passport/issue", json=body, headers={"x-admin-token": "s3cret"})
+    assert r.status_code == 200
+    assert c.post("/api/passport/verify", json={"passport": r.json()["passport"]}).status_code == 200  # verify stays public
