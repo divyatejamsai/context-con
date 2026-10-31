@@ -10,6 +10,7 @@ POST /api/auth/{lookup,signup,login,demo,logout}, GET /api/auth/me -> company ac
 /api/workspace, /api/workspace/members      -> roles (viewer/member/admin/owner) that gate every Agaxes route (authz.py)
 GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
 /api/runtime/*                              -> the agent runtime: tasks, approvals, budgets, schedules (app/runtime/)
+/api/runtime/freeze/*                       -> emergency stop: freeze an agent, a sponsor's agents or all, then restore
 /api/campaigns/*                            -> brief to signed offer, ~100 conversations over weeks (app/talent/api.py)
 /api/staffing/*                             -> staff 1000 shifts from applications seeded with fakes (app/talent/api.py)
 POST /api/agents/{agent_id}/email            -> find the email on Crustdata, Send Guard, send for real (app/outbound/)
@@ -41,6 +42,7 @@ from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run 
 from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
 from .crustdata import OUT_OF_CREDITS, OutOfCredits, provider_status  # noqa: E402
 from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
+from .runtime.freeze_api import router as freeze_router  # noqa: E402  (emergency stop: app/runtime/freeze.py)
 from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
 from .accounts.members_api import platform as platform_router  # noqa: E402  (operator: every company)
@@ -55,6 +57,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(agents_router)
 app.include_router(sourced_router)
 app.include_router(demo_router)
+app.include_router(freeze_router)
 app.include_router(runtime_api.router)
 app.include_router(outbound_router)
 app.include_router(auth_router)

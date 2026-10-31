@@ -522,3 +522,76 @@ export const runtime = {
   startFlow: (b: { brief: string; compensation?: string; start_date?: string }) => post<Flow>("/runtime/flows", b),
   runPayroll: () => post<NonNullable<RuntimeState["payroll"]["last_result"]>>("/runtime/payroll/run"),
 };
+
+// ---- emergency stop (backend/app/runtime/freeze.py) --------------------------------------------------
+
+export type FreezeScope = "agent" | "sponsor" | "all";
+export type FreezeOutcome = "restored" | "still_suspended" | "was_suspended_before" | "held_elsewhere" | "gone" | string | null;
+export interface Person { name?: string | null; company?: string | null; profile_url?: string | null; email?: string | null; events?: number; last?: string | null }
+export interface BlastAgent {
+  agent_id: string;
+  name: string;
+  status?: AgentStatus;
+  sponsor?: Sponsor;
+  messages_sent: { ts: string | null; to?: Person | null; what: string; how?: string; hash?: string | null }[];
+  people: Person[];
+  data: { crustdata_calls: number; llm_calls: number; records: number; reads: { ts: string; what: string; kind?: string; status?: string; crustdata?: number; sources?: number }[] };
+  approvals: { approval_id: string; action: string; status: string; to?: Person | null; created_at?: string; decided_at?: string | null; decided_by?: string | null }[];
+  guard: { checked: number; blocked: number };
+  rules_blocked: number;
+  spend: { crustdata_calls: number; llm_calls: number; sends: number; offers_signed: number; offer_ctc_lpa: number };
+  tasks: { total: number; [status: string]: number };
+  ledger: { entries: number; kinds: [string, number][]; first_seq: number | null; last_seq: number | null };
+}
+export interface Blast {
+  since: string;
+  until: string;
+  hours: number;
+  totals: {
+    agents: number; messages_sent: number; people: number; crustdata_calls: number; llm_calls: number; records: number;
+    approvals: number; pending_approvals: number; tasks: number; running: number; guard_blocked: number; rules_blocked: number;
+    offers_signed: number; ledger_entries: number;
+  };
+  agents: BlastAgent[];
+}
+export interface FreezeAgent { agent_id: string; name: string; prior_status: AgentStatus; sponsor: Sponsor; outcome: FreezeOutcome; still_reason?: string | null; held_by?: string }
+export interface Freeze {
+  freeze_id: string;
+  scope: FreezeScope;
+  target: string | null;
+  label: string;
+  reason: string;
+  by: string;
+  at: string;
+  status: "active" | "lifted";
+  agents: FreezeAgent[];
+  stopped_tasks: { task_id: string; agent_id: string; title: string; kind: string; was: "running" | "queued" }[];
+  pulled_approvals: { approval_id: string; agent_id: string; to?: Person | null; action: string }[];
+  schedules_off: string[];
+  blast: Blast;
+  ledger_entry: string;
+  restored_at: string | null;
+  restored_by: string | null;
+  restore_entry: string | null;
+  bring_back?: boolean;
+  requeued_tasks?: string[];
+  returned_approvals?: string[];
+}
+export interface SponsorGroup { key: string; name: string; title?: string | null; company?: string; profile_url?: string; agents: { agent_id: string; name: string; status: AgentStatus }[] }
+export interface FreezePreview {
+  scope: FreezeScope;
+  target: string | null;
+  label: string;
+  agents: { agent_id: string; name: string; status: AgentStatus; sponsor: Sponsor }[];
+  will: { suspend: string[]; already_suspended: string[]; running_tasks: number; queued_tasks: number; pending_approvals: number; schedules: number };
+  blast: Blast;
+}
+
+export const estop = {
+  overview: () => req<{ active: Freeze[]; history: Freeze[]; sponsors: SponsorGroup[] }>("/runtime/freeze"),
+  preview: (scope: FreezeScope, target?: string | null) => post<FreezePreview>("/runtime/freeze/preview", { scope, target: target ?? null }),
+  freeze: (scope: FreezeScope, target: string | null, reason: string) => post<Freeze>("/runtime/freeze", { scope, target, reason }),
+  restore: (id: string, bring_back: boolean) => post<Freeze>(`/runtime/freeze/${id}/restore`, { bring_back }),
+  blast: (agentIds: string[], hours = 24) =>
+    req<Blast>(`/runtime/freeze/blast?${new URLSearchParams([...agentIds.map((a) => ["agent_id", a]), ["hours", String(hours)]])}`),
+};

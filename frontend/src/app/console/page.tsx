@@ -3,13 +3,13 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
-  Building2, LayoutDashboard, Scale, ShieldAlert, ShieldCheck, UserCog, Users, X,
+  Building2, LayoutDashboard, OctagonX, Scale, ShieldAlert, ShieldCheck, UserCog, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, api, runtime, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
+  ApiError, api, runtime, estop, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
   type Verdict, type Workspace, type Me,
 } from "./api";
 import {
@@ -26,6 +26,7 @@ import { MembersView } from "./members";
 import { RulesView } from "./rules";
 import { CompaniesView } from "./companies";
 import { DashboardView } from "./dashboard";
+import { EmergencyStopView } from "./estop";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND, brandText } from "@/lib/brand";
@@ -33,7 +34,7 @@ import { AGENT_APPS, appFor } from "@/lib/apps";
 import { Logo } from "@/components/app-header";
 
 type Mode = "loading" | "live" | "offline";
-type View = "home" | "companies" | "employees" | "work" | "verify" | "guard" | "ledger" | "rules" | "members" | "demo";
+type View = "home" | "companies" | "employees" | "work" | "estop" | "verify" | "guard" | "ledger" | "rules" | "members" | "demo";
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
 type Group = "Platform" | "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
@@ -46,6 +47,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; gr
   { v: "home", label: "Dashboard", icon: LayoutDashboard, desc: "Every agent at a glance, what needs you, and the main actions", group: "Workforce" },
   { v: "employees", label: "Agents", icon: Users, desc: "Connect agents, check their passports, and manage their work", group: "Workforce" },
   { v: "work", label: "Live work", icon: Activity, desc: "Everything your agents are doing right now, and what's waiting for your approval", group: "Workforce" },
+  { v: "estop", label: "Emergency stop", icon: OctagonX, desc: "Freeze one agent, a person's agents or all of them, and see what they touched", group: "Workforce" },
   { v: "verify", label: "Check a passport", icon: ShieldCheck, desc: "An agent from another company contacted you? Check whether it can be trusted", group: "Tools" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
   { v: "rules", label: "Rules", icon: Scale, desc: "Company rules your agents must follow, set without code and enforced when they act", group: "Workspace" },
@@ -62,6 +64,7 @@ function allowed(v: View, me: Me | null): boolean {
     case "companies": return has("companies");
     case "employees": return has("agents") || has("my_agents");
     case "work": return has("work");
+    case "estop": return a.level !== "own_work" && has("work");
     case "ledger": return has("ledger");
     case "members": return has("members");
     case "demo": return a.level === "platform";
@@ -94,6 +97,7 @@ export default function Console() {
   const [ws, setWs] = useState<Workspace | null>(null);
   const [invites, setInvites] = useState<Enrollment[]>([]);
   const [pending, setPending] = useState(0);
+  const [stops, setStops] = useState<{ n: number; agents: number }>({ n: 0, agents: 0 });
   const [me, setMe] = useState<Me | null>(null);
   const own = me?.access?.level === "own_work";
 
@@ -112,6 +116,8 @@ export default function Console() {
     const [list, l] = await Promise.all([api.agents(), api.ledger().catch(() => null)]);
     api.enrollments().then(setInvites).catch(() => setInvites([]));
     runtime.state().then((st) => setPending(st.approvals.pending.length)).catch(() => setPending(0));
+    estop.overview().then((o) => setStops({ n: o.active.length, agents: new Set(o.active.flatMap((f) => f.agents.map((a) => a.agent_id))).size }))
+      .catch(() => setStops({ n: 0, agents: 0 }));
     setAgents(list);
     setChain(l ? { chain_ok: l.chain_ok, first_bad_seq: l.first_bad_seq, count: l.entries.length } : undefined);
     return list;
@@ -213,10 +219,17 @@ export default function Console() {
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents} ws={ws} pending={pending} me={me} onConnect={startOnboarding}
+      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents} ws={ws} pending={pending} stops={stops.n} me={me} onConnect={startOnboarding}
         current={view === "employees" ? cur?.agent_id : undefined} onPick={(id) => openAgent(id)} />
 
       <div className="min-w-0">
+        {mode === "live" && stops.n > 0 && view !== "estop" && (
+          <button onClick={() => setView("estop")}
+            className="flex w-full items-center justify-center gap-2 border-b border-contradicted/30 bg-contradicted/[0.08] px-4 py-2 text-[12.5px] font-[560] text-contradicted hover:bg-contradicted/[0.12]">
+            <OctagonX className="size-3.5" />
+            Emergency stop in force: {stops.agents} agent{stops.agents === 1 ? "" : "s"} frozen. Open to review or lift it
+          </button>
+        )}
         {mode === "offline" ? (
           <Offline onRetry={connect} />
         ) : mode === "loading" ? (
@@ -234,6 +247,8 @@ export default function Console() {
           <CompaniesView onPick={(id) => openAgent(id)} onChanged={refresh} />
         ) : view === "work" ? (
           <WorkView onChanged={refresh} />
+        ) : view === "estop" ? (
+          <EmergencyStopView agents={agents} onChanged={refresh} />
         ) : view === "verify" ? (
           <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
         ) : view === "guard" ? (
@@ -389,14 +404,15 @@ function Count({ dot, n, label }: { dot: string; n: number; label: string }) {
 // ---- shell -----------------------------------------------------------------------------------
 
 function Sidebar({
-  view, setView, mode, chain, counts, agents, ws, pending, current, onPick, me, onConnect,
+  view, setView, mode, chain, counts, agents, ws, pending, stops, current, onPick, me, onConnect,
 }: {
   view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: Agent[]; ws: Workspace | null;
-  pending: number; current?: string; onPick: (id: string) => void; me: Me | null; onConnect: () => void;
+  pending: number; stops: number; current?: string; onPick: (id: string) => void; me: Me | null; onConnect: () => void;
 }) {
   const badge = (v: View) =>
     v === "employees" ? (agents.length ? String(agents.length) : undefined)
       : v === "work" ? (pending ? `${pending} waiting` : undefined)
+      : v === "estop" ? (stops ? `${stops} active` : undefined)
       : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
   const apps = Object.values(AGENT_APPS).filter((a) => !me?.access || me.access.views.includes(a.name.toLowerCase()));
   const views = VIEWS.filter((x) => allowed(x.v, me));
@@ -423,7 +439,7 @@ function Sidebar({
             <p className="hidden px-2 pb-1 text-[11px] font-[510] text-faint lg:block">{g}</p>
             {views.filter((x) => x.group === g).map((x) => (
               <Fragment key={x.v}>
-                <NavItem {...x} label={x.v === "employees" && me?.access?.level === "own_work" ? "My agents" : x.label} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false}
+                <NavItem {...x} label={x.v === "employees" && me?.access?.level === "own_work" ? "My agents" : x.label} badge={badge(x.v)} bad={(x.v === "ledger" && chain ? !chain.chain_ok : false) || (x.v === "estop" && stops > 0)}
                   alert={x.v === "employees" && !!counts.suspended ? `${counts.suspended} suspended` : x.v === "work" && pending ? `${pending} sends waiting for your approval` : undefined}
                   active={view === x.v && !(x.v === "employees" && current)} onClick={() => setView(x.v)} />
                 {x.v === "employees" && agents.length > 0 && (
