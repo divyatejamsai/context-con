@@ -1,62 +1,60 @@
-# 2-minute demo video script (v3: Sourced, run by Agaxes)
+# 2-minute demo video script (v4: Sourced, run by Agaxes)
 
-> **Name:** the product is **Agaxes** (agent access), which companies use to manage their AI employees. The code, the MCP server name (`countersign`) and the `COUNTERSIGN_*` env vars still use the old working name. If any screen still says "Countersign" when you record, say "Agaxes" anyway, or wait for the UI rename to merge.
+**Story:** companies are hiring AI employees. **Agaxes** (agent access) gives each one a **passport**, which is an
+**ID badge and a permission slip** in one. It says who the agent works for, which real person vouches for it, and
+what it's allowed to do. Agaxes checks that person live on Crustdata, every time it matters. **Sourced**, the hiring
+agent, is AI employee #1.
 
-**Story (chosen by the user):** Sourced is a hiring agent and **AI employee #1**. Agaxes is what makes it safe to
-let it work alone. Its passport ties it to a real human sponsor checked live on Crustdata. Send Guard stops a wrong
-message before it's sent. A payroll check suspends any agent whose sponsor has left. Every action lands on a
-tamper-evident ledger. The other five agents in the fleet show that the same rules hold for every AI employee.
+**The four highlights, in order:**
+1. A messy brief ("junior quant trader, prestige college in india") is understood correctly (PRs #38, #41, #42).
+2. The **hiring flow** chains four agents. The passport is checked at every handoff, two agents are refused, and the offer is signed only after a human approves (#39).
+3. The signed offer lands in a real inbox. **Verify** shows **Genuine**. Suspend the agent, and the same link turns red.
+4. The **ledger** tells the whole story in plain sentences, and the chain is intact.
 
-Everything is recorded **live** (`CRUSTDATA_MODE=cache`, `LLM_MODE=live`). Replay is only a backup.
-Target **1:55**. Setup: browser tabs `localhost:3000` (Sourced) and `localhost:3000/console` (Agaxes), plus one terminal in `backend/`.
+Recorded **live** (`CRUSTDATA_MODE=cache`, `LLM_MODE=live`). Target **1:55**. Two browser tabs: `localhost:3000` (Agaxes) and Gmail.
+Labels were checked against `frontend/src/app/` on main at 69f4984.
 
-The beats follow the run of show in `docs/REAL_PRODUCT_GAPS.md` (round 2). Beats 4-5 use the guided fleet demo
-(`app/fleet/demo.py`, `scripts/run_fleet.py`, `GET /api/demo/run`).
-
-## Before recording (about 10 min, on the Mac)
+## Before recording (about 15 min, on the Mac)
 ```bash
 git pull
-cd backend && python scripts/run_fleet.py --claude-code    # guided demo, live: seeds the fleet + ledger, all 7 beats must be OK
-cd .. && backend/scripts/demo_up.sh --no-fleet              # API :8000 + UI :3000 on the store just seeded
+# backend/.env: SMTP_HOST/SMTP_USER/SMTP_PASSWORD (or RESEND_API_KEY), OUTBOUND_TEST_TO=<your Gmail>, AGAXES_PUBLIC_URL=http://localhost:3000
+backend/scripts/demo_up.sh
 ```
-- [ ] `run_fleet.py` ends with PASS (`done.ok=true`, chain OK). Closer is **suspended** and the stale CRM row is **blocked**. The Claude Code beat needs `claude` installed. Without it, drop `--claude-code` and cut that line from beat 4.
-- [ ] Run the demo brief (below) once in the Sourced tab, so the Crustdata cache is warm and you can confirm the passport step and at least one **Send Guard cleared** badge appear. Then reload the page.
-- [ ] Open `localhost:3000/login` and click **Use the demo workspace** (or log in) in the recording browser, so `/` and `/console` don't bounce to the login page mid-take.
-- [ ] Console: the roster shows 6 AI employees, and the Ledger panel says chain OK.
-- [ ] If `COUNTERSIGN_ADMIN_TOKEN` is set in `.env`, paste it into the console's Admin token field. The payroll check and the demo stream need it.
-- [ ] Turn on Focus mode, close other tabs, and set browser zoom to 110-125%. Make the terminal font large (18pt+). Record with `Cmd+Shift+5` with the mic on, or record silent and voice over later.
+- [ ] Mail works: `cd backend && python scripts/send_signed_email.py`. A signed note arrives in your Gmail, and its **Verify** link opens a green **Genuine** page.
+- [ ] Log in: `localhost:3000/login` > **Try the demo as** > **Agaxes operator (full view)**. Only this login sees every agent.
+- [ ] Warm-up (fills the Crustdata cache, so the take is fast):
+  - Sidebar **Agent apps > Sourced**, run the quant brief once.
+  - **Live work > Hiring flow > Start hiring flow** with the same brief, all the way to **Approve and sign**. Check that the offer email arrived.
+  - Then reload both pages so the take starts clean.
+- [ ] **Ledger** says **Chain intact**. Turn on Focus mode, close other tabs, and set zoom to 110-125%. In Gmail, archive the warm-up mails so the new one is on top.
 
-**Demo brief** (messy on purpose, never run by the agents before today):
+**Brief** (messy on purpose):
 ```
-need a senior backend eng asap, payments exp (UPI/cards), blr or remote india. ex startup pref, NOT big tech lifers. python or go. 5+ yrs
+need a junior quant trader, prestige college in india
 ```
-If a judge types their own brief at the finals, use that one. "A request it has never seen" is the point.
 
 ## Run of show
 
 | # | Time | On screen | Say (roughly) |
 |---|---|---|---|
-| 1 | 0:00-0:15 | (Optional 3 s opener: the login page, "Use the demo workspace".) Sourced tab: paste the brief, Run. The first step to land is the **passport check**: sponsor exists, is still employed, domain matches, title can grant `outreach.hiring`, each one cited | "This is Sourced, an AI recruiter, and it's an AI employee. Before it touches any data, Agaxes checks its passport live on Crustdata: its sponsor is a real co-founder, still at the company, and senior enough to authorise hiring outreach." |
-| 2 | 0:15-0:40 | Step feed: title variants, search, broadening, enrich. Then the shortlist. Open the top candidate and hover a claim's source | "From a messy brief it expands the titles, searches Crustdata's people graph, enriches every candidate and their company, and checks each claim. Every line is Verified, Contradicted or Unverifiable, with the endpoint and field it came from." (If a "changed jobs N weeks ago" flag shows, point at it: "Crustdata knows before the profile does.") |
-| 3 | 0:40-0:58 | Same candidate: the green **Send Guard cleared** badge on its draft. Switch to Console > Send Guard: agent Sourced, recipient Vinod Sonagara at Fam, draft "Congrats on 5 years at Fam…", Send. It's **blocked**, citing the start date | "Its outreach draft went through Send Guard and cleared, and it's never sent automatically. Now a draft with one wrong fact: five years at Fam. Crustdata's record says about a year and a half, so it's blocked before it goes out, with the field that proves it." |
-| 4 | 0:58-1:25 | Console roster: 6 AI employees. Click **Run payroll check**: Closer goes **Suspended**, citing "left PulseTrader on 2026-04-01". Then the terminal: `python scripts/run_fleet.py --only sponsor_left,scope,outside --claude-code --pause 1` (speed up 2x in the edit) | "Sourced isn't alone. Agaxes runs a fleet: sales, vendor diligence, reference checks, and Claude Code over MCP. A payroll check re-verifies every sponsor. Closer's sponsor left his company in April, so Closer is suspended, and its next clock-in and send are both refused. The diligence agent tries to email a vendor without the scope, and it's refused too. Claude Code, with only our MCP server, gets its clean note allowed and its false one blocked." |
-| 5 | 1:25-1:45 | Console Ledger panel: chain OK, entries with sources. Terminal: `python scripts/run_fleet.py --only tamper` shows the forged passport blocked on `signature_valid`, and **chain broken at entry #N** in an edited copy | "Every passport check, verdict and piece of work is written to a hash-chained ledger with its Crustdata sources. An agent that edits its own passport to give itself payment rights fails the signature. Change one line of the ledger and the chain points at the exact entry." |
-| 6 | 1:45-1:58 | Back to the Sourced shortlist | "Messy brief in, verified shortlist out, no human in the loop. And every AI employee doing it is backed by a real person, checked against Crustdata, stopped before it says something false, and on the record." |
-
-**Single-take alternative for beats 4-5:** run `python scripts/run_fleet.py --only sponsor_left,scope,stale,tamper,outside --claude-code --pause 1.5` once and narrate over it (sped up), then cut to the console roster showing Closer suspended. It's fewer tab switches, but less visual.
+| 1 | 0:00-0:12 | Agaxes **Dashboard**: six agents, each with its sponsor and status | "Companies are hiring AI employees. Agaxes gives each one a passport: an ID badge and a permission slip. It says who the agent works for, which real person vouches for it, and what it may do, checked live on Crustdata." |
+| 2 | 0:12-0:35 | Sidebar **Agent apps > Sourced**. Paste the brief, run. Point at **Understood as**: quant trader, junior, the schools it expanded "prestige college in India" into, India. Then the shortlist: open one candidate and show the **Education** claim and the experience claim, each with its source | "This is Sourced, our hiring agent. A one-line, messy brief: it reads 'prestige college in India' as IITs, ISI and BITS, searches Crustdata for them, and ranks real quant traders. Every claim is checked and cited. It doesn't even count campus clubs as experience." |
+| 3 | 0:35-1:05 | **Live work > Hiring flow > Start hiring flow** with the same brief. Walk down the stages as they land: Shortlist (Sourced) → Verify records (a different agent; **Sourced refused**) → Schedule interviews (Scheduler, invites wait for approval) → Offer (**Scheduler refused**: no `contract.sign`; the Offer agent drafts it). Click **Approve and sign** | "Now the whole hire. Four agents, and at every handoff Agaxes checks the passport for that job. Sourced isn't allowed to check its own shortlist, so it's refused. The Scheduler can book interviews but can't sign contracts, so it's refused for the offer. The Offer agent drafts it, and nothing is signed until I approve." |
+| 4 | 1:05-1:30 | Gmail: the signed offer email, ending "Sent by Offer, AI agent for …, vouched for by …. Verify: …". Click **Verify**: green **Genuine**, with the checks listed. Back to Agaxes: **Agents > Offer > Suspend and revoke passport**. Reload the verify tab: **red** | "Here's what the candidate gets, signed. Anyone can click Verify, with no login: it's genuine, from a real agent, vouched for by a real person, and the text hasn't been changed. Now I suspend that agent… and the same link turns red. Its word is only good while its passport is." |
+| 5 | 1:30-1:48 | **Ledger**: the flow told as plain sentences (who did what, to whom, the outcome), with the two refusals and the signed offer. **Chain intact**. Open one entry's **Details** to show the Crustdata sources | "And every step is on the ledger as a readable story: each passport check, both refusals, my approval, the signature. It's hash-chained, so editing one line breaks it, and every fact links back to its Crustdata source." |
+| 6 | 1:48-1:58 | Back to the **Dashboard** | "A messy brief in, a signed, verifiable offer out. Every AI employee is backed by a real person, kept to its permissions, and on the record. That's Agaxes." |
 
 ## Cut order if over 2:00
-1. Drop the scope refusal and Claude Code lines in beat 4 (keep Closer).
-2. Speed up beat 2's step feed 1.5-2x in the edit (say "sped up").
-3. Never cut: the passport check (1), a Send Guard block (3), Closer suspended (4), or the ledger chain (5).
+1. Beat 2: show only **Understood as** and one claim, then fast-forward the search 2x (say "sped up").
+2. Beat 3: fast-forward between stages, but stop on each refusal and on **Approve and sign**.
+3. Never cut: the two refusals, Genuine turning red, or Chain intact.
 
-## If something breaks during recording
-- **Sourced is slow or finds nobody:** check `curl localhost:8000/api/health` shows live modes. Person Enrich is limited to 15/min: wait a minute and re-run. The warm cache makes the second run fast.
-- **A draft is blocked when it should clear:** the guard fails closed on a rate limit. Re-run after a minute, or lower `GUARD_MAX` in `.env`.
-- **A `run_fleet.py` beat isn't OK:** run it with `-v` to see every check and its source. A second run reuses the fleet and does a fresh payroll run.
-- **Console says backend offline:** run `backend/scripts/demo_up.sh --no-fleet` again (it keeps the seeded store).
-- **Live API down entirely:** `CRUSTDATA_MODE=replay LLM_MODE=mock python scripts/run_fleet.py --store /tmp/fleet` still plays all 7 beats from fixtures in about 5 s. Sourced needs live data, or a pushed cache for the brief (gap P0-3).
-- The tamper beat edits a **copy** of the ledger, so the live ledger stays clean for the finals.
+## Backups (if a highlight fails during recording)
+- **No email arrives:** run `python scripts/send_signed_email.py --agent Offer` and use that mail for beat 4. Or open the offer's verify link from the flow in the console.
+- **Hiring flow stalls or a stage errors:** Crustdata is rate limited (Person Enrich is 15/min), so wait a minute and **Start hiring flow** again. The warm cache makes it fast.
+- **Quant brief parses oddly (Gemini down):** the rule pass still reads role, seniority and schools. Or switch to the backend brief: `need a senior backend eng asap, payments exp, blr or remote india, ex startup pref`.
+- **Need extra footage:** **Guided demo > Run demo** plays the six-agent story (sponsor left, permission refusal, false claim blocked, tampering). The false-claim test is also under **Agents > Sourced > Messages > Try a message > False claim > Sign and check**.
 
 ## After recording
+- **Reinstate the Offer agent** (Agents > Offer) before the live finals, or its offers stay red.
 - Trim with `Cmd+T` in QuickTime, export at 1080p, watch it once end to end, and upload by 15:15.
