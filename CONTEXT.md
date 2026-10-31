@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~10:46 | Seeded-fake resumes are built locally and never committed | Public repo; they contain real people's records | WS5 |
 | 10:43 | Ranker is deterministic and weighted (LLM only rewrites reason text, optional) | Reproducible scores; judges want decisions that stay the same however the case is worded | WS3 |
 | 10:35 | Demo brief = B1 (payments backend, Bangalore) | Indian fintech is dense in Crustdata, so the demo returns rich results | WS5 |
 | 10:35 | Seeded fakes are built from real Person Enrich fixtures, with lie types: stale_current_job, inflated_title, fake_employer, stretched_tenure, wrong_location | Lies must be disprovable from the graph | WS5 |
@@ -103,6 +104,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~10:46 | WS5: root README now has "How to run" (section 8 lives there). Seeded fakes are generated on the Mac from cached Person Enrich and never committed, because they contain real people's data. check_fakes still passes against main (5 fakes, 0 misses, 0 false positives). Open: WS4 `frontend/.env.example` is missing although its README references it |
 | ~10:44 | **All 6 branches merged into `main`** (ws/crustdata, ws/pipeline, ws/verify, ws/ui, ws/demo). Clean merges, 30 backend tests pass in replay and dev modes. Every workstream should now rebase on `main`. Cloud pushes work again |
 | ~10:42 | WS3 fixed 2 real-data bugs: stage now comes from the latest priced round in `funding.milestones` (Razorpay's `last_round_type` is `secondary_market`), and `year_founded` is an int year, not an epoch. `web_search` links are opaque `google.com/goto?url=` tokens, so the verifier prefers direct URLs |
 | ~10:37 | Merged `ws/crustdata` into `integrate`: 26 backend tests pass in both dev and replay modes |
@@ -305,7 +307,7 @@ Humans: **Sai** runs anything that needs the Mac (Crustdata live calls, Vertex, 
 **Cut order if behind:** stretch goal -> outreach drafts -> ranking polish. Never cut: verify + citations (it's the judging criterion).
 
 ## 8. How to run
-_(Fill in once building starts.)_
+See the root `README.md` "How to run" section (kept there so it stays next to the code).
 
 ## 9. Demo script (2 minutes)
 Draft beats: (1) 10s problem: recruiters are paid on hires, and profiles are stale. (2) Paste a messy brief judges haven't seen. (3) Live feed shows the agent searching title variants. (4) Shortlist appears; open one candidate and show every claim cited, plus a "changed jobs 3 weeks ago" catch. (5) Show a contradicted claim being flagged. (6) 10s close: no human in the loop, every claim sourced.
