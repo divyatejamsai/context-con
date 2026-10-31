@@ -1,0 +1,72 @@
+"""FastAPI app. Run from backend/:  uvicorn app.main:app --reload --port 8000
+
+POST /api/run            {"brief": "..."}  -> text/event-stream of events (CONTEXT.md section 6)
+GET  /api/run?brief=...                     -> same, for browser EventSource (GET only)
+GET  /api/replay?delay=0.6                  -> streams fixtures/run.jsonl (demo safety net)
+GET  /api/health
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+
+ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / "backend" / ".env")
+
+from . import llm  # noqa: E402  (after dotenv so LLM_MODE is set)
+from .orchestrator import run  # noqa: E402
+from .schemas import RunRequest  # noqa: E402
+
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+
+app = FastAPI(title="Brief-to-Shortlist hiring agent")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
+
+
+def _sse(payload: str) -> str:
+    return f"data: {payload}\n\n"
+
+
+async def _stream(brief: str):
+    async for ev in run(brief):
+        yield _sse(ev.model_dump_json())
+
+
+@app.get("/api/health")
+async def health():
+    return {"ok": True, "llm_mode": llm.mode(), "crustdata_mode": os.getenv("CRUSTDATA_MODE", "live"),
+            "crustdata_key": bool(os.getenv("CRUSTDATA_API_KEY"))}
+
+
+@app.post("/api/run")
+async def run_post(req: RunRequest):
+    return StreamingResponse(_stream(req.brief), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+@app.get("/api/run")
+async def run_get(brief: str = Query(..., min_length=1)):
+    return StreamingResponse(_stream(brief), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+@app.get("/api/replay")
+async def replay(delay: float = 0.6, file: str = "run.jsonl"):
+    path = (ROOT / "fixtures" / Path(file).name)
+
+    async def gen():
+        for line in path.read_text().splitlines():
+            if line.strip():
+                yield _sse(json.dumps(json.loads(line)))
+                await asyncio.sleep(delay)
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers=SSE_HEADERS)
