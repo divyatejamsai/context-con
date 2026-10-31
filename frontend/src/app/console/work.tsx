@@ -140,6 +140,17 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
         </div>
       </div>
 
+      {st.runtime.provider?.out_of_credits && (
+        <div role="alert" className="mt-4 flex items-start gap-2 rounded-lg border border-contradicted/40 bg-contradicted/10 px-3 py-2 text-[12.5px] text-contradicted">
+          <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <b className="font-[590]">Data provider out of credits.</b> Crustdata is refusing lookups (402), so agents can&apos;t
+            check people or sponsors. Tasks that need it fail with this reason, and no passport is revoked for it. Top up the
+            Crustdata key and run them again; this clears on the next successful lookup.
+          </span>
+        </div>
+      )}
+
       {toast && (
         <div className={cn("mt-4 rounded-lg border px-3 py-2 text-[12.5px]",
           toast.tone === "ok" ? "border-verified/40 bg-verified/10" : "border-contradicted/40 bg-contradicted/10 text-contradicted")}>

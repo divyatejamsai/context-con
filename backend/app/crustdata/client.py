@@ -52,6 +52,34 @@ class CrustdataError(Exception):
         self.body = body
 
 
+class OutOfCredits(CrustdataError):
+    """Crustdata answered 402: the API key has no credits left. Retrying won't help until someone tops it up."""
+
+
+OUT_OF_CREDITS = ("Data provider out of credits: Crustdata returned 402 (insufficient credits). "
+                  "Top up the Crustdata key, then run it again.")
+
+# Process-wide: set by the first 402, cleared by the next successful live call (so it recovers on its own after a top-up).
+_PROVIDER: dict[str, Any] = {"out_of_credits_at": None, "endpoint": None}
+
+
+def provider_status() -> dict:
+    """{"out_of_credits": bool, "since": iso time or None, "endpoint": ..., "message": ...} for the console."""
+    at = _PROVIDER["out_of_credits_at"]
+    return {"out_of_credits": at is not None, "since": at, "endpoint": _PROVIDER["endpoint"],
+            "message": OUT_OF_CREDITS if at else None}
+
+
+def out_of_credits_since(ts: str | None) -> bool:
+    """True if the provider ran out of credits at or after ts (an iso time)."""
+    at = _PROVIDER["out_of_credits_at"]
+    return at is not None and (ts is None or at >= ts)
+
+
+def _is_out_of_credits(status: int, body: Any) -> bool:
+    return status == 402 or "insufficient_credits" in str(body)[:2000].lower()
+
+
 @dataclass(frozen=True)
 class Endpoint:
     name: str     # logical name used in _source and as cache folder
@@ -217,7 +245,14 @@ class CrustdataClient:
                         resp = await self._http.request(ep.method, ep.path, json=payload)
                 body = _json_or_text(resp)
                 if resp.status_code < 300 or resp.status_code == 404:
+                    _PROVIDER.update(out_of_credits_at=None, endpoint=None)
                     return resp.status_code, body
+                if _is_out_of_credits(resp.status_code, body):
+                    self.stats["errors"] += 1
+                    if _PROVIDER["out_of_credits_at"] is None:
+                        log.error("Crustdata is out of credits (%s %s -> %s)", ep.method, ep.path, resp.status_code)
+                    _PROVIDER.update(out_of_credits_at=now_iso(), endpoint=ep.name)
+                    raise OutOfCredits(OUT_OF_CREDITS, status=resp.status_code, endpoint=ep.name, body=body)
                 if resp.status_code not in RETRY_STATUSES:
                     self.stats["errors"] += 1
                     raise CrustdataError(

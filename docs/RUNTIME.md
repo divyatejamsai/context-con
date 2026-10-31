@@ -28,6 +28,12 @@ manages them.
 ## Reliability
 - A transient failure (network, model) is retried once (`RUNTIME_MAX_ATTEMPTS`, default 2). Bad input fails immediately.
 - An outside agent that goes silent for `AGAXES_AGENT_LEASE_S` (600s) loses its claim, and the task goes back in the queue.
+- **Data provider out of credits (Crustdata 402).** The client raises `OutOfCredits` at once and doesn't retry. Any task that
+  hit it fails with "Data provider out of credits", and it isn't retried. The Work tab shows a banner (`runtime.provider` in
+  `/api/runtime/state`, and `/api/health` reports it too), and any route that lets the error escape answers 402 with the
+  same message. The payroll run doesn't suspend or revoke an agent whose check only couldn't run because of it. A
+  definite failure, such as the sponsor leaving, still suspends. Sends still fail closed at the guard. The banner clears
+  on the next successful live call.
 - If a launched Claude Code exits with an error before finishing (for example, an expired login), the task fails with the reason instead of sitting in the queue.
 
 ## Outside agents (Claude Code), governed the same way

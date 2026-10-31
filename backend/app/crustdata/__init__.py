@@ -1,4 +1,5 @@
 from .cache import ResponseCache
-from .client import ENDPOINTS, CrustdataClient, CrustdataError, extract_list, extract_one
+from .client import (ENDPOINTS, OUT_OF_CREDITS, CrustdataClient, CrustdataError, OutOfCredits, extract_list, extract_one,
+                     out_of_credits_since, provider_status)
 
-__all__ = ["CrustdataClient", "CrustdataError", "ResponseCache", "ENDPOINTS", "extract_list", "extract_one"]
+__all__ = ["CrustdataClient", "CrustdataError", "OutOfCredits", "OUT_OF_CREDITS", "provider_status", "out_of_credits_since", "ResponseCache", "ENDPOINTS", "extract_list", "extract_one"]

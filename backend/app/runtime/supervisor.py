@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from ..agents import ledger, registry
+from ..crustdata import OUT_OF_CREDITS, OutOfCredits, out_of_credits_since, provider_status
 from ..fleet.demo import store_dir
 from . import store
 from .kinds import KINDS, can_do, is_external, title_for
@@ -224,6 +225,8 @@ class Runtime:
             suspended = [after[i]["name"] for i, s in before.items() if s == "active" and i in after and after[i]["status"] != "active"]
             res = {"at": store.now(), "by": by, "checked": len(verdicts), "suspended": suspended,
                    "allowed": sum(v.decision == "allow" for v in verdicts)}
+            if provider_status()["out_of_credits"]:
+                res["note"] = f"{OUT_OF_CREDITS} Sponsors that couldn't be checked were left as they are."
         except Exception as e:  # noqa: BLE001
             log.exception("payroll run failed")
             res = {"at": store.now(), "by": by, "error": f"{type(e).__name__}: {e}", "checked": 0, "suspended": []}
@@ -326,9 +329,14 @@ class Runtime:
                          client=MeteredClient(self.client) if self.client is not None else None, out_dir=work,
                          today=self.today, say=lambda line: store.task_step(task_id, line.rstrip()), emit=None)
         ctx.task_id = task_id
-        t0 = time.time()
+        t0, started = time.time(), store.now()
         try:
             res = await asyncio.wait_for(KINDS[t["kind"]]["handler"](ctx, t["input"]), timeout=self.task_timeout)
+            if out_of_credits_since(started):
+                # agents treat a failed lookup as "unverifiable" and carry on; with no credits every lookup fails, so the
+                # result can't be trusted: say why plainly instead of reporting a run full of blocks and empty results
+                self._finish(task_id, "failed", error=OUT_OF_CREDITS, seconds=time.time() - t0)
+                return
             status = "refused" if res.get("refused") else ("done" if res.get("ok") else "failed")
             self._finish(task_id, status, result=res.get("summary"), seconds=time.time() - t0)
         except asyncio.CancelledError:
@@ -340,6 +348,8 @@ class Runtime:
                 self._finish(task_id, "cancelled", error=why, seconds=time.time() - t0)
         except BudgetExceeded as e:
             self._finish(task_id, "failed", error=f"Stopped: {e}", seconds=time.time() - t0)
+        except OutOfCredits:  # no retry: it fails the same way until someone tops up the key
+            self._finish(task_id, "failed", error=OUT_OF_CREDITS, seconds=time.time() - t0)
         except asyncio.TimeoutError:
             self._finish(task_id, "failed", error=f"timed out after {int(self.task_timeout)}s", seconds=time.time() - t0)
         except Exception as e:  # noqa: BLE001 - one task failing never takes the runtime down
@@ -547,7 +557,8 @@ def state(rt: Runtime | None) -> dict:
         "version": snap.get("version", 0),
         "runtime": {"alive": bool(rt and rt.alive), "started_at": rt.started_at if rt else None,
                     "running": len(rt.running) if rt else 0, "max_concurrent": rt.max_concurrent if rt else 0,
-                    "modes": {"crustdata": os.getenv("CRUSTDATA_MODE", "cache"), "llm": os.getenv("LLM_MODE", "live")}},
+                    "modes": {"crustdata": os.getenv("CRUSTDATA_MODE", "cache"), "llm": os.getenv("LLM_MODE", "live")},
+                    "provider": provider_status()},
         "totals": {
             "agents": len([a for a in agents if a["status"] != "offboarded"]),
             "working": sum(a["activity"] == "working" for a in agents),
