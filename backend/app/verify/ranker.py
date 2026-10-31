@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 
 BASE_CAP = 90   # the factor score tops out here; bonuses for strong evidence add up to MAX_BONUS
 MAX_BONUS = 10
+MUST_HAVE_CAP = 60  # a candidate missing evidence for a must-have can't outrank one who has it
 CONTRADICTION_PENALTY = 12
 MAX_PENALTY = 36
 CREDIT = {"verified": 1.0, "unverifiable": 0.5, "contradicted": 0.0}
@@ -39,6 +40,10 @@ _STAGE_PREF = {
 
 def _kind(c: Claim) -> str:
     t = c.claim
+    if t.startswith("Career:"):
+        return "career"
+    if t.startswith("Progression"):
+        return "progression"
     if t.startswith("Works at") or t == "Current employer":
         return "employer"
     if t.startswith("Title:"):
@@ -366,6 +371,63 @@ def _role_like(title: str, criteria: Criteria) -> bool:
     return any(title_similarity(_core(title), _core(x)) >= 0.5 for x in targets)
 
 
+def _career_fit(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Factor | None:
+    """Past roles in context: were earlier jobs the same kind of role, at the kind of company the brief wants?"""
+    career = [c for c in k.get("career", []) if c.status == "verified"]
+    if not career:
+        return None
+    pr = load_person(person)
+    past = [j for j in pr.past if j.company and j.start]
+    if not past:
+        return None
+    f = _Factor("career", 10)
+    today = date.today()
+    terms = [t for sk in criteria.skills + criteria.must_haves for t in domain_terms(sk)]
+    prefs = [norm(p) for p in criteria.company_preferences if p and not re.match(r"^(not|no|non|avoid)\b", norm(p))]
+    wants_startup = any(any(w in p for w in _STARTUP_WORDS) for p in prefs)
+
+    def yrs(j):
+        return max(0.1, ((j.end or today) - j.start).days / 365.25)
+
+    total = sum(yrs(j) for j in past)
+    role_y = sum(yrs(j) for j in past if j.title and _role_like(j.title, criteria))
+    ctx_names: list[str] = []
+    ctx_y = 0.0
+    for j in past:
+        hit = bool(terms and j.company_industry and any(re.search(rf"\b{re.escape(t)}\b", norm(j.company_industry)) for t in terms))
+        hit = hit or (wants_startup and j.company_headcount is not None and j.company_headcount < 1500)
+        hit = hit or any(same_company(re.sub(r"^(ex|former|from)\s+", "", p), j.company) for p in prefs)
+        if hit:
+            ctx_y += yrs(j)
+            ctx_names.append(j.company)
+    has_ctx = bool(terms or prefs)
+    role_share, ctx_share = role_y / total, (ctx_y / total if has_ctx else 0.0)
+    credit = 0.5 * role_share + 0.5 * ctx_share if has_ctx else role_share
+    bits = [f"{role_share:.0%} of past experience in similar roles"]
+    if has_ctx:
+        what = "the brief's domain" if terms else "the preferred kind of company"
+        bits.append(f"{ctx_share:.0%} at companies in {what}" + (f" ({', '.join(dict.fromkeys(ctx_names[:3]))})" if ctx_names else ""))
+    f.add(credit, "Career history: " + ", ".join(bits), career[:1])
+    f.earned = f.weight * credit
+    return f
+
+
+def _missing_must_haves(k: dict[str, list[Claim]], criteria: Criteria) -> list[tuple[str, Claim | None]]:
+    musts = [m for m in criteria.must_haves if isinstance(m, str) and m.strip() and len(m.split()) <= 3]
+    if not musts:
+        return []
+    have = {norm(c.claim.removeprefix("Skill:")) for c in k.get("skill", []) if c.status == "verified"}
+    miss = k.get("skills_missing", [])
+    out = []
+    for m in musts:
+        if norm(m) in have or _YEARS_RE.search(m):
+            continue
+        cite = next((c for c in miss if norm(m) in norm(c.claim)), None)
+        if cite:
+            out.append((m, cite))
+    return out
+
+
 def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> list[tuple[float, Reason]]:
     """Up to +10 on top of a base capped at 90, for unusually strong evidence."""
     out: list[tuple[float, Reason]] = []
@@ -404,6 +466,13 @@ def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> lis
                f"inferred from {n_inf} employer{'s' if n_inf > 1 else ''}' industry"
         out.append((pts, Reason(text=f"{name} {where}: {what}", claim_ids=[c.id])))
         break
+
+    # Career trajectory.
+    for c in k.get("progression", []):
+        if c.status == "verified" and "(rising)" in c.claim:
+            out.append((1.5, Reason(text=f"Rising career: {c.claim.split(': ', 1)[1]}", claim_ids=[c.id])))
+        elif c.status == "verified" and "(falling)" in c.claim:
+            out.append((-0.5, Reason(text=f"Seniority has dropped over time: {c.claim.split(': ', 1)[1]}", claim_ids=[c.id])))
 
     # Stage fit and stability.
     if tenure:
@@ -448,18 +517,22 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     k = _by_kind(claims)
     factors = [f for f in (
         _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
-        _company(k, criteria, person), _experience(k, criteria),
+        _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
     ) if f is not None]
     total_w = sum(f.weight for f in factors) or 1
     base = sum(f.earned for f in factors) / total_w * BASE_CAP
     bonuses = _bonuses(k, criteria, person)
-    bonus = min(MAX_BONUS, sum(p for p, _ in bonuses))
+    bonus = min(MAX_BONUS, sum(p for p, _ in bonuses if p > 0))
 
     contradicted = [c for c in claims if c.status == "contradicted"]
     # A stale headline is a freshness signal, not a lie: half penalty and softer wording.
     stale = {c.id for c in contradicted if c.evidence.startswith("profile headline")}
     penalty = min(MAX_PENALTY, sum(CONTRADICTION_PENALTY / (2 if c.id in stale else 1) for c in contradicted))
     score = int(round(max(0, min(100, base + bonus - penalty))))
+    # Must-haves are gates, not weights: a missing one caps the score however strong the rest is.
+    gaps = _missing_must_haves(k, criteria)
+    if gaps:
+        score = min(score, MUST_HAVE_CAP)
 
     scored: list[tuple[float, Reason]] = []
     for c in contradicted:
@@ -472,8 +545,11 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
             if any(r.claim_ids == s.claim_ids for i, s in scored if i == -2.0):
                 continue
             scored.append((impact, r))
+    for m, c in gaps:
+        scored.append((-2.0, Reason(text=f"Missing must-have: {m} (score capped at {MUST_HAVE_CAP})", claim_ids=[c.id])))
     for pts, r in bonuses:
-        scored.append((pts, Reason(text=f"+{pts:.0f}: {r.text}" if pts >= 1 else r.text, claim_ids=r.claim_ids)))
+        # Bonus points are on a 0-4 scale; factor impacts are on ~0-15, so scale up for ordering only.
+        scored.append((pts * 4, Reason(text=f"+{pts:.0f}: {r.text}" if pts >= 1 else r.text, claim_ids=r.claim_ids)))
     n_ver = sum(c.status == "verified" for c in claims)
     if claims:
         ver = [c.id for c in claims if c.status == "verified"]
@@ -485,8 +561,13 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     rest = [(i, r) for i, r in scored if i != -2.0 and r.claim_ids]
     pos = sorted([x for x in rest if x[0] > 0], key=lambda x: -x[0])
     neg = sorted([x for x in rest if x[0] <= 0], key=lambda x: x[0])  # biggest gaps first, so they survive the cut
-    reasons = reds[:3] + [r for _, r in pos[:5]] + [r for _, r in neg[:3]]
-    reasons = reasons[:9]
+    reasons = reds[:3] + [r for _, r in pos[:6]] + [r for _, r in neg[:3]]
+    # Always show career context (history and trajectory), not just the latest title.
+    career_ids = {c.id for c in k.get("career", []) + k.get("progression", [])}
+    for _, r in sorted(rest, key=lambda x: -x[0]):
+        if set(r.claim_ids) & career_ids and r not in reasons:
+            reasons.append(r)
+    reasons = reasons[:11]
 
     if os.getenv("RANK_USE_LLM") == "1" and reasons:
         reasons = await _llm_polish(reasons, claims, criteria)
