@@ -403,8 +403,25 @@ def test_demo_logins_cover_every_level(c):
         tok = r.json()["token"]
         seen[who]["agents"] = sorted(a["name"] for a in c.get("/api/agents", headers=h(tok)).json())
     assert seen["operator"]["access"]["level"] == "platform" and seen["operator"]["agents"] == ["Closer", "Sourced"]
-    assert seen["admin"]["access"]["level"] == "company" and seen["admin"]["agents"] == ["Sourced"]
+    # the demo company sees the seeded (pre-accounts) fleet, so the demo shows every agent without re-onboarding
+    assert seen["admin"]["access"]["level"] == "company" and seen["admin"]["agents"] == ["Closer", "Sourced"]
     assert seen["recruiter"]["access"]["level"] == "own_work" and seen["recruiter"]["agents"] == ["Sourced"]
     assert seen["recruiter"]["user"]["workspace_role"] == "member"
     assert c.post("/api/auth/demo").json()["access"]["level"] == "company"  # no body: as before, the demo company
     assert c.post("/api/auth/demo", json={"as": "god"}).status_code == 400
+
+
+def test_seeded_fleet_default_workspace(c, monkeypatch):
+    from app.agents import registry as reg
+    from app.agents.models import Sponsor
+    reg.onboard("Closer", "analyst", Sponsor(**SPONSOR), ["data.read"])  # seeded: no company
+    acme = signup(c, "owner@acme.io")
+    names = lambda tok: sorted(a["name"] for a in c.get("/api/agents", headers=h(tok)).json())
+    demo = c.post("/api/auth/demo").json()["token"]
+    assert names(demo) == ["Closer"] and names(acme) == []  # only the demo company, never a real one
+    ledger = c.get("/api/ledger", headers=h(demo)).json()
+    assert any((r.get("payload") or {}).get("agent_id") for r in (ledger if isinstance(ledger, list) else ledger.get("entries", [])))
+    monkeypatch.setenv("AGAXES_DEFAULT_WORKSPACE", "none")
+    assert names(demo) == []
+    monkeypatch.setenv("AGAXES_DEFAULT_WORKSPACE", "acme.io")
+    assert names(acme) == ["Closer"] and names(demo) == []
