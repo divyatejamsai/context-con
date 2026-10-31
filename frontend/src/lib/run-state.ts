@@ -1,4 +1,4 @@
-import { canonicalStep, type Candidate, type ClaimStatus, type Criteria, type RunEvent, type Summary } from "./types";
+import { canonicalStep, type Candidate, type ClaimStatus, type Criteria, type PassportCheck, type RunEvent, type Summary } from "./types";
 
 export interface LogItem {
   kind: "step" | "error";
@@ -28,6 +28,7 @@ export interface RunState {
   order?: string[];
   shortlist?: string[]; // ids the backend shortlisted (score above threshold)
   nearMiss?: string[]; // ids just under the threshold
+  passport?: PassportCheck; // agent runs: the live passport check that gates the run
   summary?: Summary;
   done: boolean;
   fatal?: string;
@@ -77,6 +78,10 @@ export function runReducer(s: RunState, a: RunAction): RunState {
             order: Array.isArray(ev.data?.order) ? (ev.data.order as string[]) : s.order,
             shortlist: Array.isArray(ev.data?.shortlist) ? (ev.data.shortlist as string[]) : s.shortlist,
             nearMiss: Array.isArray(ev.data?.near_miss) ? (ev.data.near_miss as string[]) : s.nearMiss,
+            passport:
+              step === "passport" && (ev.data?.decision === "allow" || ev.data?.decision === "block")
+                ? ({ ...(ev.data as object), message: ev.message } as PassportCheck)
+                : s.passport,
             log: [...s.log, { kind: "step", step, message: ev.message, t }],
           };
         }
@@ -87,7 +92,9 @@ export function runReducer(s: RunState, a: RunAction): RunState {
             const cur = steps[step] ?? { status: "active", errors: 0, startedAt: a.at };
             steps[step] = { ...cur, errors: cur.errors + 1 };
           }
-          return { ...s, steps, log: [...s.log, { kind: "error", step, message: ev.message, t }] };
+          // An error on the passport step means the agent was refused before any search.
+          const passport = step === "passport" ? { ...s.passport, decision: "block" as const, error: ev.message } : s.passport;
+          return { ...s, steps, passport, log: [...s.log, { kind: "error", step, message: ev.message, t }] };
         }
         case "criteria":
           return { ...s, criteria: ev.criteria };
