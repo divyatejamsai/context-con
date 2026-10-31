@@ -4,10 +4,10 @@ import { ArrowRight, CornerDownLeft, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const EXAMPLES = [
-  { label: "💳 Payments backend, BLR", brief: "need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon" },
-  { label: "🧠 Founding ML, Mumbai", brief: "founding ML engineer for a seed-stage fintech in Mumbai, LLM + ranking experience" },
-  { label: "📈 Head of growth, remote", brief: "head of growth, B2B SaaS, has scaled 0→1, remote india ok" },
-  { label: "🌀 A messy one", brief: "pm?? fintech-ish. delhi or gurgaon. NOT big tech. someone scrappy" },
+  { label: "Payments backend, BLR", brief: "need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon" },
+  { label: "Founding ML, Mumbai", brief: "founding ML engineer for a seed-stage fintech in Mumbai, LLM + ranking experience" },
+  { label: "Head of growth, remote", brief: "head of growth, B2B SaaS, has scaled 0→1, remote india ok" },
+  { label: "A messy one", brief: "pm?? fintech-ish. delhi or gurgaon. NOT big tech. someone scrappy" },
 ];
 
 interface Props {
@@ -22,7 +22,7 @@ interface Props {
 
 export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefInput({ value, onChange, onRun, onStop, running, compact, footer }, ref) {
   return (
-    <div className={cn("relative rounded-xl border-2 border-ink bg-panel transition-shadow focus-within:shadow-brut-lg", compact ? "shadow-brut-sm" : "shadow-brut-xl")}>
+    <div className={cn("relative rounded-xl border-[1.5px] border-ink bg-panel transition-shadow focus-within:shadow-brut-lg", compact ? "shadow-brut-sm" : "shadow-brut-xl")}>
       <textarea
         ref={ref}
         value={value}
@@ -34,13 +34,13 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
           }
           if (e.key === "Escape") (e.target as HTMLTextAreaElement).blur();
         }}
-        placeholder="Tell me who you're hiring. Typos welcome."
+        placeholder="Describe the role, however it comes out…"
         rows={compact ? 1 : 3}
         wrap={compact ? "off" : "soft"}
         disabled={running}
         className={cn(
           "w-full resize-none bg-transparent placeholder:text-faint focus:outline-none disabled:opacity-60",
-          compact ? "block h-11 overflow-hidden px-3.5 py-3 pr-32 text-[14px] font-medium" : "font-display px-5 pb-2 pt-5 text-[22px] font-semibold leading-snug sm:text-[26px]",
+          compact ? "block h-11 overflow-hidden px-3.5 py-3 pr-32 text-[14px] font-medium" : "px-5 pb-2 pt-5 text-[18px] font-medium leading-relaxed sm:text-[20px]",
         )}
         aria-label="Hiring brief"
       />
@@ -56,7 +56,7 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
               <kbd>⌘</kbd>
               <kbd>↵</kbd>
             </span>
-            <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Find people" big />
+            <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Find candidates" big />
           </div>
         </div>
       )}
@@ -65,13 +65,13 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
 });
 
 function RunButton({ running, disabled, onRun, onStop, label, big }: { running: boolean; disabled: boolean; onRun: () => void; onStop: () => void; label: string; big?: boolean }) {
-  const base = cn("press inline-flex items-center gap-1.5 rounded-lg border-2 border-ink font-extrabold shadow-brut-sm disabled:opacity-40", big ? "h-11 px-4 text-[15px]" : "h-8 px-3 text-[13px]");
+  const base = cn("press inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-ink font-bold shadow-brut-sm disabled:opacity-40", big ? "h-11 px-4 text-[15px]" : "h-8 px-3 text-[13px]");
   return running ? (
     <button onClick={onStop} className={cn(base, "bg-coral text-on-color")}>
       <Square className="size-3 fill-current" /> Stop
     </button>
   ) : (
-    <button onClick={onRun} disabled={disabled} className={cn(base, "bg-lime text-on-color")}>
+    <button onClick={onRun} disabled={disabled} className={cn(base, "bg-ink text-background")}>
       {big ? null : <CornerDownLeft className="size-3.5" />}
       {label}
       {big && <ArrowRight className="size-4" strokeWidth={3} />}
