@@ -206,3 +206,19 @@ def test_http_route(monkeypatch):
                                                        "to": VINOD, "body": body, "scope": "outreach.hiring", "today": TODAY.isoformat()})
     assert r.status_code == 200, r.text
     assert r.json()["decision"] == "allow", r.json()
+
+
+@pytest.mark.asyncio
+async def test_sourced_sends_through_mcp_and_false_draft_is_blocked(tmp_path, monkeypatch):
+    from app.agents import sourced_agent
+
+    monkeypatch.setattr(sourced_agent, "IDENTITY_PATH", tmp_path / "id.json")
+    cands = await sourced_agent.candidates_fixture_people(TODAY)
+    assert len(cands) >= 5 and all(c.outreach_draft for c in cands)
+    bad = cands[0].model_copy()
+    bad.outreach_draft = bad.outreach_draft.replace("Hi ", "Hi! Congrats on 9 years at " + (bad.company or "X") + ". ", 1)
+    results = await sourced_agent.send_all(cands + [bad], today=TODAY)
+    assert [r["sent"] for r in results] == [True] * len(cands) + [False], results
+    assert any("claims_in_body_true" in x for x in results[-1]["not_passing"])
+    outbox = (tmp_path / "outbox.jsonl").read_text().splitlines()
+    assert len(outbox) == len(cands)
