@@ -26,7 +26,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from . import ledger, passport as pp
+from . import guard, ledger, passport as pp
+from .graph import Graph
 from .models import SCOPES, Passport, Scope, Sponsor, Verdict
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -374,7 +375,8 @@ def _days_left(p: Passport) -> int:
 # ---- reviews ---------------------------------------------------------------------------------
 
 def scorecard(agent_id: str) -> dict:
-    """What the agent actually did, read from the ledger: guard verdicts, what got blocked and why."""
+    """What the agent actually did, read from the ledger: guard verdicts, what got blocked and why, and the work
+    it filed (work.* entries)."""
     get_agent(agent_id)
     rows = ledger.entries(agent_id)
     sends = [e for e in rows if "guard" in e.get("kind", "") or "send" in e.get("kind", "")]
@@ -385,6 +387,7 @@ def scorecard(agent_id: str) -> dict:
             if c.get("status") != "pass":
                 reasons[c.get("name", "unknown")] += 1
     checks = [e for e in rows if e.get("kind") == "passport.verified"]
+    work = [e for e in rows if e.get("kind", "").startswith("work.")]  # filed by agents via MCP record_work
     return {
         "messages_checked": len(sends),
         "allowed": len(sends) - len(blocked),
@@ -392,6 +395,11 @@ def scorecard(agent_id: str) -> dict:
         "block_reasons": reasons.most_common(),
         "sponsor_checks": len(checks),
         "sponsor_checks_failed": sum(1 for e in checks if (e.get("payload") or {}).get("decision") == "block"),
+        "work_filed": len(work),
+        "work_by_kind": Counter(e["kind"].removeprefix("work.") for e in work).most_common(),
+        "recent_work": [{"seq": e.get("seq"), "ts": e.get("ts"), "kind": e["kind"].removeprefix("work."),
+                         "summary": (e.get("payload") or {}).get("summary"), "sources": len(e.get("sources") or [])}
+                        for e in work[-5:][::-1]],
         "ledger_entries": len(rows),
         "last_activity": max((e.get("ts", "") for e in rows), default=None),
     }
@@ -423,3 +431,16 @@ async def add_review(agent_id: str, reviewer: str, decision: ReviewDecision, not
         rec["ledger_entries"].append(review["ledger_entry"])
         _save(agents)
         return public(rec)
+
+
+# ---- sending (through the Send Guard) --------------------------------------------------------
+
+async def send(agent_id: str, to: dict, body: str, scope: Scope, client, *, signed_body: str | None = None,
+               today=None) -> tuple[Verdict, bool]:
+    """The agent signs its draft with its own key and hands it to the Send Guard. `signed_body` lets the demo sign
+    one text and send another (a message altered after signing). Returns (verdict, written to outbox)."""
+    with _lock:
+        rec = _get(_load(), agent_id)
+    p = Passport(**rec["passport"])
+    sig = pp.sign_message(p, base64.b64decode(rec["private_key"]), signed_body if signed_body is not None else body)
+    return await guard.send_if_allowed(p, sig, to, body, scope, today=today, graph=Graph(client))

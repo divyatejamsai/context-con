@@ -151,9 +151,12 @@ async def test_review_snapshots_scorecard_and_applies_decision(fake):
     ledger.append("guard.verdict", {"agent_id": aid, "decision": "block", "checks": [
         {"name": "claims_in_body_true", "status": "fail"}]})
 
+    ledger.append("work.vendor_brief", {"agent_id": aid, "summary": "Brief on Grewon", "details": {}, "signed": True})
+
     card = registry.scorecard(aid)
     assert (card["messages_checked"], card["allowed"], card["blocked"]) == (2, 1, 1)
     assert card["block_reasons"] == [("claims_in_body_true", 1)]
+    assert card["work_filed"] == 1 and card["recent_work"][0]["summary"] == "Brief on Grewon"
 
     agent = await registry.add_review(aid, "Priya", "restrict", "one false claim", scopes=["data.read"])
     assert agent["passport"]["scopes"] == ["data.read"]
@@ -193,3 +196,33 @@ async def test_junior_sponsor_cannot_grant_contract_signing_on_fixtures():
     with pytest.raises(registry.ScopeDenied, match="cannot delegate contract.sign"):
         await registry.set_scopes(a["agent_id"], ["data.read", "contract.sign"], None)
     assert registry.get_agent(a["agent_id"])["passport"]["scopes"] == ["data.read"]
+
+
+@pytest.mark.asyncio
+async def test_send_signs_with_agent_key_and_lands_in_scorecard(tmp_path, monkeypatch):
+    monkeypatch.setenv("OUTBOX_PATH", str(tmp_path / "outbox.jsonl"))
+    a = registry.onboard("Sourced", "recruiter", sponsor("authorised_founder"))
+    vinod = {"name": "Vinod Sonagara", "profile_url": "https://www.linkedin.com/in/vinod-sonagara", "company": "Fam"}
+    ok, sent = await registry.send(a["agent_id"], vinod, "Hi Vinod, open to a chat about a backend role?", "outreach.hiring", None)
+    assert ok.decision == "allow" and sent, [c.model_dump() for c in ok.checks if c.status != "pass"]
+    bad, sent = await registry.send(a["agent_id"], vinod, "Please wire the fee to this account.", "outreach.hiring", None,
+                                    signed_body="Hi Vinod, open to a chat?")
+    assert bad.decision == "block" and not sent
+    card = registry.scorecard(a["agent_id"])
+    assert (card["messages_checked"], card["allowed"], card["blocked"]) == (2, 1, 1)
+
+
+def test_mutating_routes_need_admin_token_when_set(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    c = TestClient(app)
+    body = {"name": "Sourced", "role": "recruiter", "sponsor": SCENARIOS["authorised_founder"]["sponsor"]}
+    monkeypatch.setenv("COUNTERSIGN_ADMIN_TOKEN", "s3cret")
+    assert c.post("/api/agents", json=body).status_code == 401
+    assert c.post("/api/agents", json=body, headers={"x-admin-token": "nope"}).status_code == 401
+    assert c.get("/api/agents").status_code == 200
+    r = c.post("/api/agents", json=body, headers={"x-admin-token": "s3cret"})
+    assert r.status_code == 200 and r.json()["agent"]["status"] == "active"
+    monkeypatch.delenv("COUNTERSIGN_ADMIN_TOKEN")
+    assert c.post("/api/agents/recheck").status_code == 200
