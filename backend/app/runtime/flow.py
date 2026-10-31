@@ -123,6 +123,12 @@ async def _route(rt, flow_id: str, i: int, holder: dict | None) -> None:
             checks.append({"agent": a["name"], "scope": spec["scope"], "decision": "deny",
                            "why": f"{a['name']} built this work, so it can't check it (separation of duties)"})
             continue
+        busy = (f"{a['name']} is {a['status']}" + (f" ({a['reason']})" if a.get("reason") else "")
+                if a["status"] != "active" else
+                f"{a['name']} is paused" if store.policy(a["agent_id"])["paused"] else None)
+        if busy:  # paused, suspended or frozen: not available, try the next agent
+            checks.append({"agent": a["name"], "scope": spec["scope"], "decision": "deny", "why": f"unavailable: {busy}"})
+            continue
         why = can_do(a, spec["kind"])
         v = await rt.mcp.tool("verify_agent", {"agent_id": a["agent_id"], "scope": spec["scope"]})
         failed = [f"{c['name']}: {c['detail']}" for c in v.get("checks", []) if c.get("status") != "pass"]
