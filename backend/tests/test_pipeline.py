@@ -415,3 +415,23 @@ def test_round4_function_drift_and_outreach_checks(monkeypatch):
     assert "?" in fixed and fixed.endswith(signoff())
     monkeypatch.setenv("RECRUITER_NAME", "Sai")
     assert check_draft("Hi A, Razorpay! Call this week?\n\n[Your name]", claims, cand, Criteria()).endswith("Sai")
+
+
+def test_identify_guard_rejects_wrong_company():
+    from app.orchestrator import _lookup_company, same_employer
+    assert not same_employer("nvme-z.tech", {"basic_info": {"name": "Tech Mahindra", "primary_domain": "techmahindra.com"}})
+    assert same_employer("Razorpay Software Pvt Ltd", {"basic_info": {"name": "Razorpay", "primary_domain": "razorpay.com"}})
+    assert same_employer("nvme-z.tech", {"basic_info": {"name": "NVMe-Z", "primary_domain": "nvme-z.tech"}})
+
+    class C(RealShaped):
+        def __init__(self):
+            super().__init__()
+            self.args = None
+
+        async def company_identify(self, name=None, domain=None):
+            self.args = (name, domain)
+            return {"crustdata_company_id": 9, "basic_info": {"name": "Tech Mahindra", "primary_domain": "techmahindra.com"}}
+
+    client = C()
+    assert asyncio.run(_lookup_company(client, None, None, "nvme-z.tech")) is None
+    assert client.args == (None, "nvme-z.tech")
