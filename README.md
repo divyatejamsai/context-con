@@ -74,8 +74,10 @@ Every page (`/`, `/console`) and the Next.js API routes need a signed-in user; y
   14-day sliding sessions, 5 wrong passwords lock the account for 10 minutes). Routes: `POST /api/auth/{lookup,signup,login,demo,logout}`, `GET /api/auth/me`.
 - The browser never sees the token: Next.js keeps it in an httpOnly cookie and `src/middleware.ts` checks it against
   the backend on every request. Set `AUTH_API_URL` if the Next server should reach the backend on a different address.
-- Not covered yet: the FastAPI run endpoints themselves stay open (scripts, MCP and the fleet call them without a login),
-  and there's no password reset email (the event rules forbid sending mail).
+- `/forgot` emails a one-time reset link (30 minutes, 3 per hour) through `app.outbound.mailer.send_transactional`
+  (SMTP_* or RESEND_API_KEY, see docs/OUTBOUND.md). `/reset` sets the new password and signs out every other session.
+  Without an email provider it says so instead of pretending. Links point at `PUBLIC_APP_URL` (default http://localhost:3000).
+- Not covered: the FastAPI run endpoints themselves stay open (scripts, MCP and the fleet call them without a login).
 
 **Agaxes and the fleet**
 ```bash
