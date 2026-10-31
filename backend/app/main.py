@@ -4,6 +4,8 @@ POST /api/run            {"brief": "..."}  -> text/event-stream of events (CONTE
 GET  /api/run?brief=...                     -> same, for browser EventSource (GET only)
 GET  /api/replay?delay=0.6                  -> streams fixtures/run.jsonl (demo safety net)
 GET  /api/health
+GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Countersign AI employee (app/sourced_agent.py)
+POST /api/verify_resume                     -> check a resume's claims against Crustdata
 """
 from __future__ import annotations
 
@@ -26,12 +28,14 @@ from . import llm  # noqa: E402  (after dotenv so LLM_MODE is set)
 from .orchestrator import run  # noqa: E402
 from .schemas import RunRequest  # noqa: E402
 from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
+from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
 app = FastAPI(title="Brief-to-Shortlist hiring agent")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(agents_router)
+app.include_router(sourced_router)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 
