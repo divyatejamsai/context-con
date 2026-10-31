@@ -66,6 +66,13 @@ def freezes() -> list[dict]:
         return copy.deepcopy(sorted(_freezes().values(), key=lambda f: f["at"], reverse=True))
 
 
+def holders(agent_id: str) -> list[str]:
+    """Stops in force that suspended this agent (not ones that found it already suspended)."""
+    with store._lock:
+        return [f["freeze_id"] for f in sorted(_freezes().values(), key=lambda f: f["at"]) if f["status"] == "active"
+                and any(a["agent_id"] == agent_id and a["prior_status"] == "active" for a in f["agents"])]
+
+
 def active_for(agent_id: str) -> dict | None:
     """The freeze currently holding this agent, if any."""
     for f in freezes():
@@ -379,7 +386,7 @@ async def restore(rt: Any, freeze_id: str, by: str, client: Any, *, bring_back: 
         if cur["status"] != "suspended":
             a["outcome"] = cur["status"]
             continue
-        agent, v = await registry.reinstate(aid, client, by=f"{by} (lifting {STOP} {freeze_id})")
+        agent, v = await registry.reinstate(aid, client, by=f"{by} (lifting {STOP} {freeze_id})", lifting=freeze_id)
         if agent["status"] == "active":
             a["outcome"] = "restored"
             restored.append(a["name"])

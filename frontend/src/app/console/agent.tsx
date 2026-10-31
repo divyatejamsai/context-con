@@ -143,7 +143,7 @@ export function AgentDetail({
             <Button onClick={recheck} disabled={!!busy} title={`Look up ${s.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}>
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check sponsor
             </Button>
-            {a.status === "suspended" && a.suspended_by?.startsWith("emergency stop") ? (
+            {a.status === "suspended" && !!a.frozen_by?.length ? (
               <Button onClick={() => window.location.assign(`/console?view=estop`)} disabled={!!busy} title="Frozen by an emergency stop: lift the stop to bring it back after a fresh sponsor check">
                 <OctagonX className="size-3.5" /> Review emergency stop
               </Button>

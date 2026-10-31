@@ -74,6 +74,16 @@ class RegistryError(ValueError):
     """Bad request against the registry (unknown agent, scope outside the role, wrong state)."""
 
 
+class Frozen(RegistryError):
+    """An emergency stop holds this agent: only lifting that stop (app/runtime/freeze.py) may reinstate it."""
+
+
+def frozen_by(agent_id: str) -> list[str]:
+    """Ids of the emergency stops in force that suspended this agent."""
+    from ..runtime import freeze  # late: the runtime imports the registry
+    return freeze.holders(agent_id)
+
+
 class ScopeDenied(RegistryError):
     """The sponsor's live authority check refused a scope change. Carries the verdict that refused it."""
 
@@ -303,13 +313,17 @@ def suspend(agent_id: str, reason: str, by: str = "sponsor") -> dict:
         return public(rec)
 
 
-async def reinstate(agent_id: str, client, by: str = "sponsor") -> tuple[dict, Verdict]:
+async def reinstate(agent_id: str, client, by: str = "sponsor", *, lifting: str | None = None) -> tuple[dict, Verdict]:
     """Back to active only if a fresh live check passes (ignoring the suspension's own revocation). Returns
-    (agent, verdict); the agent stays suspended, with the new reason, when anything else fails."""
+    (agent, verdict); the agent stays suspended, with the new reason, when anything else fails. An agent frozen by an
+    emergency stop comes back only when that stop is lifted (lifting = its freeze id), never from its own page."""
     with _lock:
         rec = _get(_load(), agent_id)
     if rec["status"] != "suspended":
         raise RegistryError(f"{rec['name']} is {rec['status']}, not suspended")
+    held = [f for f in frozen_by(agent_id) if f != lifting]
+    if held:
+        raise Frozen(f"{rec['name']} is frozen by an emergency stop ({', '.join(held)}): lift the stop to bring it back")
     v = await pp.verify_passport(Passport(**rec["passport"]), client)
     with _lock:
         agents = _load()

@@ -32,6 +32,10 @@ whose sponsor left stays suspended). Agents that were suspended before the stop,
 left alone. Schedules come back on for the agents that return. With **bring back the stopped work** the stopped tasks
 are re-queued and the pulled drafts go back in front of a person (Send Guard checks them again at send time).
 
+While a stop is on, its agents can't be reinstated any other way: the agent page shows **Review emergency stop**
+instead of Reinstate, and `POST /api/agents/{id}/reinstate` and `POST /api/passport/reinstate` answer 409. Agents report
+`frozen_by` (the stops holding them) on `GET /api/agents`.
+
 ## API
 
     GET  /api/runtime/freeze                       {active, history, sponsors}

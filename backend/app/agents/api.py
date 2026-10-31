@@ -92,6 +92,10 @@ async def revoke_route(req: RevokeRequest):
 
 @router.post("/passport/reinstate", dependencies=[Depends(require_admin)])
 async def reinstate_route(req: RevokeRequest):
+    from .registry import frozen_by
+    held = frozen_by(req.agent_id)
+    if held:
+        raise HTTPException(409, f"frozen by an emergency stop ({', '.join(held)}): lift the stop to bring it back")
     return {"ledger_entry": reinstate(req.agent_id, req.reason)}
 
 
