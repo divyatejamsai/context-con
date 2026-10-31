@@ -346,4 +346,40 @@ def test_company_lookup_shared_and_capped(monkeypatch):
         return await asyncio.gather(*(o.enrich(client, dict(client.rec), pre={}, companies=companies) for _ in range(3)))
     res = asyncio.run(go())
     assert Slow.calls == 1
-    assert all(company is None and any("timed out" in x for x in probs) for _, company, probs in res)
+    assert all(not company and any("timed out" in x for x in probs) for _, company, probs in res)
+
+
+def test_round3_hirer_context_and_fit_terms():
+    from app.brief import brief_domain_words
+    from app.orchestrator import fit_terms, prescore
+    assert "devtools" not in brief_domain_words("first sales hire for our devtools co. sold to engg teams")
+    assert "payments" in brief_domain_words("senior backend eng, payments exp")
+    c = Criteria(role="Rust Engineer", skills=["Rust", "Go"], raw_brief="staff rust engineer")
+    assert "rust" in fit_terms(c)
+    assert prescore({"headline": "Engineer at Google"}, c) == prescore({"headline": "Engineer at Acme"}, c)
+    assert prescore({"headline": "Go and Rust engineer"}, c) > prescore({"headline": "Engineer at Acme"}, c)
+
+
+def test_company_batch_prefetch(monkeypatch):
+    import app.orchestrator as o
+
+    class Batch(RealShaped):
+        def __init__(self):
+            super().__init__()
+            self.batch_calls = []
+            self.single = 0
+
+        async def request(self, name, payload):
+            self.batch_calls.append(payload["crustdata_company_ids"])
+            body = [{"matched_on": str(i), "matches": [{"confidence_score": 1, "company_data": {"basic_info": {"name": "Razorpay"}}}]}
+                    for i in payload["crustdata_company_ids"]]
+            return body, {"endpoint": "company/enrich", "request_hash": "b", "fetched_at": "t"}
+
+        async def company_enrich(self, company_id=None, domain=None, fields=None):
+            self.single += 1
+            return None
+
+    client = Batch()
+    evs = collect("senior backend engineer bangalore payments", client=client)
+    assert client.batch_calls == [[42]] and client.single == 0
+    assert evs[-1].type == "done"

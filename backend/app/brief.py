@@ -79,10 +79,20 @@ _DOMAIN_WORDS = ["payments", "upi", "cards", "fintech", "lending", "credit", "ba
                  "data infrastructure", "observability", "design systems", "consumer apps", "trading", "risk", "fraud"]
 
 
+_HIRER_CONTEXT = re.compile(r"\b(our|we'?re|we are|we're a|i run|my)\b[\w\s-]{0,12}$")
+
+
 def brief_domain_words(brief: str) -> list[str]:
-    """Domain keywords read straight from the brief text, so search doesn't depend on the LLM's mood."""
+    """Domain keywords read straight from the brief text, so search doesn't depend on the LLM's mood.
+    Words describing the hiring company ("for our devtools co") are not candidate requirements, so skip them."""
     text = (brief or "").lower()
-    return [w for w in _DOMAIN_WORDS if re.search(rf"\b{re.escape(w)}s?\b", text)]
+    out = []
+    for w in _DOMAIN_WORDS:
+        for m in re.finditer(rf"\b{re.escape(w)}s?\b", text):
+            if not _HIRER_CONTEXT.search(text[max(0, m.start() - 24):m.start()]):
+                out.append(w)
+                break
+    return out
 
 
 def years_asked(brief: str) -> int | None:

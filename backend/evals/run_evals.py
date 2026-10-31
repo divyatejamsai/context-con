@@ -25,7 +25,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
-from app.orchestrator import SHORTLIST_MIN, domain_terms, run  # noqa: E402
+from app.orchestrator import SHORTLIST_MIN, domain_terms, fit_terms, run  # noqa: E402
 from app.schemas import Criteria  # noqa: E402
 
 EDGE = {
@@ -126,9 +126,10 @@ def metrics(r: Result) -> dict:
     claims = [k for c in r.cands for k in c.claims]
     n = len(claims) or 1
     c = r.criteria
-    terms = domain_terms(c) if c else []
+    terms = fit_terms(c) if c else []
+    hit = lambda t, txt: re.search(rf"(?<![a-z0-9]){re.escape(t)}(?![a-z0-9])", txt.lower())
     domain_hits = sum(1 for cand in r.cands if any(
-        k.status == "verified" and any(t in k.claim.lower() or t in k.evidence.lower() for t in terms) for k in cand.claims))
+        k.status == "verified" and any(hit(t, k.claim + " " + k.evidence) for t in terms) for k in cand.claims))
     return {
         "pool": s.searched if s else 0, "enriched": s.enriched if s else 0, "shortlisted": s.shortlisted if s else 0,
         "top": max((x.score for x in r.cands), default=0),
