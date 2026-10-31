@@ -3,14 +3,14 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
-  ShieldAlert, ShieldCheck, UserCog, Users, X,
+  Building2, LayoutDashboard, ShieldAlert, ShieldCheck, UserCog, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
 import { cn } from "@/lib/utils";
 import {
   ApiError, api, runtime, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
-  type Verdict, type Workspace,
+  type Verdict, type Workspace, type Me,
 } from "./api";
 import {
   AgentMark, Button, DecisionBadge, EmptyState, PageHead, RuntimeBadge, ScopeChip, StatusPill, TERMS, Term, ago, cardCls, until,
@@ -23,6 +23,8 @@ import { DemoView } from "./demo";
 import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } from "./agent";
 import { WorkView } from "./work";
 import { MembersView } from "./members";
+import { CompaniesView } from "./companies";
+import { DashboardView } from "./dashboard";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND, brandText } from "@/lib/brand";
@@ -30,15 +32,17 @@ import { AGENT_APPS, appFor } from "@/lib/apps";
 import { Logo } from "@/components/app-header";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "work" | "verify" | "guard" | "ledger" | "members" | "demo";
+type View = "home" | "companies" | "employees" | "work" | "verify" | "guard" | "ledger" | "members" | "demo";
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
-type Group = "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
-const GROUPS: Group[] = ["Workforce", "Tools", "Audit", "Workspace", "Learn"];
+type Group = "Platform" | "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
+const GROUPS: Group[] = ["Platform", "Workforce", "Tools", "Audit", "Workspace", "Learn"];
 
 // The sidebar renders this list, grouped. Add a view here and it shows up in the nav.
 // Passport checks and Send Guard live on each agent's page; "Check a passport" is for agents that contact you from outside.
 const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; group: Group }[] = [
+  { v: "companies", label: "Companies", icon: Building2, desc: "Every company on the platform, its people and its agents", group: "Platform" },
+  { v: "home", label: "Dashboard", icon: LayoutDashboard, desc: "Every agent at a glance, what needs you, and the main actions", group: "Workforce" },
   { v: "employees", label: "Agents", icon: Users, desc: "Connect agents, check their passports, and manage their work", group: "Workforce" },
   { v: "work", label: "Live work", icon: Activity, desc: "Everything your agents are doing right now, and what's waiting for your approval", group: "Workforce" },
   { v: "verify", label: "Check a passport", icon: ShieldCheck, desc: "An agent from another company contacted you? Check whether it can be trusted", group: "Tools" },
@@ -47,9 +51,34 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; gr
   { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six agents go through seven situations, with every decision and its source", group: "Learn" },
 ];
 
+/** Which console views this person may open, from GET /api/auth/me -> access.views. The backend enforces the same lines. */
+function allowed(v: View, me: Me | null): boolean {
+  const a = me?.access;
+  if (!a) return v !== "companies"; // no access info (older backend): everything but the platform view
+  const has = (k: string) => a.views.includes(k);
+  switch (v) {
+    case "companies": return has("companies");
+    case "employees": return has("agents") || has("my_agents");
+    case "work": return has("work");
+    case "ledger": return has("ledger");
+    case "members": return has("members");
+    case "demo": return a.level === "platform";
+    default: return true; // Check a passport works for anyone
+  }
+}
+
+/** A short name for the person's level, shown under the logo. */
+function levelLabel(me: Me | null): string | undefined {
+  const a = me?.access;
+  if (!a) return me?.company?.name;
+  if (a.level === "platform") return "Platform operator";
+  if (a.level === "company") return `${me?.company?.name ?? "Your company"} · ${a.role}`;
+  return `Your work · ${me?.company?.name ?? ""}`.replace(/ · $/, "");
+}
+
 export default function Console() {
   const [mode, setMode] = useState<Mode>("loading");
-  const [view, setViewState] = useState<View>("employees");
+  const [view, setViewState] = useState<View>("home");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -63,6 +92,8 @@ export default function Console() {
   const [ws, setWs] = useState<Workspace | null>(null);
   const [invites, setInvites] = useState<Enrollment[]>([]);
   const [pending, setPending] = useState(0);
+  const [me, setMe] = useState<Me | null>(null);
+  const own = me?.access?.level === "own_work";
 
   const setView = (v: View) => {
     setViewState(v);
@@ -75,17 +106,19 @@ export default function Console() {
   };
 
   const refresh = useCallback(async () => {
-    const [list, l] = await Promise.all([api.agents(), api.ledger()]);
+    // Recruiters can't read the ledger (403), so the chain badge is simply left out for them.
+    const [list, l] = await Promise.all([api.agents(), api.ledger().catch(() => null)]);
     api.enrollments().then(setInvites).catch(() => setInvites([]));
     runtime.state().then((st) => setPending(st.approvals.pending.length)).catch(() => setPending(0));
     setAgents(list);
-    setChain({ chain_ok: l.chain_ok, first_bad_seq: l.first_bad_seq, count: l.entries.length });
+    setChain(l ? { chain_ok: l.chain_ok, first_bad_seq: l.first_bad_seq, count: l.entries.length } : undefined);
     return list;
   }, []);
 
   const connect = useCallback(() => {
     setMode("loading");
     api.workspace().then(setWs).catch(() => setWs(null));
+    api.me().then(setMe).catch(() => setMe(null));
     Promise.all([refresh(), api.roles(), api.scenarios().catch(() => [])])
       .then(([, r, s]) => {
         setRoles(r.roles);
@@ -103,6 +136,7 @@ export default function Console() {
     const id = q.get("agent");
     if (id) {
       setSelected(id);
+      setViewState("employees");
       const t = q.get("tab") as Tab | null;
       if (t) setTabState(t);
     }
@@ -157,10 +191,7 @@ export default function Console() {
     }
   };
 
-  const startOnboarding = () => {
-    setView("employees");
-    setOnboarding(true);
-  };
+  const startOnboarding = () => setOnboarding(true);
 
   const runPayroll = async () => {
     const before = new Map(agents.map((a) => [a.agent_id, a.status]));
@@ -180,7 +211,7 @@ export default function Console() {
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents} ws={ws} pending={pending}
+      <Sidebar view={view} setView={setView} mode={mode} chain={chain} counts={counts} agents={agents} ws={ws} pending={pending} me={me} onConnect={startOnboarding}
         current={view === "employees" ? cur?.agent_id : undefined} onPick={(id) => openAgent(id)} />
 
       <div className="min-w-0">
@@ -192,6 +223,13 @@ export default function Console() {
               <Loader2 className="size-4 animate-spin" /> Connecting to {BRAND.name}…
             </span>
           </div>
+        ) : !allowed(view, me) ? (
+          <NotYours onBack={() => setView("employees")} label={levelLabel(me)} />
+        ) : view === "home" && !cur ? (
+          <DashboardView agents={agents} chain={chain} pending={pending} access={me?.access} company={me?.company?.name}
+            onConnect={startOnboarding} onPick={(id) => openAgent(id)} onGo={(v) => setView(v)} />
+        ) : view === "companies" ? (
+          <CompaniesView onPick={(id) => openAgent(id)} onChanged={refresh} />
         ) : view === "work" ? (
           <WorkView onChanged={refresh} />
         ) : view === "verify" ? (
@@ -219,15 +257,23 @@ export default function Console() {
             onFlashClose={() => setFlash(null)}
             onBack={() => openAgent(undefined)}
             onChanged={refresh}
+            access={me?.access}
           />
         ) : (
           <main className="mx-auto max-w-[1320px] px-4 pb-16 pt-6 sm:px-8 sm:pt-8">
             <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              {own ? (
+                <PageHead title="My agents">
+                  The agents your company has given you to work with. Give them tasks and approve what they want to send. Your company&apos;s admins
+                  connect agents and decide who works with which.
+                </PageHead>
+              ) : (
               <PageHead title="Agents">
                 The AI agents that act for your company. Each one carries a <Term tip={TERMS.passport}>passport</Term> naming the real person it works
                 for, and is trusted only while Crustdata confirms that <Term tip={TERMS.sponsor}>sponsor</Term> still works here and can delegate the job.
               </PageHead>
-              <div className="flex shrink-0 items-center gap-2">
+              )}
+              {!own && <div className="flex shrink-0 items-center gap-2">
                 <Button
                   onClick={runPayroll}
                   disabled={busy === "payroll" || !agents.length}
@@ -239,10 +285,10 @@ export default function Console() {
                 <Button variant="primary" onClick={() => setOnboarding(true)} title="Give a new agent a passport, vouched for by a real person at your company">
                   <Plus className="size-3.5" /> Connect an agent
                 </Button>
-              </div>
+              </div>}
             </div>
 
-            {agents.length > 0 && <Flow />}
+            {agents.length > 0 && !own && <Flow />}
 
             {agents.length > 0 && (
               <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted-foreground tabular-nums">
@@ -257,7 +303,11 @@ export default function Console() {
             {payroll && <PayrollBanner run={payroll} agents={agents} onClose={() => setPayroll(null)} onPick={(id) => openAgent(id)} />}
 
             <div className={cn(cardCls, "mt-3 overflow-hidden")}>
-              {!agents.length ? (
+              {!agents.length && own ? (
+                <EmptyState icon={Users} title="No agents assigned to you yet">
+                  Ask your company admin to give you one. They do it from the agent&apos;s page in {BRAND.name}.
+                </EmptyState>
+              ) : !agents.length ? (
                 <EmptyState
                   icon={Users}
                   title="No agents yet"
@@ -274,7 +324,7 @@ export default function Console() {
               )}
             </div>
 
-            <Invites invites={invites} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />
+            {(!me?.access || me.access.views.includes("enrollments")) && <Invites invites={invites} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />}
           </main>
         )}
       </div>
@@ -335,16 +385,17 @@ function Count({ dot, n, label }: { dot: string; n: number; label: string }) {
 // ---- shell -----------------------------------------------------------------------------------
 
 function Sidebar({
-  view, setView, mode, chain, counts, agents, ws, pending, current, onPick,
+  view, setView, mode, chain, counts, agents, ws, pending, current, onPick, me, onConnect,
 }: {
   view: View; setView: (v: View) => void; mode: Mode; chain?: Chain; counts: Record<string, number>; agents: Agent[]; ws: Workspace | null;
-  pending: number; current?: string; onPick: (id: string) => void;
+  pending: number; current?: string; onPick: (id: string) => void; me: Me | null; onConnect: () => void;
 }) {
   const badge = (v: View) =>
     v === "employees" ? (agents.length ? String(agents.length) : undefined)
       : v === "work" ? (pending ? `${pending} waiting` : undefined)
       : v === "ledger" && chain ? (chain.chain_ok ? String(chain.count) : "broken") : undefined;
-  const apps = Object.values(AGENT_APPS);
+  const apps = Object.values(AGENT_APPS).filter((a) => !me?.access || me.access.views.includes(a.name.toLowerCase()));
+  const views = VIEWS.filter((x) => allowed(x.v, me));
   return (
     <aside className="sticky top-0 z-30 flex flex-col border-b border-border bg-elevated/70 backdrop-blur-xl lg:h-screen lg:border-b-0 lg:border-r lg:bg-elevated/40">
       <div className="flex h-12 items-center justify-between gap-2 px-4 lg:h-14">
@@ -352,7 +403,7 @@ function Sidebar({
           <BrandMark />
           <span className="min-w-0 leading-none">
             <span className="block text-[14px] font-[620] tracking-[-0.01em]">{BRAND.name}</span>
-            <span className="mt-0.5 hidden truncate text-[11px] text-faint lg:block">{ws?.company?.name ?? BRAND.tagline}</span>
+            <span className="mt-0.5 hidden truncate text-[11px] text-faint lg:block" title={me?.access?.summary}>{levelLabel(me) ?? ws?.company?.name ?? BRAND.tagline}</span>
           </span>
         </span>
         <div className="flex items-center gap-1 lg:hidden">
@@ -363,12 +414,12 @@ function Sidebar({
       </div>
 
       <nav className="flex gap-0.5 overflow-x-auto px-3 pb-2 lg:mt-2 lg:flex-1 lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pb-4" aria-label={BRAND.name}>
-        {GROUPS.map((g) => (
+        {GROUPS.filter((g) => views.some((x) => x.group === g)).map((g) => (
           <div key={g} className="flex gap-0.5 lg:flex-col">
             <p className="hidden px-2 pb-1 text-[11px] font-[510] text-faint lg:block">{g}</p>
-            {VIEWS.filter((x) => x.group === g).map((x) => (
+            {views.filter((x) => x.group === g).map((x) => (
               <Fragment key={x.v}>
-                <NavItem {...x} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false}
+                <NavItem {...x} label={x.v === "employees" && me?.access?.level === "own_work" ? "My agents" : x.label} badge={badge(x.v)} bad={x.v === "ledger" && chain ? !chain.chain_ok : false}
                   alert={x.v === "employees" && !!counts.suspended ? `${counts.suspended} suspended` : x.v === "work" && pending ? `${pending} sends waiting for your approval` : undefined}
                   active={view === x.v && !(x.v === "employees" && current)} onClick={() => setView(x.v)} />
                 {x.v === "employees" && agents.length > 0 && (
@@ -394,6 +445,12 @@ function Sidebar({
                 )}
               </Fragment>
             ))}
+            {g === "Workforce" && me?.access?.level !== "own_work" && (
+              <button onClick={onConnect} title="Give a new agent a passport, vouched for by a real person at your company"
+                className="group inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-[13px] font-[510] text-primary transition hover:bg-primary/10 lg:w-full">
+                <Plus className="size-4 shrink-0" /> <span className="truncate">Connect an agent</span>
+              </button>
+            )}
           </div>
         ))}
         {apps.map((app) => (
@@ -486,6 +543,19 @@ function Invites({ invites, onRevoke, busy }: { invites: Enrollment[]; onRevoke:
         ))}
       </ul>
     </section>
+  );
+}
+
+function NotYours({ onBack, label }: { onBack: () => void; label?: string }) {
+  return (
+    <main className="mx-auto max-w-[560px] px-4 py-24">
+      <ShieldAlert className="size-5 text-muted-foreground" />
+      <h1 className="mt-3 text-[20px] font-[620] tracking-[-0.02em]">This page isn&apos;t part of your access</h1>
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+        You&apos;re signed in as {label ?? "a member"}. Your company&apos;s admins can change what you can see.
+      </p>
+      <Button className="mt-5" onClick={onBack}>Back to your agents</Button>
+    </main>
   );
 }
 

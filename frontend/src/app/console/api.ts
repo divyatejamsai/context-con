@@ -97,6 +97,8 @@ export interface Agent {
   /** "agent": it made its own key and Agaxes holds only the public half. "agaxes" (or missing): Agaxes holds it. */
   key_custody?: "agent" | "agaxes";
   workspace_id?: string | null;
+  /** User ids of the people (recruiters) who work with it. They see only the agents assigned to them. */
+  assignees?: string[];
 }
 
 export interface Role {
@@ -204,6 +206,15 @@ export const api = {
   review: (id: string, b: { reviewer: string; decision: ReviewDecision; notes: string; scopes?: Scope[] }) =>
     post<Agent>(`/agents/${id}/reviews`, b),
   health: () => req<Health>("/health"),
+  /** Who is signed in and what they may see (the Next auth route reads the session cookie). */
+  me: async () => {
+    const res = await fetch("/api/auth/me", { cache: "no-store" });
+    if (!res.ok) throw new ApiError(`Not signed in (${res.status})`, res.status);
+    return (await res.json()) as Me;
+  },
+  companies: () => req<{ companies: Company[]; unassigned_agents: AgentStub[] }>("/platform/companies"),
+  moveAgent: (id: string, workspace_id: string | null) => post<Agent>(`/platform/agents/${id}/workspace`, { workspace_id }, "PUT"),
+  setAssignees: (id: string, user_ids: string[]) => post<Agent>(`/agents/${id}/assignees`, { user_ids }, "PUT"),
   workspace: () => req<Workspace>("/workspace"),
   members: () => req<{ members: Member[] }>("/workspace/members").then((r) => r.members),
   setRole: (id: string, role: WorkspaceRole) => post<Member>(`/workspace/members/${id}`, { role }, "PUT"),
@@ -230,6 +241,28 @@ export const api = {
     return name;
   },
 };
+
+export interface Access {
+  level: "platform" | "company" | "own_work";
+  role: "operator" | "owner" | "admin" | "member" | "viewer";
+  views: string[];
+  summary: string;
+}
+export interface Me {
+  user: { id: string; email: string; full_name: string; job_role: string | null; workspace_role: string; company_id: string };
+  company: { id: string; name: string; domain: string } | null;
+  access?: Access;
+}
+export interface AgentStub { agent_id: string; name: string; status: AgentStatus }
+export interface Company {
+  id: string;
+  name: string;
+  domain: string;
+  verified_via?: string;
+  created_at?: string;
+  members: Member[];
+  agents: AgentStub[];
+}
 
 export type AuthMode = "open" | "writes_protected" | "login_required";
 export interface Health { ok: boolean; auth_mode?: AuthMode; llm_mode?: string; crustdata_mode?: string }
