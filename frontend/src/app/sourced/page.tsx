@@ -631,9 +631,25 @@ function Funnel({ summary, totals }: { summary?: Record<string, number | undefin
 }
 
 function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
-  const chips: { k: string; v: string }[] = [];
+  const chips: { k: string; v: string; warn?: boolean; title?: string }[] = [];
   if (c.role) chips.push({ k: "Role", v: c.role + (c.seniority ? ` · ${c.seniority}` : "") });
+  else chips.push({ k: "Role", v: "unclear, name it in the brief", warn: true });
   for (const l of c.locations ?? []) chips.push({ k: "in", v: l });
+  // Education: the brief's wording, read as concrete schools (short names first; full names in the tooltip)
+  const schools = c.schools ?? [];
+  if (schools.length) {
+    const short = schools.filter((s) => s.length <= 12 || s.split(" ").length <= 2);
+    const shown = (short.length ? short : schools).slice(0, 4);
+    const rest = (short.length ? short : schools).length - shown.length;
+    chips.push({
+      k: "school",
+      v: shown.join(", ") + (rest > 0 ? ` +${rest}` : ""),
+      title: (c.education_note ? `"${c.education_note}" read as:\n` : "") + schools.join("\n"),
+    });
+  } else if (c.education_note) {
+    chips.push({ k: "school", v: `${c.education_note} (not filtered)`, warn: true, title: "Couldn't name specific schools for this, so it isn't used as a filter" });
+  }
+  for (const d of c.degrees ?? []) chips.push({ k: "degree", v: d });
   for (const s of c.skills ?? []) chips.push({ k: "skill", v: s });
   for (const s of c.company_preferences ?? []) chips.push({ k: "from", v: s });
   for (const s of c.must_haves ?? []) chips.push({ k: "must", v: s });
@@ -644,7 +660,14 @@ function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
     <div className="mt-2 flex flex-wrap items-center gap-1.5 animate-fade">
       <span className="text-[11.5px] text-faint" title="How the agent read your brief. If it's wrong, edit the brief and run it again.">Understood as</span>
       {shown.map((ch, i) => (
-        <span key={i} className="inline-flex h-6 items-center gap-1 rounded-md border border-border-strong bg-panel px-2 text-[12px]">
+        <span
+          key={i}
+          title={ch.title}
+          className={cn(
+            "inline-flex h-6 items-center gap-1 rounded-md border bg-panel px-2 text-[12px]",
+            ch.warn ? "border-dashed border-border-strong text-muted-foreground" : "border-border-strong",
+          )}
+        >
           <span className="text-faint">{ch.k}</span>
           <span className="font-[510]">{ch.v}</span>
         </span>

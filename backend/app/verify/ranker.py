@@ -19,7 +19,8 @@ from pydantic import BaseModel
 
 from ..schemas import Claim, Criteria, Reason
 
-from .profile import domain_terms, load_person, norm, same_company, seniority_rank, title_similarity, tokens
+from .profile import (degree_matches, domain_terms, load_person, norm, same_company, school_matches, seniority_rank,
+                      title_similarity, tokens)
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ _STAGE_PREF = {
 
 def _kind(c: Claim) -> str:
     t = c.claim
+    if t.startswith("Education:") or t == "Education":
+        return "education"
     if t.startswith("Career:"):
         return "career"
     if t.startswith("Progression"):
@@ -178,6 +181,35 @@ def _location(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None:
         f.add(0, f"Stated location is contradicted: {c.evidence}", [c])
     else:
         f.add(0, f"{c.claim}, outside {', '.join(locs)}", [c])
+    return f
+
+
+def _education(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None:
+    """Schools / degrees the brief asks for. Weighted like location: it matters, but a strong trader from another
+    school still shows up, ranked below the ones who match."""
+    if not criteria.schools and not criteria.degrees:
+        return None
+    f = _Factor("education", 15)
+    cl = k.get("education", [])
+    if not cl:
+        return f
+    c = cl[0]
+    if c.status != "verified" or c.claim == "Education":
+        f.add(0.5, "Education not on the record", [c])
+        return f
+    school, _, detail = c.claim.removeprefix("Education:").strip().partition(" · ")
+    parts, texts = [], []
+    if criteria.schools:
+        hit = next((w for w in criteria.schools if school_matches(w, school)), None)
+        parts.append(1.0 if hit else 0.0)
+        texts.append(f"Studied at {school}, one of the schools the brief asks for" if hit
+                     else f"Studied at {school}, not one of the schools the brief asks for")
+    if criteria.degrees:
+        hit = next((w for w in criteria.degrees if degree_matches(w, detail)), None)
+        parts.append(1.0 if hit else 0.0)
+        texts.append(f"Has a {hit} degree" if hit else f"No {criteria.degrees[0]} degree on the record")
+    credit = sum(parts) / len(parts)
+    f.add(credit, "; ".join(texts), [c])
     return f
 
 
@@ -558,6 +590,7 @@ def rank_parts(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[f
     factors = [f for f in (
         _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
         _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
+        _education(k, criteria),
     ) if f is not None]
     total_w = sum(f.weight for f in factors) or 1
     base = sum(f.earned for f in factors) / total_w * BASE_CAP
@@ -609,6 +642,7 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     factors = [f for f in (
         _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
         _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
+        _education(k, criteria),
     ) if f is not None]
     total_w = sum(f.weight for f in factors) or 1
     base = sum(f.earned for f in factors) / total_w * BASE_CAP

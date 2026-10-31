@@ -70,6 +70,11 @@ def _load_ranker():
 # Real person/search filter grammar (see crustdata/client.py): leaf {"field","type","value"} or
 # {"op": "and"|"or", "conditions": [...]}. "(.)" is a fuzzy contains match.
 PERSON_SEARCH_FIELDS = ["crustdata_person_id", "basic_profile", "experience", "social_handles"]
+SCHOOL_FIELD = os.getenv("CRUSTDATA_SCHOOL_FIELD", "education.schools.school")  # not live-verified (credits ran out)
+
+
+class OutOfCredits(Exception):
+    """Crustdata answered 402: the key has no credits left. Retrying or broadening only burns time."""
 _COUNTRIES = {"india", "united states", "usa", "us", "united kingdom", "uk", "singapore", "germany", "canada",
               "australia", "france", "netherlands", "uae", "united arab emirates"}
 _CITY_SPELLINGS = {"bangalore": ["bangalore", "bengaluru"], "mumbai": ["mumbai", "bombay"],
@@ -103,13 +108,30 @@ def to_crustdata_filters(f: dict) -> dict:
     if skills:
         leaves = [{"field": "skills.professional_network_skills", "type": "(.)", "value": s.lower()} for s in skills]
         conds.append(leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves})
+    schools = f.get("schools") or []
+    if schools:
+        # education fit: any of the schools the brief asks for (the LLM expands "prestige college" into names)
+        leaves = [{"field": SCHOOL_FIELD, "type": "(.)", "value": s.lower()} for s in schools]
+        conds.append(leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves})
     return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
+
+
+def is_out_of_credits(e: BaseException) -> bool:
+    return isinstance(e, OutOfCredits) or getattr(e, "status", None) == 402 or " 402" in str(e)[:200]
 
 
 async def person_search(client, simple: dict) -> list[dict]:
     if isinstance(client, DevCrustdataClient):
+        if simple.get("schools"):
+            return []  # dev data has no education records
         return await client.person_search(simple, limit=SEARCH_LIMIT)
-    return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS)
+    fields = PERSON_SEARCH_FIELDS + (["education"] if simple.get("schools") else [])
+    try:
+        return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=fields)
+    except Exception as e:
+        if is_out_of_credits(e):
+            raise OutOfCredits(str(e)) from e
+        raise
 
 
 # languages/tools are matched by the verifier, not used as fuzzy domain search terms ("go" matches "Google")
@@ -187,17 +209,23 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
     """Run each title variant as its own query (in parallel), merge + dedupe; broaden while too few hits."""
     pool: dict[str, dict] = {}
     domain = domain_terms(criteria)
+    schools = criteria.schools[:12]
     for level, (desc, filters) in enumerate(broaden_ladder(criteria)):
         titles = filters.get("titles") or []
         queries = [dict(filters, titles=[t]) for t in titles] or [filters]
         if titles and domain:
             # one extra query so domain-fit people (e.g. payments) get into the pool, not just title matches
             queries.append(dict(filters, domain=domain))
+        if titles and schools:
+            # and one for the schools the brief asks for; if the field is rejected, only this query fails
+            queries.append(dict(filters, schools=schools))
         where = f" in {', '.join(filters['locations'])}" if filters.get("locations") else ""
         what = f"{len(titles)} title variant{'s' if len(titles) != 1 else ''}" if titles else \
             f"skills {', '.join(filters.get('skills') or [])}"
         if titles and domain:
             what += f" + domain ({', '.join(domain)})"
+        if titles and schools:
+            what += f" + schools ({', '.join(schools[:4])}{'...' if len(schools) > 4 else ''})"
         prefix = "Broadening search: " if level else ""
         await emit(StepEvent(step="search", message=f"{prefix}Searching {what}{where}...",
                              data={"level": level, "strategy": desc, "filters": filters}))
@@ -214,6 +242,11 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
                     kept = pool.setdefault(_key(p), p)
                     if q.get("domain"):
                         kept["_domain_match"] = True
+                    if q.get("schools"):
+                        kept["_school_match"] = True
+        if failed and all(isinstance(r, Exception) and is_out_of_credits(r) for r in results):
+            # nothing will come back until the key is topped up: stop instead of broadening into more 402s
+            raise OutOfCredits("person/search -> 402")
         if failed:
             await emit(ErrorEvent(step="search", message=f"{failed} of {len(queries)} search queries failed after retries"))
         await emit(StepEvent(step="search", message=f"{len(pool)} unique profiles so far ({desc})",
@@ -235,6 +268,8 @@ def prescore(p: dict, c: Criteria) -> int:
     if c.locations and any(l.lower() in loc for l in c.locations):
         s += 2
     if p.get("_domain_match"):
+        s += 3
+    if p.get("_school_match"):
         s += 3
     blob = str(p).lower()
     s += sum(1 for k in fit_terms(c) if re.search(rf"(?<![a-z0-9]){re.escape(k)}(?![a-z0-9])", blob))
@@ -450,7 +485,7 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 return
             await emit(StepEvent(
                 step="parse",
-                message=f"Looking for {criteria.role}"
+                message=f"Looking for {criteria.role or 'an unclear role'}"
                         + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
                         + f" ({len(criteria.title_variants)} title variants: {', '.join(criteria.title_variants)})",
                 data={"criteria": criteria.model_dump(), "assumptions": analysis.assumptions}))
@@ -469,8 +504,19 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 await emit(StepEvent(step="parse", message="Assumptions: " + "; ".join(analysis.assumptions),
                                      data={"assumptions": analysis.assumptions}))
 
+            if not criteria.role and not criteria.skills:
+                await emit(ErrorEvent(step="parse", message="Couldn't tell which role you're hiring for. Name the role "
+                                                            "(e.g. 'junior quant trader') and run it again."))
+                return
+
             t = time.monotonic()
-            pool = await search_pool(client, criteria, emit)
+            try:
+                pool = await search_pool(client, criteria, emit)
+            except OutOfCredits:
+                await emit(ErrorEvent(step="search", message="Crustdata is out of credits (HTTP 402), so no new profiles "
+                                                             "can be searched. Top up the API key, or run with "
+                                                             "CRUSTDATA_MODE=replay to use recorded data."))
+                return
             if template_key:
                 pool = [p for p in pool if _norm_profile(people.profile_url(p)) != template_key]
             timings["search"] = _ms(t)

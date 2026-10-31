@@ -20,7 +20,7 @@ from ..schemas import Claim, Criteria, Source
 
 from .profile import (
     CompanyFacts, get_path, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
-    same_company, seniority_rank, skill_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
+    same_company, seniority_rank, skill_matches, school_matches, degree_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
 if TYPE_CHECKING:  # avoid a hard dependency on WS1's module at import time
@@ -208,6 +208,34 @@ def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[
             continue
         seen.add(key)
     return hits
+
+
+def _edu_text(e: dict) -> str:
+    bits = [b for b in (e.get("degree"), e.get("field_of_study"), str(e["end_year"]) if e.get("end_year") else None) if b]
+    return e["school"] + (f" · {', '.join(bits)}" if bits else "")
+
+
+def education_claim(out: _Claims, pr: Profile, criteria: Criteria, ep: str) -> Claim:
+    """One "Education: <school> · <degree, year>" claim. The ranker re-reads the school and degree from the text."""
+    eds = pr.education
+    if not eds:
+        return out.add("Education", "unverifiable", "no education on the record", ep, "education.schools")
+    def ok(e: dict) -> tuple[str | None, str | None]:
+        s = next((w for w in criteria.schools if school_matches(w, e["school"])), None)
+        d = next((w for w in criteria.degrees if degree_matches(w, e.get("degree") or "")), None)
+        return s, d
+    scored = [(bool(s) * 2 + bool(d), i, e, s, d) for i, e in enumerate(eds) for s, d in [ok(e)]]
+    best = max(scored, key=lambda x: (x[0], -x[1]))
+    _, _, e, s, d = best
+    asked = []
+    if s:
+        asked.append(f"school matches '{s}' from the brief")
+    if d:
+        asked.append(f"degree matches '{d}'")
+    if not s and criteria.schools:
+        asked.append("not one of the schools the brief asks for")
+    ev = "; ".join(asked) + f" ({len(eds)} school{'s' if len(eds) != 1 else ''} on the record)"
+    return out.add(f"Education: {_edu_text(e)}", "verified", ev, ep, e["path"])
 
 
 async def verify_candidate(
@@ -435,6 +463,10 @@ async def verify_candidate(
             path = " -> ".join(dict.fromkeys(j.title for j in dated[-4:]))
             out.add(f"Progression ({trend}): {path}", "verified", f"titles from {dated[0].start.year} to {dated[-1].start.year}", ep,
                     "experience.employment_details" if ".employment_details" in dated[-1].path else "past_employers")
+
+    # 10. Education, when the brief asks for schools or degrees ("prestige college in India" -> IIT, ISI, BITS...)
+    if criteria.schools or criteria.degrees:
+        education_claim(out, pr, criteria, ep)
 
     # Flags: freshness is Crustdata's edge, so surface recent moves loudly.
     if cur and cur.start and 0 <= (today - cur.start).days <= RECENT_CHANGE_DAYS:

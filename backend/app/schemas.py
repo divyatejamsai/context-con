@@ -23,6 +23,11 @@ class Criteria(BaseModel):
     nice_to_haves: list[str] = Field(default_factory=list)
     raw_brief: str = ""
     min_years: int | None = None  # "5+ yrs" -> 5; WS3's ranker reads it
+    # Education asks ("prestige college in India", "IIT/BITS grads", "MBA"). schools holds concrete institutions
+    # (the LLM expands a tier into names); education_note keeps the brief's own wording so the UI can show it.
+    schools: list[str] = Field(default_factory=list)
+    degrees: list[str] = Field(default_factory=list)
+    education_note: str | None = None
 
 
 class Source(BaseModel):
