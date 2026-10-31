@@ -1,17 +1,17 @@
 {
  "agents": [
   {
-   "agent_id": "agt_515cd45d4d54",
+   "agent_id": "agt_e84cf4ef30d9",
    "employee_no": 1,
    "name": "Sourced",
    "role": "AI Recruiter",
    "status": "active",
    "reason": null,
    "suspended_by": null,
-   "onboarded_at": "2026-10-31T06:03:14+00:00",
-   "last_checked": "2026-10-31T06:03:14+00:00",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
    "last_verdict": {
-    "subject": "agt_515cd45d4d54",
+    "subject": "agt_e84cf4ef30d9",
     "decision": "allow",
     "checks": [
      {
@@ -21,7 +21,7 @@
       "detail": "Passport signed by Countersign and unmodified",
       "source": {
        "endpoint": "countersign/issuer",
-       "field": "key 7e9fb4b9040b2440",
+       "field": "key 017cd0d57ed34ee9",
        "url": null
       }
      },
@@ -114,10 +114,10 @@
       }
      }
     ],
-    "ledger_entry": "9d6d2d39638bc4e68010791d25ecda908cc388b6b6177607db552158ac0c98e5"
+    "ledger_entry": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649"
    },
    "passport": {
-    "agent_id": "agt_515cd45d4d54",
+    "agent_id": "agt_e84cf4ef30d9",
     "agent_name": "Sourced",
     "role": "AI Recruiter",
     "sponsor": {
@@ -131,16 +131,16 @@
      "outreach.hiring",
      "data.read"
     ],
-    "issued_at": "2026-10-31T06:03:14+00:00",
-    "expires_at": "2026-11-30T06:03:14+00:00",
-    "public_key": "jIS0RmZ8OsmnfwZNWSLjcu6tcXWoNxgDI1N0Ulc3aLY=",
-    "issuer_key_id": "7e9fb4b9040b2440",
-    "issuer_signature": "jOSx66DRlIySUJRhAExB9q8LdHKG2m4g/4XONG60ux2Pmh8EZ/KvzoJjwPdAmlnqMp9BKz9LUNMOHwKl/csPBg=="
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "BKpNaCn9wrjuYjkTzIA+TfQrDYj35zAPb4QibiMPgo0=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "Sqke+FacMZqfy7Qjq83YUA0J5rF24sAFNVBiD541xlWAmkAMKr2mFfg9H3yiChJu5Gr/uN+tGxFBm0JoCyjpAQ=="
    },
    "reviews": [
     {
-     "id": "3dc2079488",
-     "at": "2026-10-31T06:03:14+00:00",
+     "id": "9610224fab",
+     "at": "2026-10-31T06:09:56+00:00",
      "reviewer": "Pankaj Savaliya",
      "decision": "keep",
      "notes": "First week: sponsor checks green, outreach stays within hiring.",
@@ -153,15 +153,15 @@
       "sponsor_checks": 1,
       "sponsor_checks_failed": 0,
       "ledger_entries": 3,
-      "last_activity": "2026-10-31T06:03:14+00:00"
+      "last_activity": "2026-10-31T06:09:56+00:00"
      },
-     "ledger_entry": "20ff180a38f881f874ff46ad19539091f3e1f7a0358fadc0311e3e422afadae8"
+     "ledger_entry": "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f"
     }
    ],
    "ledger_entries": [
-    "12ec27ea619eb3c51f2c70c4b85c05014acac53aff2db3b3bf84566812690293",
-    "9d6d2d39638bc4e68010791d25ecda908cc388b6b6177607db552158ac0c98e5",
-    "20ff180a38f881f874ff46ad19539091f3e1f7a0358fadc0311e3e422afadae8"
+    "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
+    "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
+    "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f"
    ],
    "scorecard": {
     "messages_checked": 0,
@@ -171,21 +171,21 @@
     "sponsor_checks": 1,
     "sponsor_checks_failed": 0,
     "ledger_entries": 4,
-    "last_activity": "2026-10-31T06:03:14+00:00"
+    "last_activity": "2026-10-31T06:09:56+00:00"
    }
   },
   {
-   "agent_id": "agt_c4c989f61cb5",
+   "agent_id": "agt_ea68231b151b",
    "employee_no": 2,
    "name": "Scout",
    "role": "AI Recruiter",
    "status": "suspended",
    "reason": "sponsor_still_employed: Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left.",
    "suspended_by": "payroll",
-   "onboarded_at": "2026-10-31T06:03:14+00:00",
-   "last_checked": "2026-10-31T06:03:14+00:00",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
    "last_verdict": {
-    "subject": "agt_c4c989f61cb5",
+    "subject": "agt_ea68231b151b",
     "decision": "block",
     "checks": [
      {
@@ -195,7 +195,7 @@
       "detail": "Passport signed by Countersign and unmodified",
       "source": {
        "endpoint": "countersign/issuer",
-       "field": "key 7e9fb4b9040b2440",
+       "field": "key 017cd0d57ed34ee9",
        "url": null
       }
      },
@@ -244,10 +244,10 @@
       }
      }
     ],
-    "ledger_entry": "010571a1ec40f68d83c7f8e367e9ab9f56c97bfe8653a827e3cbafff1e9b46d7"
+    "ledger_entry": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97"
    },
    "passport": {
-    "agent_id": "agt_c4c989f61cb5",
+    "agent_id": "agt_ea68231b151b",
     "agent_name": "Scout",
     "role": "AI Recruiter",
     "sponsor": {
@@ -260,17 +260,17 @@
     "scopes": [
      "outreach.hiring"
     ],
-    "issued_at": "2026-10-31T06:03:14+00:00",
-    "expires_at": "2026-11-30T06:03:14+00:00",
-    "public_key": "tu9JcHt2uM8W+HfnrULvl8A8FstqLbqFK2Ugo61lNJ0=",
-    "issuer_key_id": "7e9fb4b9040b2440",
-    "issuer_signature": "kTXDTdNY+DDqMDXJauNtrVehV7whZOHrAzWfLI3g52Da6RHhIozW/PJ9govXQosmeOmZTvPdSfaHSOrk23JBAg=="
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "0bid1jcdkRW6zhLRXQYFs1uTh/PJpNrjBhtSQhSnNI8=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "lNpIxuNKA2L0kZhmn8sVkMybqoooQE9tvdnds5WNWhYsPERyS4Jqsl1ms9yrfFa/ufu2WfPgfibC6c5SoyWnBg=="
    },
    "reviews": [],
    "ledger_entries": [
-    "97b773771aa9bd71802715e5adce8f4e340472833d94a37b04d12c5203794b97",
-    "010571a1ec40f68d83c7f8e367e9ab9f56c97bfe8653a827e3cbafff1e9b46d7",
-    "d170e2569425ea3fffaaca96c4da0fb84cc91681559449e353cb7255d99a09ab"
+    "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
+    "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
+    "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486"
    ],
    "scorecard": {
     "messages_checked": 0,
@@ -280,21 +280,21 @@
     "sponsor_checks": 1,
     "sponsor_checks_failed": 1,
     "ledger_entries": 4,
-    "last_activity": "2026-10-31T06:03:14+00:00"
+    "last_activity": "2026-10-31T06:09:56+00:00"
    }
   },
   {
-   "agent_id": "agt_97967265876e",
+   "agent_id": "agt_9035585b2681",
    "employee_no": 3,
    "name": "Quill",
    "role": "AI Procurement Agent",
    "status": "active",
    "reason": null,
    "suspended_by": null,
-   "onboarded_at": "2026-10-31T06:03:14+00:00",
-   "last_checked": "2026-10-31T06:03:14+00:00",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
    "last_verdict": {
-    "subject": "agt_97967265876e",
+    "subject": "agt_9035585b2681",
     "decision": "block",
     "checks": [
      {
@@ -304,7 +304,7 @@
       "detail": "Passport signed by Countersign and unmodified",
       "source": {
        "endpoint": "countersign/issuer",
-       "field": "key 7e9fb4b9040b2440",
+       "field": "key 017cd0d57ed34ee9",
        "url": null
       }
      },
@@ -397,10 +397,10 @@
       }
      }
     ],
-    "ledger_entry": "1c36e0639de1b8999763b67829c96a413513190fa0cafd6d247f3679d43fb343"
+    "ledger_entry": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179"
    },
    "passport": {
-    "agent_id": "agt_97967265876e",
+    "agent_id": "agt_9035585b2681",
     "agent_name": "Quill",
     "role": "AI Procurement Agent",
     "sponsor": {
@@ -413,17 +413,17 @@
     "scopes": [
      "data.read"
     ],
-    "issued_at": "2026-10-31T06:03:14+00:00",
-    "expires_at": "2026-11-30T06:03:14+00:00",
-    "public_key": "7W6+WtxsKeLbnuERH7xGU+Yqhx4jeqKQhGjK8VpxYPI=",
-    "issuer_key_id": "7e9fb4b9040b2440",
-    "issuer_signature": "vAkrKvbLOylGiyRNrPu2+eA3NXew3Zksa7Xxifgpj45IoGS3E2tu1IILKw5a/PeB0vtv3iDQLMKsAuVXktB1Cw=="
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "bP40pknFWGhZ++JoiPD7KKevaZQe+x2nCLZmd/sMVHU=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "UKamSLB1JscNJPu1hmVeUu4dNwlazjM1AXq4GIRJfSrwNVwJS6ComQZTq/ACLAEqa+6oRCpxCCIAsMT9dmKvCA=="
    },
    "reviews": [],
    "ledger_entries": [
-    "4a54e240235d145a10757f908ee0fb6c27e1620250da23df040a5d1bb28aa02b",
-    "e0db56b4b08d9d5cbf8eeccf8d0a9b0fd2e2bee3336e5506f081f6a7d01e6d8a",
-    "1c36e0639de1b8999763b67829c96a413513190fa0cafd6d247f3679d43fb343"
+    "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
+    "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
+    "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179"
    ],
    "scorecard": {
     "messages_checked": 0,
@@ -433,21 +433,21 @@
     "sponsor_checks": 2,
     "sponsor_checks_failed": 1,
     "ledger_entries": 5,
-    "last_activity": "2026-10-31T06:03:14+00:00"
+    "last_activity": "2026-10-31T06:09:56+00:00"
    }
   },
   {
-   "agent_id": "agt_562eaa1370be",
+   "agent_id": "agt_cbab2b0c8b80",
    "employee_no": 4,
    "name": "Atlas",
    "role": "AI Research Analyst",
    "status": "suspended",
    "reason": "sponsor_title_current: Passport says 'Co-Founder'; Crustdata says 'Advisor'",
    "suspended_by": "payroll",
-   "onboarded_at": "2026-10-31T06:03:14+00:00",
-   "last_checked": "2026-10-31T06:03:14+00:00",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
    "last_verdict": {
-    "subject": "agt_562eaa1370be",
+    "subject": "agt_cbab2b0c8b80",
     "decision": "block",
     "checks": [
      {
@@ -457,7 +457,7 @@
       "detail": "Passport signed by Countersign and unmodified",
       "source": {
        "endpoint": "countersign/issuer",
-       "field": "key 7e9fb4b9040b2440",
+       "field": "key 017cd0d57ed34ee9",
        "url": null
       }
      },
@@ -539,10 +539,10 @@
       }
      }
     ],
-    "ledger_entry": "d35743c4f0c7071dc552cde1721f3fd8383ebdfc17b79a3030cfb6adc904ce41"
+    "ledger_entry": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404"
    },
    "passport": {
-    "agent_id": "agt_562eaa1370be",
+    "agent_id": "agt_cbab2b0c8b80",
     "agent_name": "Atlas",
     "role": "AI Research Analyst",
     "sponsor": {
@@ -555,17 +555,17 @@
     "scopes": [
      "data.read"
     ],
-    "issued_at": "2026-10-31T06:03:14+00:00",
-    "expires_at": "2026-11-30T06:03:14+00:00",
-    "public_key": "+YzSATjOKOhac0CSIS1oFCgik0F1tqsNGCj/gGYG1GM=",
-    "issuer_key_id": "7e9fb4b9040b2440",
-    "issuer_signature": "zy8UtyiaJ9VtTO1AvlenjstN36FSFRz5/eTGzLBpN2FpnSQY59M8wnl54LceDGzwobkzFJjhdAVt8LPYQdUpCQ=="
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "QY7LiSfupiibltXT+pXBTuMnLCSQZr1MjtNw/+cNoqE=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "f7jovYDd403XTVs0N2YhZzo4CI7lsYusyL4uZ6lqXztA1GeqxWSi306QFH75h9e4rAgXLiWkawyZJ3F8VCLfAw=="
    },
    "reviews": [],
    "ledger_entries": [
-    "c52103c8cc0ae9cd957580ab72762cf3122eaacbc2b62b8651a4faee7f1d5a7e",
-    "d35743c4f0c7071dc552cde1721f3fd8383ebdfc17b79a3030cfb6adc904ce41",
-    "1f664e2b015aacf59f9312ae023f489e7b1212e0fb33898d6687ec556bbe84cf"
+    "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
+    "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
+    "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71"
    ],
    "scorecard": {
     "messages_checked": 0,
@@ -575,7 +575,7 @@
     "sponsor_checks": 1,
     "sponsor_checks_failed": 1,
     "ledger_entries": 4,
-    "last_activity": "2026-10-31T06:03:14+00:00"
+    "last_activity": "2026-10-31T06:09:56+00:00"
    }
   }
  ],
@@ -718,17 +718,17 @@
   "first_bad_seq": null,
   "entries": [
    {
-    "hash": "d0eaef4d598f9e71a7cb5ae08047053810faac485869dd8f38ece364c7467467",
+    "hash": "6829e2c9ee3bb6f91ba41b13b3ee658ba47c87d15abc9de709ddad03202e7e2d",
     "kind": "passport.issued",
     "payload": {
-     "agent_id": "agt_515cd45d4d54",
+     "agent_id": "agt_e84cf4ef30d9",
      "passport": {
-      "agent_id": "agt_515cd45d4d54",
+      "agent_id": "agt_e84cf4ef30d9",
       "agent_name": "Sourced",
-      "expires_at": "2026-11-30T06:03:14+00:00",
-      "issued_at": "2026-10-31T06:03:14+00:00",
-      "issuer_key_id": "7e9fb4b9040b2440",
-      "public_key": "jIS0RmZ8OsmnfwZNWSLjcu6tcXWoNxgDI1N0Ulc3aLY=",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "BKpNaCn9wrjuYjkTzIA+TfQrDYj35zAPb4QibiMPgo0=",
       "role": "AI Recruiter",
       "scopes": [
        "outreach.hiring",
@@ -746,15 +746,15 @@
     "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "seq": 0,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "12ec27ea619eb3c51f2c70c4b85c05014acac53aff2db3b3bf84566812690293",
+    "hash": "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
     "kind": "agent.onboarded",
     "payload": {
-     "agent_id": "agt_515cd45d4d54",
+     "agent_id": "agt_e84cf4ef30d9",
      "agent_name": "Sourced",
-     "expires_at": "2026-11-30T06:03:14+00:00",
+     "expires_at": "2026-11-30T06:09:56+00:00",
      "role": "AI Recruiter",
      "scopes": [
       "outreach.hiring",
@@ -768,23 +768,23 @@
       "title": "Co-Founder"
      }
     },
-    "prev_hash": "d0eaef4d598f9e71a7cb5ae08047053810faac485869dd8f38ece364c7467467",
+    "prev_hash": "6829e2c9ee3bb6f91ba41b13b3ee658ba47c87d15abc9de709ddad03202e7e2d",
     "seq": 1,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "e80d20398b8315d43b227a40f095bd6d3e5d63a49f2f3318368e6d68ac6ef691",
+    "hash": "bda670614124fc4e00070a6381cad717354c4f6b7200aded139211d82db76563",
     "kind": "passport.issued",
     "payload": {
-     "agent_id": "agt_c4c989f61cb5",
+     "agent_id": "agt_ea68231b151b",
      "passport": {
-      "agent_id": "agt_c4c989f61cb5",
+      "agent_id": "agt_ea68231b151b",
       "agent_name": "Scout",
-      "expires_at": "2026-11-30T06:03:14+00:00",
-      "issued_at": "2026-10-31T06:03:14+00:00",
-      "issuer_key_id": "7e9fb4b9040b2440",
-      "public_key": "tu9JcHt2uM8W+HfnrULvl8A8FstqLbqFK2Ugo61lNJ0=",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "0bid1jcdkRW6zhLRXQYFs1uTh/PJpNrjBhtSQhSnNI8=",
       "role": "AI Recruiter",
       "scopes": [
        "outreach.hiring"
@@ -798,18 +798,18 @@
       }
      }
     },
-    "prev_hash": "12ec27ea619eb3c51f2c70c4b85c05014acac53aff2db3b3bf84566812690293",
+    "prev_hash": "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
     "seq": 2,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "97b773771aa9bd71802715e5adce8f4e340472833d94a37b04d12c5203794b97",
+    "hash": "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
     "kind": "agent.onboarded",
     "payload": {
-     "agent_id": "agt_c4c989f61cb5",
+     "agent_id": "agt_ea68231b151b",
      "agent_name": "Scout",
-     "expires_at": "2026-11-30T06:03:14+00:00",
+     "expires_at": "2026-11-30T06:09:56+00:00",
      "role": "AI Recruiter",
      "scopes": [
       "outreach.hiring"
@@ -822,23 +822,23 @@
       "title": "Co-Founder"
      }
     },
-    "prev_hash": "e80d20398b8315d43b227a40f095bd6d3e5d63a49f2f3318368e6d68ac6ef691",
+    "prev_hash": "bda670614124fc4e00070a6381cad717354c4f6b7200aded139211d82db76563",
     "seq": 3,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "54f68b2892390ef34f16ab7ccbb7ce8412cb1dea2f34cf48b6a2cba4a3cbc0b4",
+    "hash": "ddb0725d6278ddefc696081431a422345327da53ec572c6c29f7ede0f090ed11",
     "kind": "passport.issued",
     "payload": {
-     "agent_id": "agt_97967265876e",
+     "agent_id": "agt_9035585b2681",
      "passport": {
-      "agent_id": "agt_97967265876e",
+      "agent_id": "agt_9035585b2681",
       "agent_name": "Quill",
-      "expires_at": "2026-11-30T06:03:14+00:00",
-      "issued_at": "2026-10-31T06:03:14+00:00",
-      "issuer_key_id": "7e9fb4b9040b2440",
-      "public_key": "7W6+WtxsKeLbnuERH7xGU+Yqhx4jeqKQhGjK8VpxYPI=",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "bP40pknFWGhZ++JoiPD7KKevaZQe+x2nCLZmd/sMVHU=",
       "role": "AI Procurement Agent",
       "scopes": [
        "data.read"
@@ -852,18 +852,18 @@
       }
      }
     },
-    "prev_hash": "97b773771aa9bd71802715e5adce8f4e340472833d94a37b04d12c5203794b97",
+    "prev_hash": "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
     "seq": 4,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "4a54e240235d145a10757f908ee0fb6c27e1620250da23df040a5d1bb28aa02b",
+    "hash": "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
     "kind": "agent.onboarded",
     "payload": {
-     "agent_id": "agt_97967265876e",
+     "agent_id": "agt_9035585b2681",
      "agent_name": "Quill",
-     "expires_at": "2026-11-30T06:03:14+00:00",
+     "expires_at": "2026-11-30T06:09:56+00:00",
      "role": "AI Procurement Agent",
      "scopes": [
       "data.read"
@@ -876,23 +876,23 @@
       "title": "Backend Engineer"
      }
     },
-    "prev_hash": "54f68b2892390ef34f16ab7ccbb7ce8412cb1dea2f34cf48b6a2cba4a3cbc0b4",
+    "prev_hash": "ddb0725d6278ddefc696081431a422345327da53ec572c6c29f7ede0f090ed11",
     "seq": 5,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "a500f9313b7d42c1b240b906aac5334440a935bf9062d06103ae2e710cbcb1ef",
+    "hash": "3a45cc77cf86be740935954210e0b98e1388469b41ae74006fbfa0a10cfaecc3",
     "kind": "passport.issued",
     "payload": {
-     "agent_id": "agt_562eaa1370be",
+     "agent_id": "agt_cbab2b0c8b80",
      "passport": {
-      "agent_id": "agt_562eaa1370be",
+      "agent_id": "agt_cbab2b0c8b80",
       "agent_name": "Atlas",
-      "expires_at": "2026-11-30T06:03:14+00:00",
-      "issued_at": "2026-10-31T06:03:14+00:00",
-      "issuer_key_id": "7e9fb4b9040b2440",
-      "public_key": "+YzSATjOKOhac0CSIS1oFCgik0F1tqsNGCj/gGYG1GM=",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "QY7LiSfupiibltXT+pXBTuMnLCSQZr1MjtNw/+cNoqE=",
       "role": "AI Research Analyst",
       "scopes": [
        "data.read"
@@ -906,18 +906,18 @@
       }
      }
     },
-    "prev_hash": "4a54e240235d145a10757f908ee0fb6c27e1620250da23df040a5d1bb28aa02b",
+    "prev_hash": "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
     "seq": 6,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "c52103c8cc0ae9cd957580ab72762cf3122eaacbc2b62b8651a4faee7f1d5a7e",
+    "hash": "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
     "kind": "agent.onboarded",
     "payload": {
-     "agent_id": "agt_562eaa1370be",
+     "agent_id": "agt_cbab2b0c8b80",
      "agent_name": "Atlas",
-     "expires_at": "2026-11-30T06:03:14+00:00",
+     "expires_at": "2026-11-30T06:09:56+00:00",
      "role": "AI Research Analyst",
      "scopes": [
       "data.read"
@@ -930,16 +930,16 @@
       "title": "Co-Founder"
      }
     },
-    "prev_hash": "a500f9313b7d42c1b240b906aac5334440a935bf9062d06103ae2e710cbcb1ef",
+    "prev_hash": "3a45cc77cf86be740935954210e0b98e1388469b41ae74006fbfa0a10cfaecc3",
     "seq": 7,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "9d6d2d39638bc4e68010791d25ecda908cc388b6b6177607db552158ac0c98e5",
+    "hash": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
     "kind": "passport.verified",
     "payload": {
-     "agent_id": "agt_515cd45d4d54",
+     "agent_id": "agt_e84cf4ef30d9",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -999,12 +999,12 @@
      "decision": "allow",
      "scope": null
     },
-    "prev_hash": "c52103c8cc0ae9cd957580ab72762cf3122eaacbc2b62b8651a4faee7f1d5a7e",
+    "prev_hash": "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
     "seq": 8,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1048,13 +1048,13 @@
       "url": "https://www.linkedin.com/in/pankajsavaliya"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "010571a1ec40f68d83c7f8e367e9ab9f56c97bfe8653a827e3cbafff1e9b46d7",
+    "hash": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
     "kind": "passport.verified",
     "payload": {
-     "agent_id": "agt_c4c989f61cb5",
+     "agent_id": "agt_ea68231b151b",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -1090,12 +1090,12 @@
      "decision": "block",
      "scope": null
     },
-    "prev_hash": "9d6d2d39638bc4e68010791d25ecda908cc388b6b6177607db552158ac0c98e5",
+    "prev_hash": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
     "seq": 9,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1119,21 +1119,21 @@
       "url": "https://www.linkedin.com/in/shivankverma"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "d170e2569425ea3fffaaca96c4da0fb84cc91681559449e353cb7255d99a09ab",
+    "hash": "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486",
     "kind": "passport.revoked",
     "payload": {
-     "agent_id": "agt_c4c989f61cb5",
+     "agent_id": "agt_ea68231b151b",
      "reason": "suspended by payroll: sponsor_still_employed: Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left."
     },
-    "prev_hash": "010571a1ec40f68d83c7f8e367e9ab9f56c97bfe8653a827e3cbafff1e9b46d7",
+    "prev_hash": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
     "seq": 10,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1157,13 +1157,13 @@
       "url": "https://www.linkedin.com/in/shivankverma"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "e0db56b4b08d9d5cbf8eeccf8d0a9b0fd2e2bee3336e5506f081f6a7d01e6d8a",
+    "hash": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
     "kind": "passport.verified",
     "payload": {
-     "agent_id": "agt_97967265876e",
+     "agent_id": "agt_9035585b2681",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -1217,12 +1217,12 @@
      "decision": "allow",
      "scope": null
     },
-    "prev_hash": "d170e2569425ea3fffaaca96c4da0fb84cc91681559449e353cb7255d99a09ab",
+    "prev_hash": "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486",
     "seq": 11,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1261,13 +1261,13 @@
       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "d35743c4f0c7071dc552cde1721f3fd8383ebdfc17b79a3030cfb6adc904ce41",
+    "hash": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
     "kind": "passport.verified",
     "payload": {
-     "agent_id": "agt_562eaa1370be",
+     "agent_id": "agt_cbab2b0c8b80",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -1321,12 +1321,12 @@
      "decision": "block",
      "scope": null
     },
-    "prev_hash": "e0db56b4b08d9d5cbf8eeccf8d0a9b0fd2e2bee3336e5506f081f6a7d01e6d8a",
+    "prev_hash": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
     "seq": 12,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1365,21 +1365,21 @@
       "url": "https://www.linkedin.com/in/vinod-sonagara"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "1f664e2b015aacf59f9312ae023f489e7b1212e0fb33898d6687ec556bbe84cf",
+    "hash": "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71",
     "kind": "passport.revoked",
     "payload": {
-     "agent_id": "agt_562eaa1370be",
+     "agent_id": "agt_cbab2b0c8b80",
      "reason": "suspended by payroll: sponsor_title_current: Passport says 'Co-Founder'; Crustdata says 'Advisor'"
     },
-    "prev_hash": "d35743c4f0c7071dc552cde1721f3fd8383ebdfc17b79a3030cfb6adc904ce41",
+    "prev_hash": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
     "seq": 13,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1418,13 +1418,13 @@
       "url": "https://www.linkedin.com/in/vinod-sonagara"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "cd2a19adbe38933535cb5e55da9897dcb4552397590697c18f160165b5dea594",
+    "hash": "8113f49beb6c8b04a09f715715b993849a63f680deb4658be3f352800219b749",
     "kind": "passport.verified",
     "payload": {
-     "agent_id": "agt_97967265876e",
+     "agent_id": "agt_9035585b2681",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -1484,12 +1484,12 @@
      "decision": "block",
      "scope": "contract.sign"
     },
-    "prev_hash": "1f664e2b015aacf59f9312ae023f489e7b1212e0fb33898d6687ec556bbe84cf",
+    "prev_hash": "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71",
     "seq": 14,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1533,13 +1533,13 @@
       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "1c36e0639de1b8999763b67829c96a413513190fa0cafd6d247f3679d43fb343",
+    "hash": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179",
     "kind": "agent.scope_denied",
     "payload": {
-     "agent_id": "agt_97967265876e",
+     "agent_id": "agt_9035585b2681",
      "checks": [
       {
        "detail": "Passport signed by Countersign and unmodified",
@@ -1598,12 +1598,12 @@
      ],
      "decision": "block"
     },
-    "prev_hash": "cd2a19adbe38933535cb5e55da9897dcb4552397590697c18f160165b5dea594",
+    "prev_hash": "8113f49beb6c8b04a09f715715b993849a63f680deb4658be3f352800219b749",
     "seq": 15,
     "sources": [
      {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      },
      {
@@ -1647,16 +1647,16 @@
       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
      }
     ],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    },
    {
-    "hash": "20ff180a38f881f874ff46ad19539091f3e1f7a0358fadc0311e3e422afadae8",
+    "hash": "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f",
     "kind": "agent.reviewed",
     "payload": {
-     "agent_id": "agt_515cd45d4d54",
-     "at": "2026-10-31T06:03:14+00:00",
+     "agent_id": "agt_e84cf4ef30d9",
+     "at": "2026-10-31T06:09:56+00:00",
      "decision": "keep",
-     "id": "3dc2079488",
+     "id": "9610224fab",
      "notes": "First week: sponsor checks green, outreach stays within hiring.",
      "reviewer": "Pankaj Savaliya",
      "scopes": null,
@@ -1664,23 +1664,23 @@
       "allowed": 0,
       "block_reasons": [],
       "blocked": 0,
-      "last_activity": "2026-10-31T06:03:14+00:00",
+      "last_activity": "2026-10-31T06:09:56+00:00",
       "ledger_entries": 3,
       "messages_checked": 0,
       "sponsor_checks": 1,
       "sponsor_checks_failed": 0
      }
     },
-    "prev_hash": "1c36e0639de1b8999763b67829c96a413513190fa0cafd6d247f3679d43fb343",
+    "prev_hash": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179",
     "seq": 16,
     "sources": [],
-    "ts": "2026-10-31T06:03:14+00:00"
+    "ts": "2026-10-31T06:09:56+00:00"
    }
   ]
  },
  "payroll": [
   {
-   "subject": "agt_515cd45d4d54",
+   "subject": "agt_e84cf4ef30d9",
    "decision": "allow",
    "checks": [
     {
@@ -1690,7 +1690,7 @@
      "detail": "Passport signed by Countersign and unmodified",
      "source": {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      }
     },
@@ -1783,10 +1783,10 @@
      }
     }
    ],
-   "ledger_entry": "9d6d2d39638bc4e68010791d25ecda908cc388b6b6177607db552158ac0c98e5"
+   "ledger_entry": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649"
   },
   {
-   "subject": "agt_c4c989f61cb5",
+   "subject": "agt_ea68231b151b",
    "decision": "block",
    "checks": [
     {
@@ -1796,7 +1796,7 @@
      "detail": "Passport signed by Countersign and unmodified",
      "source": {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      }
     },
@@ -1845,10 +1845,10 @@
      }
     }
    ],
-   "ledger_entry": "010571a1ec40f68d83c7f8e367e9ab9f56c97bfe8653a827e3cbafff1e9b46d7"
+   "ledger_entry": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97"
   },
   {
-   "subject": "agt_97967265876e",
+   "subject": "agt_9035585b2681",
    "decision": "allow",
    "checks": [
     {
@@ -1858,7 +1858,7 @@
      "detail": "Passport signed by Countersign and unmodified",
      "source": {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      }
     },
@@ -1940,10 +1940,10 @@
      }
     }
    ],
-   "ledger_entry": "e0db56b4b08d9d5cbf8eeccf8d0a9b0fd2e2bee3336e5506f081f6a7d01e6d8a"
+   "ledger_entry": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4"
   },
   {
-   "subject": "agt_562eaa1370be",
+   "subject": "agt_cbab2b0c8b80",
    "decision": "block",
    "checks": [
     {
@@ -1953,7 +1953,7 @@
      "detail": "Passport signed by Countersign and unmodified",
      "source": {
       "endpoint": "countersign/issuer",
-      "field": "key 7e9fb4b9040b2440",
+      "field": "key 017cd0d57ed34ee9",
       "url": null
      }
     },
@@ -2035,7 +2035,7 @@
      }
     }
    ],
-   "ledger_entry": "d35743c4f0c7071dc552cde1721f3fd8383ebdfc17b79a3030cfb6adc904ce41"
+   "ledger_entry": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404"
   }
  ]
 }

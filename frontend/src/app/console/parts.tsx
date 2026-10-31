@@ -39,7 +39,7 @@ const STATUS: Record<AgentStatus, { label: string; cls: string; dot: string }> =
 export function StatusPill({ status, className }: { status: AgentStatus; className?: string }) {
   const s = STATUS[status];
   return (
-    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border-2 border-ink px-2 text-[11px] font-extrabold uppercase tracking-wide shadow-brut-sm", s.cls, className)}>
+    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-ink px-2 text-[11px] font-bold uppercase tracking-wide shadow-brut-sm", s.cls, className)}>
       <span className={cn("size-1.5 rounded-full", s.dot, status === "active" && "animate-pulse")} />
       {s.label}
     </span>
@@ -68,7 +68,7 @@ export function AgentMark({ agent, size = "md" }: { agent: Pick<Agent, "agent_id
   return (
     <span
       className={cn(
-        "font-display relative grid shrink-0 place-items-center rounded-xl border-2 border-ink font-extrabold text-[#111] shadow-brut-sm",
+        "font-display relative grid shrink-0 place-items-center rounded-xl border-[1.5px] border-ink font-bold text-[#111] shadow-brut-sm",
         size === "lg" ? "size-12 text-[22px]" : "size-10 text-[17px]",
         agent.status !== "active" && "grayscale-[0.7] opacity-70",
       )}
@@ -122,14 +122,14 @@ export function VerdictList({ verdict, className }: { verdict: Verdict; classNam
   // Failures first: the reason something was blocked is the first thing to read.
   const order = { fail: 0, unverifiable: 1, pass: 2 } as const;
   const checks = [...verdict.checks].sort((a, b) => order[a.status] - order[b.status]);
-  return <ul className={cn("divide-y-2 divide-dashed divide-hairline", className)}>{checks.map((c) => <CheckRow key={c.id + c.name} check={c} />)}</ul>;
+  return <ul className={cn("divide-y divide-dashed divide-hairline", className)}>{checks.map((c) => <CheckRow key={c.id + c.name} check={c} />)}</ul>;
 }
 
 export function DecisionBadge({ decision }: { decision: "allow" | "block" }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-md border-[1.5px] border-ink px-1.5 font-mono text-[10.5px] font-extrabold uppercase tracking-wide text-on-color",
+        "inline-flex h-5 items-center rounded-md border-[1.5px] border-ink px-1.5 font-mono text-[10.5px] font-bold uppercase tracking-wide text-on-color",
         decision === "allow" ? "bg-lime" : "bg-coral",
       )}
     >
@@ -145,7 +145,7 @@ export function ScopeToggle({
   return (
     <label
       className={cn(
-        "flex items-start gap-3 rounded-xl border-2 border-ink px-3 py-2.5 transition",
+        "flex items-start gap-3 rounded-xl border-[1.5px] border-ink px-3 py-2.5 transition",
         locked ? "cursor-not-allowed border-dashed opacity-45" : "press cursor-pointer bg-panel shadow-brut-sm",
         checked && !locked && "bg-yellow text-on-color",
       )}
@@ -184,7 +184,7 @@ export function Button({
       title={title}
       className={cn(
         "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-3 text-[12.5px] font-bold disabled:cursor-not-allowed disabled:opacity-40",
-        variant !== "ghost" && "press border-2 border-ink shadow-brut-sm",
+        variant !== "ghost" && "press border-[1.5px] border-ink shadow-brut-sm",
         variant === "primary" && "bg-yellow text-on-color",
         variant === "secondary" && "bg-panel text-foreground",
         variant === "danger" && "bg-coral text-on-color",
@@ -200,7 +200,7 @@ export function Button({
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-extrabold uppercase tracking-wider">{label}</span>
+      <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-[11px] text-faint">{hint}</span>}
     </label>
@@ -208,4 +208,4 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 export const inputCls =
-  "h-9 w-full rounded-lg border-2 border-ink bg-panel px-2.5 text-[13.5px] font-medium outline-none transition placeholder:text-faint focus:shadow-brut-sm";
+  "h-9 w-full rounded-lg border-[1.5px] border-ink bg-panel px-2.5 text-[13.5px] font-medium outline-none transition placeholder:text-faint focus:shadow-brut-sm";

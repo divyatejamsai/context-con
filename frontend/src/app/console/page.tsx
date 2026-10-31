@@ -116,25 +116,25 @@ export default function Console() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 h-14 border-b-2 border-ink bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-30 h-14 border-b-[1.5px] border-ink bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-full max-w-[1680px] items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Link href="/" className="press flex h-8 items-center gap-1.5 rounded-lg border-2 border-ink bg-panel px-2.5 text-[12.5px] font-bold shadow-brut-sm">
+            <Link href="/" className="press flex h-8 items-center gap-1.5 rounded-lg border-[1.5px] border-ink bg-panel px-2.5 text-[12.5px] font-bold shadow-brut-sm">
               <ArrowLeft className="size-3.5" strokeWidth={2.5} /> Sourced
             </Link>
             <span className="flex items-center gap-2.5 pl-1">
-              <span className="grid size-8 -rotate-6 place-items-center rounded-lg border-2 border-ink bg-lavender shadow-brut-sm">
+              <span className="grid size-8 place-items-center rounded-lg border-[1.5px] border-ink bg-lavender shadow-brut-sm">
                 <IdCard className="size-4 text-[#111]" strokeWidth={2.5} />
               </span>
-              <span className="font-display truncate text-[22px] font-extrabold tracking-[-0.03em]">AI employees</span>
+              <span className="font-display truncate text-[22px] font-bold tracking-[-0.03em]">AI employees</span>
             </span>
-            <span className="hidden rotate-2 rounded-md border-2 border-ink bg-yellow px-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-on-color sm:inline">Countersign</span>
+            <span className="hidden rounded-md border-[1.5px] border-ink bg-panel px-1.5 text-[10.5px] font-bold uppercase tracking-wider sm:inline">Countersign</span>
           </div>
           <div className="flex items-center gap-2">
             {chain && <ChainPill {...chain} />}
             <span
               className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-full border-2 border-ink px-2.5 font-mono text-[10.5px] font-bold uppercase text-on-color",
+                "inline-flex h-7 items-center gap-1.5 rounded-full border-[1.5px] border-ink px-2.5 font-mono text-[10.5px] font-bold uppercase text-on-color",
                 live ? "bg-lime" : "bg-yellow",
               )}
               title={live ? "Connected to the backend" : "Backend unreachable: showing a recorded snapshot"}
@@ -151,8 +151,8 @@ export default function Console() {
           <div className="pb-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="font-display text-[34px] font-extrabold leading-[0.95] tracking-[-0.03em]">
-                  Your AI <span className="relative inline-block -rotate-1 rounded-lg border-2 border-ink bg-yellow px-1.5 text-on-color shadow-brut-sm">workforce</span>
+                <h1 className="font-display text-[30px] font-bold leading-[1.05] tracking-[-0.03em]">
+                  Your AI <span className="bg-[linear-gradient(transparent_62%,var(--yellow)_62%)] px-0.5">workforce</span>
                 </h1>
                 <p className="mt-3 text-[13px] font-medium leading-relaxed text-muted-foreground">
                   Every AI employee acts for a real person. We check that person against Crustdata before it&apos;s trusted.
@@ -168,9 +168,9 @@ export default function Console() {
                 Run payroll check
               </Button>
               <span className="ml-auto flex items-center gap-1.5 font-mono text-[11px] font-bold tabular-nums">
-                <span className="rounded-full border-2 border-ink bg-lime px-1.5 text-on-color" title="Active">{counts.active ?? 0}</span>
-                <span className="rounded-full border-2 border-ink bg-coral px-1.5 text-on-color" title="Suspended">{counts.suspended ?? 0}</span>
-                <span className="rounded-full border-2 border-ink bg-elevated px-1.5" title="Offboarded">{counts.offboarded ?? 0}</span>
+                <span className="rounded-full border-[1.5px] border-ink bg-lime px-1.5 text-on-color" title="Active">{counts.active ?? 0}</span>
+                <span className="rounded-full border-[1.5px] border-ink bg-coral px-1.5 text-on-color" title="Suspended">{counts.suspended ?? 0}</span>
+                <span className="rounded-full border-[1.5px] border-ink bg-elevated px-1.5" title="Offboarded">{counts.offboarded ?? 0}</span>
               </span>
             </div>
           </div>
@@ -180,8 +180,8 @@ export default function Console() {
           <ul className="flex flex-col gap-4 pt-2">
             {mode === "loading" && <li className="px-4 py-10 text-center text-[13px] font-semibold text-muted-foreground">Loading…</li>}
             {mode !== "loading" && !agents.length && (
-              <li className="rounded-xl border-2 border-dashed border-ink bg-panel px-4 py-10 text-center">
-                <p className="font-display text-[18px] font-extrabold">No AI employees yet.</p>
+              <li className="rounded-xl border-[1.5px] border-dashed border-ink bg-panel px-4 py-10 text-center">
+                <p className="font-display text-[18px] font-bold">No AI employees yet.</p>
                 <p className="mt-1 text-[12px] text-faint">Onboard Sourced, the hiring agent, as employee #1.</p>
               </li>
             )}
@@ -191,7 +191,7 @@ export default function Console() {
           </ul>
         </section>
 
-        <section className="min-w-0 self-start overflow-hidden rounded-xl border-2 border-ink bg-panel shadow-brut-lg">
+        <section className="min-w-0 self-start overflow-hidden rounded-xl border-[1.5px] border-ink bg-panel shadow-brut-lg">
           {flash && <FlashBar flash={flash} onClose={() => setFlash(null)} />}
           {cur ? (
             <AgentDetail
@@ -213,7 +213,7 @@ export default function Console() {
       </main>
 
       <Sheet open={onboarding} onOpenChange={setOnboarding}>
-        <SheetContent className="border-l-2 border-ink bg-panel">
+        <SheetContent className="border-l-[1.5px] border-ink bg-panel">
           <SheetTitle className="sr-only">Onboard an AI employee</SheetTitle>
           <OnboardForm
             roles={roles}
@@ -240,14 +240,14 @@ function AgentRow({ agent: a, i, selected, onClick }: { agent: Agent; i: number;
       <button
         onClick={onClick}
         className={cn(
-          "press relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl border-2 border-ink p-3 text-left shadow-brut",
-          selected ? "bg-yellow text-on-color" : "bg-panel",
+          "press relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl border-[1.5px] border-ink p-3 text-left shadow-brut",
+          selected ? "bg-yellow/30" : "bg-panel",
           a.status === "offboarded" && "opacity-55",
         )}
       >
         <span
           className={cn(
-            "font-display absolute -left-2.5 -top-2.5 grid size-7 place-items-center rounded-full border-2 border-ink text-[12px] font-extrabold shadow-brut-sm",
+            "font-display absolute -left-2.5 -top-2.5 grid size-7 place-items-center rounded-full border-[1.5px] border-ink text-[12px] font-bold shadow-brut-sm",
             a.employee_no === 1 ? "bg-lime text-on-color" : "bg-panel text-foreground",
           )}
           title={`Employee #${a.employee_no}`}
@@ -256,8 +256,8 @@ function AgentRow({ agent: a, i, selected, onClick }: { agent: Agent; i: number;
         </span>
         <AgentMark agent={a} />
         <span className="min-w-0">
-          <span className="font-display block truncate text-[18px] font-extrabold tracking-tight">{a.name}</span>
-          <span className={cn("block truncate text-[12.5px] font-medium", selected ? "text-on-color/80" : "text-muted-foreground")}>
+          <span className="font-display block truncate text-[18px] font-bold tracking-tight">{a.name}</span>
+          <span className={cn("block truncate text-[12.5px] font-medium", "text-muted-foreground")}>
             {a.role} · for <span className="font-bold">{s.name}</span>, {s.title ? `${s.title}, ` : ""}{s.company}
           </span>
           {a.status !== "active" && a.reason ? (
@@ -268,7 +268,7 @@ function AgentRow({ agent: a, i, selected, onClick }: { agent: Agent; i: number;
         </span>
         <span className="flex flex-col items-end gap-2">
           <StatusPill status={a.status} />
-          <span className={cn("font-mono text-[10.5px] font-bold", selected ? "text-on-color/70" : "text-muted-foreground")}>checked {ago(a.last_checked)}</span>
+          <span className={cn("font-mono text-[10.5px] font-bold", "text-muted-foreground")}>checked {ago(a.last_checked)}</span>
         </span>
       </button>
     </li>
@@ -279,7 +279,7 @@ function ChainPill({ chain_ok, first_bad_seq, count }: { chain_ok: boolean; firs
   return (
     <span
       className={cn(
-        "hidden h-7 items-center gap-1.5 rounded-full border-2 border-ink px-2.5 text-[11px] font-bold sm:inline-flex",
+        "hidden h-7 items-center gap-1.5 rounded-full border-[1.5px] border-ink px-2.5 text-[11px] font-bold sm:inline-flex",
         chain_ok ? "bg-panel" : "bg-coral text-on-color",
       )}
       title="Hash-chained ledger of every passport, check and decision"
@@ -296,9 +296,9 @@ function PayrollBanner({
   const blocked = run.verdicts.filter((v) => v.decision === "block");
   const byId = new Map(agents.map((a) => [a.agent_id, a]));
   return (
-    <div className="mb-4 overflow-hidden rounded-xl border-2 border-ink bg-panel shadow-brut animate-pop">
-      <div className="flex items-center justify-between gap-2 border-b-2 border-ink bg-lavender px-3 py-2 text-on-color">
-        <span className="flex flex-wrap items-center gap-x-2 text-[13px] font-extrabold">
+    <div className="mb-4 overflow-hidden rounded-xl border-[1.5px] border-ink bg-panel shadow-brut animate-pop">
+      <div className="flex items-center justify-between gap-2 border-b-[1.5px] border-ink bg-lavender px-3 py-2 text-on-color">
+        <span className="flex flex-wrap items-center gap-x-2 text-[13px] font-bold">
           <ClipboardCheck className="size-4" strokeWidth={2.5} /> Payroll check
           <span className="font-semibold opacity-80">
             {run.verdicts.length} checked · {run.verdicts.length - blocked.length} cleared · {blocked.length} blocked
@@ -308,7 +308,7 @@ function PayrollBanner({
           <X className="size-4" strokeWidth={2.5} />
         </button>
       </div>
-      <ul className="divide-y-2 divide-dashed divide-hairline">
+      <ul className="divide-y divide-dashed divide-hairline">
         {run.verdicts.map((v) => {
           const a = byId.get(v.subject);
           const fail = v.checks.find((c) => c.status !== "pass" && c.name !== "not_revoked") ?? v.checks.find((c) => c.status !== "pass");
@@ -318,7 +318,7 @@ function PayrollBanner({
                 <DecisionBadge decision={v.decision} />
                 <span className="min-w-0 flex-1">
                   <span className="text-[13px] font-bold">{a?.name ?? v.subject}</span>
-                  {run.suspended.includes(v.subject) && <span className="ml-2 rounded border-[1.5px] border-ink bg-coral px-1 text-[10.5px] font-extrabold uppercase text-on-color">suspended now</span>}
+                  {run.suspended.includes(v.subject) && <span className="ml-2 rounded border-[1.5px] border-ink bg-coral px-1 text-[10.5px] font-bold uppercase text-on-color">suspended now</span>}
                   {fail && <span className="block truncate text-[12px] font-medium text-muted-foreground">{checkLabel(fail.name)}: {fail.detail}</span>}
                 </span>
               </button>
@@ -334,7 +334,7 @@ function FlashBar({ flash, onClose }: { flash: NonNullable<Flash>; onClose: () =
   return (
     <div
       className={cn(
-        "border-b-2 border-ink px-4 py-3 text-on-color animate-fade sm:px-6",
+        "border-b-[1.5px] border-ink px-4 py-3 text-on-color animate-fade sm:px-6",
         flash.tone === "bad" && "bg-coral",
         flash.tone === "ok" && "bg-lime",
         flash.tone === "info" && "bg-yellow",
@@ -342,13 +342,13 @@ function FlashBar({ flash, onClose }: { flash: NonNullable<Flash>; onClose: () =
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-[13px]">
-          <span className="font-extrabold">{flash.title}.</span> <span className="font-medium">{flash.body}</span>
+          <span className="font-bold">{flash.title}.</span> <span className="font-medium">{flash.body}</span>
         </p>
         <button onClick={onClose} className="rounded p-0.5 hover:bg-white/40" aria-label="Dismiss">
           <X className="size-4" strokeWidth={2.5} />
         </button>
       </div>
-      {flash.verdict && <VerdictList verdict={flash.verdict} className="mt-2 rounded-lg border-2 border-ink bg-panel px-3 text-foreground" />}
+      {flash.verdict && <VerdictList verdict={flash.verdict} className="mt-2 rounded-lg border-[1.5px] border-ink bg-panel px-3 text-foreground" />}
     </div>
   );
 }
@@ -395,7 +395,7 @@ function AgentDetail({
           <AgentMark agent={a} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-display truncate text-[30px] font-extrabold leading-none tracking-[-0.03em]">{a.name}</h2>
+              <h2 className="font-display truncate text-[30px] font-bold leading-none tracking-[-0.03em]">{a.name}</h2>
               <StatusPill status={a.status} />
             </div>
             <p className="mt-1 text-[13px] font-medium text-muted-foreground">
@@ -425,17 +425,17 @@ function AgentDetail({
       </div>
 
       {a.status !== "active" && a.reason && (
-        <div className={cn("mt-5 flex items-start gap-2.5 rounded-xl border-2 border-ink px-3 py-2.5 shadow-brut-sm", a.status === "suspended" ? "bg-coral text-on-color" : "bg-elevated")}>
+        <div className={cn("mt-5 flex items-start gap-2.5 rounded-xl border-[1.5px] border-ink px-3 py-2.5 shadow-brut-sm", a.status === "suspended" ? "bg-coral text-on-color" : "bg-elevated")}>
           <ShieldAlert className="mt-0.5 size-4 shrink-0" strokeWidth={2.5} />
           <p className="text-[13.5px] font-medium">
-            <span className="font-extrabold">{a.status === "suspended" ? `Suspended${a.suspended_by ? ` by ${a.suspended_by}` : ""}.` : "Offboarded."}</span>{" "}
+            <span className="font-bold">{a.status === "suspended" ? `Suspended${a.suspended_by ? ` by ${a.suspended_by}` : ""}.` : "Offboarded."}</span>{" "}
             {a.reason}
           </p>
         </div>
       )}
 
       {confirm && (
-        <div className="mt-5 rounded-xl border-2 border-ink bg-elevated p-3 shadow-brut-sm animate-pop">
+        <div className="mt-5 rounded-xl border-[1.5px] border-ink bg-elevated p-3 shadow-brut-sm animate-pop">
           <p className="text-[13.5px] font-bold">
             {confirm === "suspend" ? `Suspend ${a.name}?` : `Offboard ${a.name}? This can't be undone.`}
           </p>
@@ -462,7 +462,7 @@ function AgentDetail({
             aria-selected={tab === k}
             onClick={() => setTab(k)}
             className={cn(
-              "press inline-flex h-8 items-center gap-1.5 rounded-lg border-2 border-ink px-3 text-[12.5px] font-bold shadow-brut-sm",
+              "press inline-flex h-8 items-center gap-1.5 rounded-lg border-[1.5px] border-ink px-3 text-[12.5px] font-bold shadow-brut-sm",
               tab === k ? "bg-ink text-background" : "bg-panel",
             )}
           >
@@ -490,18 +490,18 @@ function PassportTab({ agent: a }: { agent: Agent }) {
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
       <div
         className={cn(
-          "relative overflow-hidden rounded-2xl border-2 border-ink bg-panel shadow-brut-lg",
+          "relative overflow-hidden rounded-2xl border-[1.5px] border-ink bg-panel shadow-brut-lg",
         )}
       >
-        <div className="flex items-center justify-between border-b-2 border-ink bg-yellow px-5 py-2 text-on-color">
-          <span className="font-mono text-[10.5px] font-extrabold tracking-[0.18em]">COUNTERSIGN · AGENT PASSPORT</span>
+        <div className="flex items-center justify-between border-b-[1.5px] border-ink border-t-4 border-t-yellow px-5 py-2">
+          <span className="font-mono text-[10.5px] font-bold tracking-[0.18em]">COUNTERSIGN · AGENT PASSPORT</span>
           <span className="font-mono text-[10.5px] font-bold">#{String(a.employee_no).padStart(3, "0")}</span>
         </div>
         <div className="p-5">
         <div className="relative flex items-center gap-3">
           <AgentMark agent={a} size="lg" />
           <div>
-            <div className="font-display text-[26px] font-extrabold leading-tight tracking-[-0.03em]">{p.agent_name}</div>
+            <div className="font-display text-[26px] font-bold leading-tight tracking-[-0.03em]">{p.agent_name}</div>
             <div className="text-[13px] font-medium text-muted-foreground">{p.role}</div>
           </div>
         </div>
@@ -513,13 +513,13 @@ function PassportTab({ agent: a }: { agent: Agent }) {
           <PField k="Issued" v={day(p.issued_at)} />
           <PField k="Expires" v={day(p.expires_at)} />
           <div className="col-span-2">
-            <dt className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted-foreground">Scopes</dt>
+            <dt className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">Scopes</dt>
             <dd className="mt-1 flex flex-wrap gap-1">{p.scopes.map((sc) => <ScopeChip key={sc} scope={sc} />)}</dd>
           </div>
           <PField k="Agent key" v={`ed25519:${p.public_key.slice(0, 16)}…`} mono />
           <PField k="Issuer key" v={p.issuer_key_id || "–"} mono />
         </dl>
-        <div className="relative mt-5 border-t-2 border-dashed border-ink pt-3 font-mono text-[10.5px] font-bold leading-relaxed tracking-[0.12em] text-muted-foreground">
+        <div className="relative mt-5 border-t-[1.5px] border-dashed border-ink pt-3 font-mono text-[10.5px] font-bold leading-relaxed tracking-[0.12em] text-muted-foreground">
           <div className="truncate">{mrz}</div>
           <div className="truncate">SIG {p.issuer_signature?.slice(0, 48)}</div>
         </div>
@@ -527,7 +527,7 @@ function PassportTab({ agent: a }: { agent: Agent }) {
         {a.status !== "active" && (
           <span
             className={cn(
-              "font-display pointer-events-none absolute right-5 top-20 rotate-[-12deg] rounded-lg border-[3px] border-ink px-3 py-1 text-[22px] font-extrabold tracking-[0.12em] text-on-color shadow-brut animate-pop",
+              "font-display pointer-events-none absolute right-5 top-20 rotate-[-8deg] rounded-lg border-2 border-ink px-3 py-1 text-[22px] font-bold tracking-[0.12em] text-on-color animate-pop",
               a.status === "suspended" ? "bg-coral" : "bg-elevated",
             )}
           >
@@ -538,7 +538,7 @@ function PassportTab({ agent: a }: { agent: Agent }) {
 
       <div>
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="font-display text-[19px] font-extrabold tracking-tight">Last sponsor check</h3>
+          <h3 className="font-display text-[19px] font-bold tracking-tight">Last sponsor check</h3>
           <span className="font-mono text-[11px] font-bold text-muted-foreground">{a.last_checked ? `${ago(a.last_checked)} · ${day(a.last_checked)}` : "not checked yet"}</span>
         </div>
         {a.last_verdict ? (
@@ -560,7 +560,7 @@ function PassportTab({ agent: a }: { agent: Agent }) {
 function PField({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[10.5px] font-extrabold uppercase tracking-wider text-muted-foreground">{k}</dt>
+      <dt className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">{k}</dt>
       <dd className={cn("mt-0.5 truncate", mono ? "font-mono text-[11.5px] font-bold" : "font-bold")} title={v}>{v}</dd>
     </div>
   );
@@ -633,7 +633,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
   return (
     <div className="grid gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
       <div>
-        <h3 className="font-display text-[19px] font-extrabold tracking-tight">Scorecard</h3>
+        <h3 className="font-display text-[19px] font-bold tracking-tight">Scorecard</h3>
         <p className="text-[12.5px] font-medium text-muted-foreground">Read from the ledger: what the Send Guard let through and what it stopped.</p>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Tile k="Messages checked" v={card?.messages_checked} />
@@ -652,14 +652,14 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
           </ul>
         )}
 
-        <h3 className="font-display mt-8 text-[19px] font-extrabold tracking-tight">History</h3>
+        <h3 className="font-display mt-8 text-[19px] font-bold tracking-tight">History</h3>
         {a.reviews.length ? (
           <ol className="mt-2 space-y-2">
             {[...a.reviews].reverse().map((r) => (
-              <li key={r.id} className="rounded-xl border-2 border-ink bg-panel px-3 py-2.5 shadow-brut-sm">
+              <li key={r.id} className="rounded-xl border-[1.5px] border-ink bg-panel px-3 py-2.5 shadow-brut-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-[12.5px]">
-                    <span className={cn("rounded-md border-[1.5px] border-ink px-1.5 py-px font-mono text-[10.5px] font-extrabold uppercase text-on-color", r.decision === "keep" ? "bg-lime" : r.decision === "restrict" ? "bg-yellow" : "bg-coral")}>
+                    <span className={cn("rounded-md border-[1.5px] border-ink px-1.5 py-px font-mono text-[10.5px] font-bold uppercase text-on-color", r.decision === "keep" ? "bg-lime" : r.decision === "restrict" ? "bg-yellow" : "bg-coral")}>
                       {r.decision}
                     </span>
                     <span className="font-bold">{r.reviewer}</span>
@@ -680,9 +680,9 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
       </div>
 
       {a.status !== "offboarded" && (
-        <div className="h-fit rounded-xl border-2 border-ink bg-elevated p-4 shadow-brut">
-          <h3 className="font-display text-[19px] font-extrabold tracking-tight">New review</h3>
-          <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg border-2 border-ink bg-panel p-0.5 text-[12.5px]">
+        <div className="h-fit rounded-xl border-[1.5px] border-ink bg-elevated p-4 shadow-brut">
+          <h3 className="font-display text-[19px] font-bold tracking-tight">New review</h3>
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg border-[1.5px] border-ink bg-panel p-0.5 text-[12.5px]">
             {(["keep", "restrict", "offboard"] as const).map((d) => (
               <button
                 key={d}
@@ -695,7 +695,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
           </div>
           {decision === "restrict" && (
             <div className="mt-3 space-y-1.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider">Scopes to keep</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">Scopes to keep</span>
               {a.passport.scopes.map((sc) => (
                 <label key={sc} className="flex items-center gap-2 text-[12.5px]">
                   <input type="checkbox" className="accent-[#111]" checked={keep.includes(sc)} onChange={(e) => setKeep((k) => (e.target.checked ? [...k, sc] : k.filter((x) => x !== sc)))} />
@@ -728,8 +728,8 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
 
 function Tile({ k, v, bg, sub }: { k: string; v?: number; bg?: string; sub?: string }) {
   return (
-    <div className={cn("rounded-xl border-2 border-ink px-3 py-3 shadow-brut-sm", bg ? `${bg} text-on-color` : "bg-panel")}>
-      <div className="font-display text-[32px] font-extrabold leading-none tabular-nums">{v ?? "–"}</div>
+    <div className={cn("rounded-xl border-[1.5px] border-ink px-3 py-3 shadow-brut-sm", bg ? `${bg} text-on-color` : "bg-panel")}>
+      <div className="font-display text-[32px] font-bold leading-none tabular-nums">{v ?? "–"}</div>
       <div className="mt-1 text-[11.5px] font-bold uppercase tracking-wide opacity-80">{k}</div>
       {sub && <div className="text-[11px] font-bold text-contradicted">{sub}</div>}
     </div>
@@ -766,17 +766,17 @@ function LedgerTab({ agent: a, live }: { agent: Agent; live: boolean }) {
   if (!view) return <p className="text-[12.5px] text-faint">Loading the ledger…</p>;
   return (
     <div className="max-w-[760px]">
-      <p className={cn("inline-flex items-center gap-2 rounded-lg border-2 border-ink px-2.5 py-1 text-[12.5px] font-bold shadow-brut-sm", view.chain_ok ? "bg-lime text-on-color" : "bg-coral text-on-color")}>
+      <p className={cn("inline-flex items-center gap-2 rounded-lg border-[1.5px] border-ink px-2.5 py-1 text-[12.5px] font-bold shadow-brut-sm", view.chain_ok ? "bg-lime text-on-color" : "bg-coral text-on-color")}>
         <Link2 className="size-3.5" strokeWidth={2.5} />
         {view.chain_ok ? "Every entry hashes the one before it. The chain is intact." : `Tampering detected: the chain breaks at entry #${view.first_bad_seq}.`}
       </p>
-      <ol className="relative ml-1 mt-5 border-l-2 border-ink pl-5">
+      <ol className="relative ml-1 mt-5 border-l-[1.5px] border-ink pl-5">
         {[...view.entries].reverse().map((e) => {
           const p = e.payload as { decision?: "allow" | "block"; reason?: string; scope?: string | null; from?: string[]; to?: string[] };
           const bad = view.first_bad_seq !== null && e.seq >= view.first_bad_seq;
           return (
             <li key={e.hash} className="relative pb-4">
-              <span className={cn("absolute -left-[28px] top-1 size-3.5 rounded-full border-2 border-ink", bad ? "bg-coral" : e.kind.includes("revoked") ? "bg-coral" : e.kind.includes("verified") ? "bg-lavender" : "bg-yellow")} />
+              <span className={cn("absolute -left-[28px] top-1 size-3.5 rounded-full border-[1.5px] border-ink", bad ? "bg-coral" : e.kind.includes("revoked") ? "bg-coral" : e.kind.includes("verified") ? "bg-lavender" : "bg-yellow")} />
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[10.5px] font-bold text-muted-foreground">#{e.seq}</span>
                 <span className="text-[13.5px] font-bold">{KIND_LABEL[e.kind] ?? e.kind}</span>
@@ -837,10 +837,10 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
     const ok = result.agent.status === "active";
     return (
       <div className="h-full overflow-y-auto p-6">
-        <span className={cn("grid size-12 -rotate-6 place-items-center rounded-xl border-2 border-ink text-[#111] shadow-brut animate-pop", ok ? "bg-lime" : "bg-coral")}>
+        <span className={cn("grid size-12 place-items-center rounded-xl border-[1.5px] border-ink text-[#111] shadow-brut animate-pop", ok ? "bg-lime" : "bg-coral")}>
           {ok ? <ShieldCheck className="size-6" strokeWidth={2.5} /> : <ShieldAlert className="size-6" strokeWidth={2.5} />}
         </span>
-        <h2 className="font-display mt-4 text-[26px] font-extrabold leading-tight tracking-tight">{ok ? `${result.agent.name} is on the team` : `${result.agent.name} was onboarded suspended`}</h2>
+        <h2 className="font-display mt-4 text-[26px] font-bold leading-tight tracking-tight">{ok ? `${result.agent.name} is on the team` : `${result.agent.name} was onboarded suspended`}</h2>
         <p className="mt-1 text-[13.5px] font-medium text-muted-foreground">
           {ok
             ? `Passport issued. ${sponsor.name}'s identity, employment and authority all checked out against Crustdata.`
@@ -855,7 +855,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
     <form onSubmit={submit} className="flex h-full flex-col">
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         <div>
-          <h2 className="font-display text-[28px] font-extrabold leading-tight tracking-[-0.03em]">Onboard an AI employee</h2>
+          <h2 className="font-display text-[28px] font-bold leading-tight tracking-[-0.03em]">Onboard an AI employee</h2>
           <p className="mt-1 text-[13px] font-medium text-muted-foreground">It gets a signed passport tied to a real person, who is checked against Crustdata right away.</p>
         </div>
 
@@ -864,14 +864,14 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </Field>
 
         <div>
-          <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider">Role</span>
+          <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider">Role</span>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {roles.map((r) => (
               <button
                 type="button"
                 key={r.key}
                 onClick={() => pickRole(r.key)}
-                className={cn("press rounded-xl border-2 border-ink px-3 py-2 text-left shadow-brut-sm", roleKey === r.key ? "bg-yellow text-on-color" : "bg-panel")}
+                className={cn("press rounded-xl border-[1.5px] border-ink px-3 py-2 text-left shadow-brut-sm", roleKey === r.key ? "bg-yellow text-on-color" : "bg-panel")}
               >
                 <span className="block text-[13.5px] font-bold">{r.title}</span>
                 <span className="block text-[11.5px] font-medium leading-snug opacity-75">{r.summary}</span>
@@ -881,7 +881,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider">Sponsor (the human it acts for)</span>
+          <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider">Sponsor (the human it acts for)</span>
           {scenarios.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1">
               {scenarios.map((s) => (
@@ -891,7 +891,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
                   title={s.story}
                   onClick={() => setSponsor(s.sponsor)}
                   className={cn(
-                    "h-7 rounded-full border-2 border-ink px-2.5 text-[11.5px] font-bold transition",
+                    "h-7 rounded-full border-[1.5px] border-ink px-2.5 text-[11.5px] font-bold transition",
                     sponsor.profile_url === s.sponsor.profile_url ? "bg-lavender text-on-color shadow-brut-sm" : "bg-panel hover:bg-hover",
                   )}
                 >
@@ -914,7 +914,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wider">Scopes</span>
+          <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider">Scopes</span>
           <div className="grid gap-1.5">
             {ALL_SCOPES.map((sc) => (
               <ScopeToggle
@@ -932,9 +932,9 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
           <input type="number" min={1} max={365} value={days} onChange={(e) => setDays(Number(e.target.value) || 30)} className={cn(inputCls, "w-28")} />
         </Field>
 
-        {error && <p className="rounded-xl border-2 border-ink bg-coral px-3 py-2 text-[13px] font-bold text-on-color shadow-brut-sm">{error}</p>}
+        {error && <p className="rounded-xl border-[1.5px] border-ink bg-coral px-3 py-2 text-[13px] font-bold text-on-color shadow-brut-sm">{error}</p>}
       </div>
-      <div className="flex items-center justify-end gap-2 border-t-2 border-ink bg-elevated p-4">
+      <div className="flex items-center justify-end gap-2 border-t-[1.5px] border-ink bg-elevated p-4">
         <Button type="submit" variant="primary" disabled={busy || !scopes.length}>
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <IdCard className="size-3.5" />} Issue passport and check sponsor
         </Button>
