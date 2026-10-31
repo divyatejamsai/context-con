@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, FileClock, Loader2, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api, type Agent, type LedgerEntry, type LedgerView, type Scope } from "./api";
-import { Button, DecisionBadge, PageHead, ScopeChip, SourceChip, cardCls, inputCls } from "./parts";
+import { Button, DecisionBadge, EmptyState, PageHead, ScopeChip, SourceChip, cardCls, inputCls } from "./parts";
 
 const KIND_LABEL: Record<string, string> = {
   "passport.issued": "Passport issued",
@@ -20,6 +20,9 @@ const KIND_LABEL: Record<string, string> = {
   "work.outreach_run": "Work filed: outreach run",
   "work.vendor_brief": "Work filed: vendor brief",
   "work.resume_check": "Work filed: resume check",
+  "run.started": "Hiring run started",
+  "run.finished": "Hiring run finished",
+  "resume.verified": "Resume checked",
 };
 
 const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work filed: ${k.slice(5).replace(/_/g, " ")}` : k);
@@ -54,7 +57,9 @@ async function verifyInBrowser(entries: LedgerEntry[]): Promise<number | null> {
 
 // ---- views -----------------------------------------------------------------------------------
 
-export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: (c: { chain_ok: boolean; first_bad_seq: number | null; count: number }) => void }) {
+export function LedgerExplorer({
+  agents, onChain, onOnboard,
+}: { agents: Agent[]; onChain: (c: { chain_ok: boolean; first_bad_seq: number | null; count: number }) => void; onOnboard: () => void }) {
   const [view, setView] = useState<LedgerView | null>(null);
   const [browserBad, setBrowserBad] = useState<number | null | undefined>();
   const [agentId, setAgentId] = useState("");
@@ -62,15 +67,20 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
   const [follow, setFollow] = useState(true);
   const [loading, setLoading] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date>();
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const v = await api.ledger();
       setView(v);
+      setFailed(false);
       setBrowserBad(await verifyInBrowser(v.entries));
       setCheckedAt(new Date());
       onChain({ chain_ok: v.chain_ok, first_bad_seq: v.first_bad_seq, count: v.entries.length });
+    } catch (e) {
+      setFailed(true);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -95,31 +105,32 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-6">
       <PageHead title="Ledger">
-        An append-only record of every passport, check, verdict and suspension, with the Crustdata sources behind each one. Every entry
-        includes the hash of the one before it, so editing, deleting or reordering any line breaks the chain from that point on.
+        The permanent record of every passport, check, verdict and suspension, with the Crustdata sources behind each one. Use it to
+        prove later why an agent was trusted or stopped. Each entry includes the hash of the one before it, so editing, deleting or
+        reordering any line breaks the chain from that point on, and both checks below turn red.
       </PageHead>
 
       {view && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <Integrity label="Server check" detail="backend verify_chain()" bad={view.chain_ok ? null : view.first_bad_seq} />
-          <Integrity label="Browser check" detail="re-hashed here with Web Crypto" bad={browserBad} />
+          <Integrity label="Server check" detail="The backend re-hashed every entry (verify_chain)." bad={view.chain_ok ? null : view.first_bad_seq} />
+          <Integrity label="Browser check" detail="This page re-hashed every entry itself, so you don't have to trust the server." bad={browserBad} />
         </div>
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={cn(inputCls, "w-auto min-w-[180px]")}>
+        <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={cn(inputCls, "w-full sm:w-auto sm:min-w-[180px]")} aria-label="Filter by agent" title="Show entries about one agent">
           <option value="">All agents</option>
           {agents.map((a) => <option key={a.agent_id} value={a.agent_id}>{a.name}</option>)}
         </select>
-        <select value={kind} onChange={(e) => setKind(e.target.value)} className={cn(inputCls, "w-auto min-w-[180px]")}>
+        <select value={kind} onChange={(e) => setKind(e.target.value)} className={cn(inputCls, "w-full sm:w-auto sm:min-w-[180px]")} aria-label="Filter by event type" title="Show one kind of event">
           <option value="">All events</option>
           {kinds.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
         </select>
-        <label className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground">
+        <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground sm:ml-auto" title="Re-read and re-hash the ledger every 3 seconds, so tampering shows up live">
           <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} className="accent-[var(--primary)]" />
           Re-check every 3s
         </label>
-        <Button onClick={() => load()} disabled={loading}>
+        <Button onClick={() => load().catch(() => {})} disabled={loading} title="Re-read the ledger and re-hash every entry now">
           {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check now
         </Button>
       </div>
@@ -129,10 +140,20 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
       </p>
 
       <div className={cn(cardCls, "mt-4 px-5 py-4")}>
-        {shown.length ? (
+        {failed && !view ? (
+          <EmptyState icon={ShieldAlert} tone="bad" title="Couldn't read the ledger" action={<Button onClick={() => load().catch(() => {})}><RefreshCw className="size-3.5" /> Try again</Button>}>
+            The backend didn&apos;t answer. Check that it is running, then try again.
+          </EmptyState>
+        ) : !view ? (
+          <p className="inline-flex items-center gap-2 py-6 text-[12.5px] text-faint"><Loader2 className="size-3.5 animate-spin" /> Reading the ledger…</p>
+        ) : shown.length ? (
           <LedgerTimeline entries={shown} firstBad={browserBad ?? (view?.chain_ok ? null : view?.first_bad_seq ?? null)} names={names} />
+        ) : view.entries.length ? (
+          <EmptyState icon={FileClock} title="No entries match these filters" action={<Button onClick={() => { setAgentId(""); setKind(""); }}>Clear filters</Button>} />
         ) : (
-          <p className="text-[12.5px] text-faint">No entries yet.</p>
+          <EmptyState icon={FileClock} title="The ledger is empty" action={<Button variant="primary" onClick={onOnboard}><Plus className="size-3.5" /> Onboard an agent</Button>}>
+            Onboarding an AI employee writes the first entry: its passport being issued.
+          </EmptyState>
         )}
       </div>
     </main>
