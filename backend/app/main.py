@@ -25,11 +25,13 @@ load_dotenv(ROOT / "backend" / ".env")
 from . import llm  # noqa: E402  (after dotenv so LLM_MODE is set)
 from .orchestrator import run  # noqa: E402
 from .schemas import RunRequest  # noqa: E402
+from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
 app = FastAPI(title="Brief-to-Shortlist hiring agent")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.include_router(agents_router)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 

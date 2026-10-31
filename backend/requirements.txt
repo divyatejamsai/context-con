@@ -6,3 +6,4 @@ google-genai>=1.0
 python-dotenv>=1.0
 pytest>=8
 pytest-asyncio>=0.23
+cryptography>=42

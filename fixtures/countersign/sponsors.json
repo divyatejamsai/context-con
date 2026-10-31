@@ -1,0 +1,44 @@
+{
+  "_note": "Demo sponsors for Countersign. Each points at a real Person Enrich fixture in fixtures/crustdata/. 'claimed' is what the passport asserts; 'expect' is what verify_passport should conclude.",
+  "scenarios": [
+    {
+      "id": "authorised_founder",
+      "story": "Founder sponsors an AI recruiter. Everything checks out.",
+      "sponsor": {"name": "Pankaj Savaliya", "profile_url": "https://www.linkedin.com/in/pankajsavaliya", "company": "Grewon Technologies", "company_domain": "grewon.com", "title": "Co-Founder"},
+      "scopes": ["outreach.hiring", "contract.sign"],
+      "expect": "allow"
+    },
+    {
+      "id": "sponsor_left",
+      "story": "Agent still claims to act for a co-founder who left PulseTrader in April 2026.",
+      "sponsor": {"name": "Shivank Verma", "profile_url": "https://www.linkedin.com/in/shivankverma", "company": "PulseTrader", "company_domain": "pulsetrader.xyz", "title": "Co-Founder"},
+      "scopes": ["outreach.hiring"],
+      "expect": "block",
+      "failing_check": "sponsor_still_employed"
+    },
+    {
+      "id": "title_changed",
+      "story": "Passport says Co-Founder of Newtral; Crustdata says they are now an Advisor, who can't sign contracts.",
+      "sponsor": {"name": "Vinod Sonagara", "profile_url": "https://www.linkedin.com/in/vinod-sonagara", "company": "Newtral", "company_domain": "newtral.io", "title": "Co-Founder"},
+      "scopes": ["contract.sign"],
+      "expect": "block",
+      "failing_check": "sponsor_title_current"
+    },
+    {
+      "id": "junior_sponsor",
+      "story": "A backend engineer tries to authorise an agent to sign contracts.",
+      "sponsor": {"name": "Charish Anumukonda", "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140", "company": "SpotDraft", "company_domain": "spotdraft.com", "title": "Backend Engineer"},
+      "scopes": ["contract.sign"],
+      "expect": "block",
+      "failing_check": "sponsor_can_grant_scope"
+    },
+    {
+      "id": "spoofed_domain",
+      "story": "Real, current employee, but the agent sends from a lookalike domain.",
+      "sponsor": {"name": "Vinayak Kalushe", "profile_url": "https://www.linkedin.com/in/vinayakkalushe", "company": "KIoT", "company_domain": "kiot-hr.com", "title": "Backend & DevOps Engineer"},
+      "scopes": ["data.read"],
+      "expect": "block",
+      "failing_check": "domain_matches_company"
+    }
+  ]
+}
