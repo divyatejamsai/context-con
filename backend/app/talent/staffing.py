@@ -102,10 +102,22 @@ def fits(rec: dict, fam: str) -> tuple[bool, str | None, str | None]:
     return False, None, None
 
 
+def _plain(s: str | None) -> str:
+    """Fold styled letters people put in profile names (small capitals, fullwidth, accents) to plain ASCII."""
+    import unicodedata
+
+    out = []
+    for ch in unicodedata.normalize("NFKC", s or ""):
+        name = unicodedata.name(ch, "")
+        m = re.match(r"LATIN (?:LETTER SMALL CAPITAL|SMALL LETTER|CAPITAL LETTER) ([A-Z])\b", name)
+        out.append(m.group(1).lower() if m and not ch.isascii() else ch)
+    return unicodedata.normalize("NFKD", "".join(out)).encode("ascii", "ignore").decode()
+
+
 def names_match(applied: str | None, record: str | None) -> bool:
     """First and last name tokens must agree (initials and middle names are allowed to differ)."""
-    a = [t for t in norm(applied).split() if len(t) > 1]
-    r = [t for t in norm(record).split() if len(t) > 1]
+    a = [t for t in norm(_plain(applied)).split() if len(t) > 1]
+    r = [t for t in norm(_plain(record)).split() if len(t) > 1]
     if not a or not r:
         return False
     return a[0] == r[0] and (len(a) == 1 or len(r) == 1 or a[-1] == r[-1] or a[-1] in r)

@@ -258,6 +258,9 @@ def test_campaign_api_create_stream_and_transcript():
 def test_names_match():
     assert names_match("Asha Rao", "Asha K. Rao") and names_match("asha rao", "Asha Rao")
     assert not names_match("Rohit Kumar", "Asha Rao") and not names_match("Asha Shetty", "Asha Rao")
+    # live run: a small-caps profile name was flagged as someone else's
+    assert names_match("ꜱɴᴇʜᴀʟ ᴛᴇᴋᴀʟᴇ", "ꜱɴᴇʜᴀʟ ᴛᴇᴋᴀʟᴇ") and names_match("Snehal Tekale", "ꜱɴᴇʜᴀʟ ᴛᴇᴋᴀʟᴇ")
+    assert names_match("José Pérez", "Jose Perez") and not names_match("ꜱɴᴇʜᴀʟ ᴛᴇᴋᴀʟᴇ", "Asha Rao")
 
 
 @pytest.mark.asyncio
