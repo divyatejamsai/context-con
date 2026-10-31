@@ -66,7 +66,9 @@ BUCKETS: dict[str, tuple[list[str], list[str], list[str]]] = {
            ["data.read"], ["contract.sign", "payment.send", "outreach.hiring"]),
 }
 # Titles in a bucket that override the bucket's CANNOT list (e.g. an "Account Executive" can't hire, a "Sales Director" arguably can).
-SENIOR = re.compile(r"\b(head|director|vp|vice president|chief|founder|cxo|cto|ceo|cfo|coo|president|partner|owner)\b", re.I)
+SENIOR = re.compile(r"\b(head|director|vp|vice president|chief|(co-?)?founder|cofounder|cxo|cto|ceo|cfo|coo|president|partner|owner)\b", re.I)
+SUBORD = re.compile(r"\b(assistant|intern|trainee|former|ex|chief of staff|office of)\b|\bto (the )?\w", re.I)
+FINANCE = re.compile(r"cfo|chief financial|financ|controller|treasur|founder|ceo|owner|president|partner|managing director", re.I)
 
 
 @dataclass
@@ -138,8 +140,12 @@ def build_cases(people: list[tuple[str, str, dict]], rng: random.Random) -> list
         if not (pr.name and pr.profile_url and job and job.company and job.title):
             continue
         can, cannot = BUCKETS[bucket][1], BUCKETS[bucket][2]
-        if SENIOR.search(job.title or ""):
-            cannot = [s for s in cannot if s == "payment.send" and not re.search(r"cfo|financ|founder|ceo|owner|president|partner|managing director", job.title, re.I)]
+        if SUBORD.search(job.title):  # assistants/interns to an executive carry none of their authority
+            can, cannot = ["data.read"], ["payment.send", "contract.sign"]
+        elif SENIOR.search(job.title):
+            cannot = [s for s in cannot if s == "payment.send" and not FINANCE.search(job.title)]
+            if "payment.send" in can and not FINANCE.search(job.title):  # e.g. a Chief Commercial Officer in the finance search
+                can = [s for s in can if s != "payment.send"]
         pid = f"{bucket}{idx:03d}"
         base = {"name": pr.name, "profile_url": pr.profile_url, "company": job.company, "company_domain": job.domain, "title": job.title}
         scope = can[0]

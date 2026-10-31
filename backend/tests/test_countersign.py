@@ -172,3 +172,18 @@ def test_admin_token_guards_mutating_routes(monkeypatch):
     r = c.post("/api/passport/issue", json=body, headers={"x-admin-token": "s3cret"})
     assert r.status_code == 200
     assert c.post("/api/passport/verify", json={"passport": r.json()["passport"]}).status_code == 200  # verify stays public
+
+
+def test_assistants_interns_and_former_execs_carry_no_authority_round3():
+    from app.agents.passport import can_grant, title_matches
+    for t, sc in [("Executive Assistant to Chief Financial Officer (CFO)", "payment.send"),
+                  ("Executive Assistant to the Chief Financial and Operating Officer", "payment.send"),
+                  ("Intern, Office of the CEO", "contract.sign"), ("Founder's Office Associate", "contract.sign"),
+                  ("Chief of Staff to CFO", "payment.send"), ("Finance Intern", "payment.send"), ("Ex-CFO", "payment.send")]:
+        assert not can_grant(t, sc), t
+    assert can_grant("Cofounder - Data Analyst", "contract.sign")
+    for claimed, real in [("President", "Vice President"), ("CFO", "Former CFO"), ("CEO", "CEO Office Intern"),
+                          ("VP Sales", "AVP Sales"), ("Director of Engineering", "Associate Director of Engineering"),
+                          ("Head of Sales", "Assistant to Head of Sales")]:
+        assert not title_matches(claimed, real), (claimed, real)
+    assert title_matches("Engineer", "Staff Engineer")

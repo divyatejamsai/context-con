@@ -147,11 +147,21 @@ SCOPE_RULES: dict[str, tuple[str, str]] = {
 }
 
 
+# A role containing these works FOR the powerful person, or used to be them: "Executive Assistant to the CFO",
+# "Intern, Office of the CEO", "Ex-CFO", "Chief of Staff to CFO". It never carries that person's authority.
+SUBORDINATE = re.compile(r"\b(assistant|intern|internship|trainee|apprentice|former|ex|retired|chief of staff|office of|s office|to)\b")
+
+
 def can_grant(title: str | None, scope: str) -> bool:
+    """True if some role in the title carries the authority. Roles are judged one at a time (split on and/&/|),
+    and a subordinate role ("assistant to the CFO") never counts, even though it names a CFO."""
     if not title or scope not in SCOPE_RULES:
         return False
-    t = expand_title(title)  # keeps word order so phrases like "chief financial" match
-    return re.search(SCOPE_RULES[scope][0], t) is not None
+    for part in _ROLE_SPLIT.split(title):
+        t = expand_title(part)  # keeps word order so phrases like "chief financial" match
+        if t and not SUBORDINATE.search(t) and re.search(SCOPE_RULES[scope][0], t):
+            return True
+    return False
 
 
 # ----------------------------------------------------------------------------- verify
@@ -240,7 +250,12 @@ def title_matches(claimed: str | None, actual: str | None) -> bool:
     if norm(claimed) and norm(claimed) == norm(actual):
         return True
     c, a = _roles(claimed), _roles(actual)
-    return bool(c and a) and all(any(cr <= ar for ar in a) for cr in c)
+    # leaving out a rank-changing word isn't understating: "President" for "Vice President", "CFO" for "Former CFO"
+    return bool(c and a) and all(any(cr <= ar and (ar & _RANK_WORDS) <= cr for ar in a) for cr in c)
+
+
+_RANK_WORDS = {"vice", "associat", "assistant", "deputy", "former", "ex", "intern", "internship", "traine", "apprentice",
+               "retired", "acting", "to", "offic", "junior"}
 
 
 def _src(endpoint: str, field: str | None, url: str | None = None) -> Source:
