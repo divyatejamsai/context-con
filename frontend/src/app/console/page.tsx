@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
-  Building2, LayoutDashboard, ShieldAlert, ShieldCheck, UserCog, Users, X,
+  Building2, LayoutDashboard, Scale, ShieldAlert, ShieldCheck, UserCog, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
@@ -23,6 +23,7 @@ import { DemoView } from "./demo";
 import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } from "./agent";
 import { WorkView } from "./work";
 import { MembersView } from "./members";
+import { RulesView } from "./rules";
 import { CompaniesView } from "./companies";
 import { DashboardView } from "./dashboard";
 import { AccountMenu } from "@/components/account-menu";
@@ -33,7 +34,7 @@ import { AGENT_APPS, appFor } from "@/lib/apps";
 import { Logo } from "@/components/app-header";
 
 type Mode = "loading" | "live" | "offline";
-type View = "home" | "companies" | "employees" | "work" | "verify" | "guard" | "ledger" | "members" | "demo";
+type View = "home" | "companies" | "employees" | "work" | "verify" | "guard" | "ledger" | "rules" | "members" | "demo";
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
 type Group = "Platform" | "Workforce" | "Tools" | "Audit" | "Workspace" | "Learn";
@@ -48,6 +49,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; gr
   { v: "work", label: "Live work", icon: Activity, desc: "Everything your agents are doing right now, and what's waiting for your approval", group: "Workforce" },
   { v: "verify", label: "Check a passport", icon: ShieldCheck, desc: "An agent from another company contacted you? Check whether it can be trusted", group: "Tools" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
+  { v: "rules", label: "Rules", icon: Scale, desc: "Company rules your agents must follow, set without code and enforced when they act", group: "Workspace" },
   { v: "members", label: "Members", icon: UserCog, desc: "Who at your company can see and control agents, and their roles", group: "Workspace" },
   { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six agents go through seven situations, with every decision and its source", group: "Learn" },
 ];
@@ -85,7 +87,7 @@ export default function Console() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [chain, setChain] = useState<Chain>();
   const [selected, setSelected] = useState<string>();
-  const [tab, setTabState] = useState<Tab>("work");
+  const [tab, setTabState] = useState<Tab>("overview");
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
@@ -145,7 +147,7 @@ export default function Console() {
   }, [connect]);
 
   /** Opens an agent's page (or the list, with no id) and keeps it in the URL so it can be shared and reloaded. */
-  const openAgent = (id?: string, t: Tab = "work") => {
+  const openAgent = (id?: string, t: Tab = "overview") => {
     setSelected(id);
     setTabState(t);
     setViewState("employees");
@@ -153,7 +155,7 @@ export default function Console() {
     u.searchParams.delete("view");
     if (id) {
       u.searchParams.set("agent", id);
-      if (t !== "work" && t !== "overview") u.searchParams.set("tab", t);
+      if (t !== "overview") u.searchParams.set("tab", t);
       else u.searchParams.delete("tab");
     } else {
       u.searchParams.delete("agent");
@@ -237,6 +239,8 @@ export default function Console() {
           <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
         ) : view === "guard" ? (
           <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
+        ) : view === "rules" ? (
+          <RulesView agents={agents} />
         ) : view === "members" ? (
           <MembersView ws={ws} />
         ) : view === "demo" ? (

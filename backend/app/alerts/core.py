@@ -509,9 +509,11 @@ def _maybe_second(p: dict, e: dict) -> None:
     if len(got) >= need:
         return
     done = set()
-    for g in got:
+    for g in got:  # rules engine: {key: "user:<id>" | "label:<by>", by, at}
         act = g.get("actor") or {}
-        done |= {x for x in (act.get("user_id"), act.get("email"), g.get("by")) if x}
+        key = str(g.get("key") or "")
+        done |= {x for x in (act.get("user_id"), act.get("email"), g.get("by"),
+                             key[5:] if key.startswith("user:") else None) if x}
     actor = e.get("actor") or {}
     done |= {x for x in (actor.get("user_id"), actor.get("email"), p.get("by")) if x}
     agent = _agent(a["agent_id"])

@@ -252,3 +252,40 @@ async def test_without_accounts_the_link_acts_as_the_employer_and_never_breaks_t
     await alerts.drain()
     assert alerts.all_alerts()[-1]["channels"]["email"]["status"] == "failed"
     assert store.get_approval(a["approval_id"])["status"] == "rejected"
+
+
+@pytest.mark.asyncio
+async def test_two_approver_offer_asks_a_second_person_and_counts_link_approvals_as_people(inbox, monkeypatch, tmp_path):
+    from app.rules import engine
+    from app.runtime.kinds import hire_template
+    async with client() as c:
+        owner = await signup(c, "owner@acme.io")
+        await signup(c, "riya@acme.io")
+        me = (await c.get("/api/auth/me", headers=h(owner))).json()
+        people = {m["email"]: m for m in (await c.get("/api/workspace/members", headers=h(owner))).json()["members"]}
+        onboard(["sourced"])
+        rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+        await rt.start()
+        try:
+            offer, _ = await hire_template("offer", rt.client)
+            registry.set_workspace(offer["agent_id"], me["company"]["id"])
+            registry.set_assignees(offer["agent_id"], [people["riya@acme.io"]["id"]])
+            engine.create("offer_approvers", {"threshold": "₹30L", "approvers": 2}, by="owner", workspace_id=None)
+            t = rt.assign(offer["agent_id"], "offer_letter", {"candidate": "Pankaj Savaliya | https://www.linkedin.com/in/pankaj-savaliya | Acme",
+                                                               "role": "Senior Backend Engineer", "compensation": "₹42 LPA"}, by="test")
+            await until(lambda: store.get_task(t["task_id"])["status"] not in ("queued", "running"), 60)
+        finally:
+            await rt.stop()
+        await alerts.drain()
+        first = next(m for m in inbox if "sign an offer letter" in m["subject"])
+        assert "riya@acme.io" in first["text"] and "needs 2 different people" in first["text"]
+        r = await c.post(f"/api/alerts/action/{token_from(first['text'], 'approve')}", json={})
+        assert r.status_code == 200 and r.json()["approval"]["status"] == "pending"
+        await alerts.drain()
+        second = next(m for m in inbox if "1 of 2 approved" in m["subject"])
+        assert "owner@acme.io" in second["text"] and "riya@acme.io" in second["text"]  # for the owner; riya approved
+        r2 = await c.post(f"/api/alerts/action/{token_from(second['text'], 'approve')}", json={})
+        assert r2.status_code == 200 and r2.json()["approval"]["status"] == "signed"
+        signed = ledger.entries(kind="offer.signed")[-1]
+        assert signed["payload"]["approvers"] == ["riya@acme.io", "owner@acme.io"]
+        assert signed["actor"]["via"] == "alert_link" and signed["actor"]["email"] == "owner@acme.io"
