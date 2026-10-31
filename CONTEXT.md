@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:13 | Use the already-billed GCP project for Vertex instead of linking billing to the original one | User asked to fix Gemini now; avoids touching billing accounts | Claude (under the user's "fix gemini" ask) |
 | ~11:00 | Keep repo public and merge real person fixtures into main (chosen over making the repo private) | Replay mode and demo work from the repo alone | dummyanaxes |
 | ~10:46 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
 | ~10:46 | Seeded-fake resumes are built locally and never committed | Public repo; they contain real people's records | WS5 |
@@ -106,6 +107,9 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~11:11 | **Gemini works** (gemini-2.5-flash on the billed project; `.env` switched, old `.env` backed up locally). **Live run 3 (real Gemini + Crustdata)**: 26s, 0 errors, 132 profiles searched, 10 shortlisted. Scores 85,85,85,85,85,71,71,62,41,38. Claims: 68 verified, 10 unverifiable, 1 contradicted. Issues sent to WS2: parse_brief drops "Senior" from role and title variants (4 of 10 below senior), duplicates the domain as a "Payments experience" must-have (never matches, caps the score at 85), and outreach adds unsupported adjectives. gemini-2.5-pro is unused unless `RANK_USE_LLM=1` |
+| ~11:13 | Gemini still blocked: billing was enabled on a different GCP project than the one in `.env`. Fix: point `.env` `GOOGLE_CLOUD_PROJECT` at the billed project and enable Vertex AI there (no billing changes) |
+| ~11:12 | **Live run 2 (real Crustdata, mock LLM) after the domain fixes:** the domain query (skills OR headline) is accepted by the API. 70 profiles found, 10 shortlisted. Payments verified for 9 of 10 (headline 6, skills 2, past title 1). Claims: 69 verified, 1 unverifiable, 0 contradicted. **Issue:** 8 of 10 candidates score 100, so the ranker saturates and doesn't differentiate |
 | ~11:09 | WS3 domain fix merged (e19a9d6): domain skills such as payments, fintech or saas map to industry keywords. Evidence order: profile skills, headline, job titles, Company Enrich industry, job-level industry or employer name, company description, citing the matched field. On real fixtures, 3 of 6 people now have payments verified. Concurrent roles are deduped by company |
 | ~11:08 | WS2 domain fix merged (f45233a): each search level with titles also runs a domain query (all title variants + location + up to 3 domain terms, matched on skills OR headline). Hits get a +3 prescore boost. Skills and headline field names are not live-verified yet, but a rejected query fails alone |
 | ~11:06 | **First live run (real Crustdata, mock LLM)**, brief "senior backend engineer, payments experience, Bangalore": 4 title-variant searches returned 62 profiles, 10 were enriched and shortlisted, 0 errors. Claims: 61 verified, 9 unverifiable, 0 contradicted. City filter confirmed on the real API. Issues sent to WS2/WS3: (a) the skills filter only applies at the last broaden step, so a domain like "payments" never shapes the search; (b) the verifier treats "payments" as a LinkedIn skill, so it's always unverifiable (fix: evidence it from employer industry); (c) false "concurrent roles: Wipro, Wipro" flag (fix: dedupe by company) |
@@ -151,6 +155,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 | Data | Crustdata API (mandatory), all responses cached to `cache/*.json` | Saves credits in dev; **replay mode** keeps the demo working if the API or wifi dies |
 
 **Open questions**
+1. GCP project for Vertex: the one with billing (set in Mac `.env` only, never in the repo).
 1. ~~LLM key~~ Resolved 10:12: Gemini via Vertex ADC. Each dev machine runs the ADC setup (`bash <(curl -sSL https://storage.googleapis.com/cloud-samples-data/adc/setup_adc.sh)`, or `gcloud auth application-default login`), then sets `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` in `.env`.
 2. Crustdata API key, rate limits and credit cost per call (from the 10:00 walkthrough).
 4. ~~Real people's data in a public repo~~ Decided ~11:00 IST: keep public and merge.
