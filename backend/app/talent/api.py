@@ -136,6 +136,13 @@ class AdvanceRequest(BaseModel):
 @router.post("/campaigns/{cid}/advance")
 async def advance(cid: str, req: AdvanceRequest, x_admin_token: str | None = Header(default=None)):
     _admin(x_admin_token)
+    if _load(cid).get("mode") == "live":
+        try:  # pull new email replies first (they land in their conversations via the reply handler)
+            from ..outbound import tracking
+            C.register_replies()
+            await tracking.refresh()
+        except ImportError:
+            pass
     async with _lock(cid):
         camp = _load(cid)
         events: list[dict] = []
