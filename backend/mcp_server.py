@@ -3,12 +3,13 @@
 Run:   cd backend && CRUSTDATA_MODE=replay python mcp_server.py
 Claude Code:  claude mcp add countersign -e CRUSTDATA_MODE=replay -- python /abs/path/backend/mcp_server.py
 
-Tools
-  verify_agent(passport, scope?)                              -> Verdict  (passport + live sponsor checks)
-  check_before_send(passport, signature, to, body, scope)     -> Verdict  (allow / block, every check cited)
-  send_message(passport, signature, to, body, scope)          -> {verdict, sent}  (allow -> outbox file; nothing is emailed)
-  sign_message(passport, agent_private_key, body)             -> {signature}  (for agents holding their own key)
-  ledger_lookup(agent_id?)                                    -> {chain_ok, first_bad_seq, entries}
+Tools (identify the agent by agent_id; the server loads its passport from the AI employee registry.
+A passport JSON is accepted instead for agents that aren't onboarded here. No tool ever takes a private key:
+the agent signs the body itself with passport.sign_message, so the key never crosses the wire.)
+  verify_agent(agent_id | passport, scope?)                         -> Verdict  (passport + live sponsor checks)
+  check_before_send(agent_id | passport, signature, to, body, scope) -> Verdict  (allow / block, every check cited)
+  send_message(agent_id | passport, signature, to, body, scope)      -> {verdict, sent}  (allow -> outbox file; never emailed)
+  ledger_lookup(agent_id?)                                          -> {chain_ok, first_bad_seq, entries}
 
 Plain JSON-RPC 2.0 over newline-delimited stdin/stdout (the MCP stdio transport), so it needs no MCP SDK.
 Logs go to stderr; stdout carries protocol messages only.
@@ -16,7 +17,6 @@ Logs go to stderr; stdout carries protocol messages only.
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 import logging
 import os
@@ -36,14 +36,15 @@ log = logging.getLogger("countersign.mcp")
 
 from app.agents import ledger  # noqa: E402
 from app.agents.graph import Graph  # noqa: E402
-from app.agents.guard import blocking_reasons, check_send, send_if_allowed  # noqa: E402
+from app.agents.guard import UnknownAgent, blocking_reasons, check_send, resolve_agent, send_if_allowed  # noqa: E402
 from app.agents.models import SCOPES, Passport  # noqa: E402
-from app.agents.passport import sign_message, verify_passport  # noqa: E402
+from app.agents.passport import verify_passport  # noqa: E402
 
 SERVER_INFO = {"name": "countersign", "version": "0.1.0"}
 PROTOCOL_VERSION = "2025-06-18"
 
-_PASSPORT = {"type": "object", "description": "The agent's Countersign passport (JSON as issued)."}
+_AGENT_ID = {"type": "string", "description": "Your Countersign agent id (agt_...). The server loads your passport."}
+_PASSPORT = {"type": "object", "description": "Only for agents not onboarded here: the Countersign passport JSON."}
 _TO = {
     "type": "object", "description": "Recipient.",
     "properties": {"name": {"type": "string"}, "profile_url": {"type": "string", "description": "LinkedIn URL"},
@@ -53,17 +54,18 @@ _TO = {
 _SCOPE = {"type": "string", "enum": list(SCOPES)}
 _SEND_ARGS = {
     "type": "object",
-    "properties": {"passport": _PASSPORT, "signature": {"type": "string", "description": "sign_message output for this exact body"},
+    "properties": {"agent_id": _AGENT_ID, "passport": _PASSPORT,
+                   "signature": {"type": "string", "description": "Your Ed25519 signature of this exact body (passport.sign_message, base64)"},
                    "to": _TO, "body": {"type": "string"}, "scope": _SCOPE,
                    "today": {"type": "string", "description": "Optional ISO date override (demos)"}},
-    "required": ["passport", "signature", "to", "body", "scope"],
+    "required": ["signature", "to", "body", "scope"],
 }
 
 TOOLS = [
     {"name": "verify_agent",
      "description": "Check an agent's passport: Countersign signature, expiry, revocation, and live Crustdata checks that the "
                     "human sponsor exists, still works at the company, and holds a title that can grant the scope.",
-     "inputSchema": {"type": "object", "properties": {"passport": _PASSPORT, "scope": _SCOPE}, "required": ["passport"]}},
+     "inputSchema": {"type": "object", "properties": {"agent_id": _AGENT_ID, "passport": _PASSPORT, "scope": _SCOPE}}},
     {"name": "check_before_send",
      "description": "Call before sending any outbound message. Returns decision allow/block with every check and its "
                     "Crustdata source: passport, message signature, recipient still at the company, and each factual claim "
@@ -72,11 +74,6 @@ TOOLS = [
     {"name": "send_message",
      "description": "Guarded send: runs check_before_send and, only on allow, writes the message to the outbox. Never emails.",
      "inputSchema": _SEND_ARGS},
-    {"name": "sign_message",
-     "description": "Sign a message body with the agent's private key (base64), binding it to the passport.",
-     "inputSchema": {"type": "object", "properties": {"passport": _PASSPORT, "agent_private_key": {"type": "string"},
-                                                       "body": {"type": "string"}},
-                     "required": ["passport", "agent_private_key", "body"]}},
     {"name": "ledger_lookup",
      "description": "Read the tamper-evident Countersign ledger (optionally for one agent) and whether the hash chain is intact.",
      "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}, "kind": {"type": "string"},
@@ -109,22 +106,32 @@ def _verdict_text(v, extra: dict | None = None) -> str:
     return head + "\n\n" + json.dumps({**v.model_dump(), **(extra or {})}, indent=2)
 
 
+def _agent(args: dict) -> tuple[Passport, str | None]:
+    """agent_id -> (registry passport, status); else the passport given (status unknown)."""
+    if args.get("agent_id"):
+        p, status = resolve_agent(args["agent_id"])
+        if args.get("passport") and Passport.model_validate(args["passport"]).agent_id != p.agent_id:
+            raise UnknownAgent("passport and agent_id name different agents")
+        return p, status
+    if args.get("passport"):
+        return Passport.model_validate(args["passport"]), None
+    raise UnknownAgent("send agent_id (or, for agents not onboarded here, passport)")
+
+
 async def call_tool(name: str, args: dict) -> tuple[str, bool]:
     """Returns (text, is_error)."""
     if name == "verify_agent":
-        v = await verify_passport(Passport.model_validate(args["passport"]), scope=args.get("scope"), graph=_graph())
-        return _verdict_text(v), False
+        p, status = _agent(args)
+        v = await verify_passport(p, scope=args.get("scope"), graph=_graph())
+        return _verdict_text(v, {"registry_status": status}), False
     if name in ("check_before_send", "send_message"):
-        p = Passport.model_validate(args["passport"])
-        kw = dict(today=_today(args), graph=_graph())
+        p, status = _agent(args)
+        kw = dict(today=_today(args), graph=_graph(), agent_status=status)
         if name == "check_before_send":
             v = await check_send(p, args["signature"], args["to"], args["body"], args["scope"], **kw)
             return _verdict_text(v), False
         v, sent = await send_if_allowed(p, args["signature"], args["to"], args["body"], args["scope"], **kw)
         return ("SENT to outbox. " if sent else "NOT SENT. ") + _verdict_text(v, {"sent": sent}), False
-    if name == "sign_message":
-        sig = sign_message(Passport.model_validate(args["passport"]), base64.b64decode(args["agent_private_key"]), args["body"])
-        return json.dumps({"signature": sig}), False
     if name == "ledger_lookup":
         ok, bad = ledger.verify_chain()
         rows = ledger.entries(args.get("agent_id"), args.get("kind"))[-int(args.get("limit") or 50):]
