@@ -241,14 +241,14 @@ def test_degree_matching():
     assert not degree_matches("PhD", "Bachelor of Engineering - BE")
 
 
-def _person(school: str) -> dict:
+def _person(school: str, end_year: int = 2024) -> dict:
     return {
         "basic_profile": {"name": "Asha Rao", "headline": "Quantitative Trader at Graviton",
                           "location": {"city": "Mumbai", "country": "India"}},
         "experience": {"employment_details": {"current": [
             {"title": "Quantitative Trader", "name": "Graviton Research Capital", "start_date": "2024-07-01"}],
             "past": []}},
-        "education": {"schools": [{"school": school, "degree": "Bachelor of Technology - BTech", "end_year": 2024}]},
+        "education": {"schools": [{"school": school, "degree": "Bachelor of Technology - BTech", "end_year": end_year}]},
         "_source": {"endpoint": "person/enrich"},
     }
 
@@ -274,7 +274,7 @@ def test_education_claim_and_ranking_prefer_the_asked_schools():
 def test_junior_brief_caps_a_twenty_year_career():
     c = Criteria(role="Quantitative Trader", title_variants=["Quantitative Trader"], seniority="junior",
                  schools=["IIT"], education_note="prestige college in India")
-    senior = _person("Indian Institute of Technology, Kanpur")
+    senior = _person("Indian Institute of Technology, Kanpur", end_year=2004)
     senior["experience"]["employment_details"]["past"] = [
         {"title": "Trader", "name": "Old Bank", "start_date": "2004-07-01", "end_date": "2024-06-30"}]
     fresh = _person("Indian Institute of Technology, Kanpur")
@@ -287,3 +287,30 @@ def test_junior_brief_caps_a_twenty_year_career():
     s_fresh, _ = asyncio.run(score(fresh))
     assert any(r.text.startswith("Too senior for a junior role") for r in reasons)
     assert s_senior <= 60 < s_fresh
+
+
+def test_student_roles_do_not_count_as_experience():
+    """Live run: 2026 graduates showed ~3.6 yrs from E-Cell and hostel roles, a 2015 grad ~14 yrs from a 2013
+    internship. Only work after (or alongside, once graduated) counts."""
+    c = Criteria(role="Quantitative Trader", seniority="junior", schools=["IIT"])
+    p = _person("Indian Institute of Technology Delhi", end_year=2026)
+    p["experience"]["employment_details"]["current"] = [
+        {"title": "Quantitative Trader", "name": "Tower Research Capital", "start_date": "2026-07-01"}]
+    p["experience"]["employment_details"]["past"] = [
+        {"title": "Overall Coordinator", "name": "E-Cell, IIT Delhi", "start_date": "2023-01-01", "end_date": "2024-01-01"},
+        {"title": "Secretary", "name": "Hostel Board", "start_date": "2022-08-01", "end_date": "2023-05-01"},
+        {"title": "Quant Research Intern", "name": "Graviton", "start_date": "2025-05-01", "end_date": "2025-07-01"},
+    ]
+    claims, _ = asyncio.run(verify_candidate(p, None, c, None, today=__import__("datetime").date(2026, 10, 31)))
+    exp = next(k for k in claims if k.claim.endswith("of experience"))
+    assert exp.claim == "~0.3 yrs of experience"
+    assert "3 internship/student roles not counted" in exp.evidence
+
+    q = _person("Indian Institute of Technology Delhi", end_year=2015)
+    q["experience"]["employment_details"]["current"] = [
+        {"title": "Quantitative Trader", "name": "AlphaGrep", "start_date": "2015-07-01"}]
+    q["experience"]["employment_details"]["past"] = [
+        {"title": "Summer Intern", "name": "Goldman Sachs", "start_date": "2013-05-01", "end_date": "2013-07-01"}]
+    claims, _ = asyncio.run(verify_candidate(q, None, c, None, today=__import__("datetime").date(2026, 10, 31)))
+    exp = next(k for k in claims if k.claim.endswith("of experience"))
+    assert exp.claim == "~11 yrs of experience"
