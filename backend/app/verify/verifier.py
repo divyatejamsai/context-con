@@ -20,7 +20,7 @@ from ..schemas import Claim, Criteria, Source
 
 from .profile import (
     CompanyFacts, Job, Profile, company_key, load_company, load_person, norm, parse_date,
-    same_company, seniority_rank, stage_bucket, title_similarity, tokens, unwrap_url,
+    same_company, seniority_rank, skill_matches, stage_bucket, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
 if TYPE_CHECKING:  # avoid a hard dependency on WS1's module at import time
@@ -129,7 +129,7 @@ async def verify_candidate(
 ) -> tuple[list[Claim], list[str]]:
     """Return (claims, flags). Never raises on bad or missing data."""
     today = today or date.today()
-    person = person or {}
+    person = unwrap_record(person or {})
     pr: Profile = load_person(person)
     claimed: dict[str, Any] = person.get("claimed") or {}
     claimed_src = claimed.get("_source") or "candidate resume"
@@ -181,13 +181,16 @@ async def verify_candidate(
 
     # 2. Title
     graph_title = cur.title if cur else None
+    level = cur.seniority_level if cur else None
+    # Crustdata's seniority_level (e.g. "Senior") is shown when the title itself doesn't say it.
+    level_note = f" ({level})" if level and graph_title and seniority_rank(level) > seniority_rank(graph_title) else ""
     stated_title = claimed.get("title") or _headline_title(pr.headline)
     if stated_title and graph_title:
         sim = title_similarity(stated_title, graph_title)
         record_rank = max(seniority_rank(graph_title), seniority_rank(cur.seniority_level) if cur.seniority_level else 0)
         inflated = seniority_rank(stated_title) > record_rank
         if sim >= 0.5 and not inflated:
-            out.add(f"Title: {graph_title}", "verified", f"stated '{stated_title}' matches record '{graph_title}'", ep, f"{cur.path}.title")
+            out.add(f"Title: {graph_title}{level_note}", "verified", f"stated '{stated_title}' matches record '{graph_title}'", ep, f"{cur.path}.title")
         elif inflated:
             out.add(f"Title: {stated_title}", "contradicted",
                     f"stated '{stated_title}' is more senior than the record '{graph_title}' at {cur.company}", ep, f"{cur.path}.title")
@@ -196,9 +199,9 @@ async def verify_candidate(
                     f"stated '{stated_title}' but the record says '{graph_title}' at {cur.company}", ep, f"{cur.path}.title")
         else:
             # Headline wording often differs from the formal title; record the formal one.
-            out.add(f"Title: {graph_title}", "verified", f"title on current role (headline reads '{stated_title}')", ep, f"{cur.path}.title")
+            out.add(f"Title: {graph_title}{level_note}", "verified", f"title on current role (headline reads '{stated_title}')", ep, f"{cur.path}.title")
     elif graph_title:
-        out.add(f"Title: {graph_title}", "verified", "title on current role", ep, f"{cur.path}.title")
+        out.add(f"Title: {graph_title}{level_note}", "verified", "title on current role", ep, f"{cur.path}.title")
     elif stated_title:
         out.add(f"Title: {stated_title}", "unverifiable", "no title on the current role in the graph", ep, pr.headline_field)
 
@@ -225,12 +228,14 @@ async def verify_candidate(
     if starts:
         total = _years(min(starts), today)
         cy = claimed.get("years_experience")
+        first_job = min((j for j in pr.current + pr.past if j.start), key=lambda j: j.start)
+        exp_field = f"{first_job.path}.start_date"
         if cy is not None and float(cy) - total > EXPERIENCE_TOLERANCE_YEARS:
             out.add(f"{cy} yrs of experience", "contradicted",
-                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)})", ep, "past_employers")
+                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)})", ep, exp_field)
         else:
             out.add(f"~{_fmt_years(total)} of experience", "verified",
-                    f"earliest role starts {min(starts).isoformat()}", ep, "past_employers")
+                    f"earliest role starts {min(starts).isoformat()} ({first_job.company})", ep, exp_field)
     elif claimed.get("years_experience") is not None:
         out.add(f"{claimed['years_experience']} yrs of experience", "unverifiable", "no dated roles in the graph", ep, "past_employers")
 
@@ -266,12 +271,18 @@ async def verify_candidate(
                     cf.stage_field or cf.headcount_field)
         else:
             out.add(f"{name} stage/size", "unverifiable", "company record has no funding or headcount", cf.endpoint)
+    elif cur and (cur.company_headcount or cur.company_headcount_range):
+        hc = cur.company_headcount
+        bucket = stage_bucket(CompanyFacts(headcount=hc)) if hc else None
+        bits = [b for b in (f"~{hc:,} employees" if hc else f"{cur.company_headcount_range} employees", cur.company_industry) if b]
+        label = f" ({bucket} stage)" if bucket else ""
+        out.add(f"{cur.company}: {', '.join(bits)}{label}", "verified", "company size on the employment record (no company record)",
+                ep, f"{cur.path}.company_headcount_latest" if hc else f"{cur.path}.company_headcount_range")
     elif cur:
         out.add(f"{cur.company} stage/size", "unverifiable", "company record not found", "company/enrich")
 
     # 7. Skills the brief asks for
     graph_text = norm(" ".join(pr.skills + [pr.headline or ""] + [j.title or "" for j in pr.current + pr.past]))
-    graph_skills = {norm(s) for s in pr.skills}
     short_must = [m for m in criteria.must_haves if isinstance(m, str) and len(m.split()) <= 3]
     wanted = list(dict.fromkeys(criteria.skills + short_must + [s for s in (claimed.get("skills") or []) if isinstance(s, str)]))
     missing = []
@@ -279,8 +290,10 @@ async def verify_candidate(
         k = norm(skill)
         if not k:
             continue
-        if k in graph_skills:
-            out.add(f"Skill: {skill}", "verified", "listed in profile skills", ep, pr.skills_field)
+        listed = next((g for g in pr.skills if skill_matches(skill, g)), None)
+        if listed:
+            ev = "listed in profile skills" + (f" as '{listed}'" if norm(listed) != k else "")
+            out.add(f"Skill: {skill}", "verified", ev, ep, pr.skills_field)
         elif re.search(rf"\b{re.escape(k)}\b", graph_text):
             out.add(f"Skill: {skill}", "verified", "named in profile headline or job titles", ep, pr.headline_field or "current_employers")
         else:

@@ -176,3 +176,26 @@ async def test_real_company_enrich_fixture():
     assert stage.status == "verified"
     assert "Series F" in stage.claim and "~4,027 employees" in stage.claim and "founded 2014" in stage.claim
     assert stage.source.field == "funding.milestones[1].round_type"
+
+
+@pytest.mark.asyncio
+async def test_real_person_shape_details():
+    """Shapes seen in WS1's real Person Enrich data: '(Programming Language)' skills, job-level company size, seniority_level."""
+    claims, flags, score, reasons = await run("live_job_facts")
+    assert_contract(claims, reasons)
+    t = {c.claim: c for c in claims}
+    assert t["Skill: Go"].status == "verified" and "Go (Programming Language)" in t["Skill: Go"].evidence
+    assert "Payments" in [s.strip() for s in t["Skills not evidenced: Payments"].claim.split(":")[1].split(",")]
+    assert t["Title: Backend Engineer (Senior)"].status == "verified"
+    co = [c for c in claims if c.claim.startswith("Acme Pay:")][0]
+    assert "~120 employees" in co.claim and co.source.field.endswith("company_headcount_latest")
+    exp = [c for c in claims if c.claim.endswith("of experience")][0]
+    assert exp.source.field == "experience.employment_details.past[0].start_date"
+    assert not any("below the senior level" in r.text for r in reasons)
+
+
+@pytest.mark.asyncio
+async def test_raw_cached_response_is_unwrapped():
+    raw = {"endpoint": "person/enrich", "response": [{"matched_on": "x", "matches": [{"confidence_score": 1, "person_data": PEOPLE["live_job_facts"]}]}]}
+    claims, _ = await verify_candidate(raw, None, CRIT, FakeClient(), today=TODAY)
+    assert claims[0].claim == "Works at Acme Pay"

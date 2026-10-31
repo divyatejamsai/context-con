@@ -211,5 +211,52 @@
     "claimed": {
       "title": "Senior Backend Engineer"
     }
+  },
+  "live_job_facts": {
+    "_source": {
+      "endpoint": "person/enrich"
+    },
+    "basic_profile": {
+      "name": "Test Person",
+      "headline": "Building Tech",
+      "current_title": "Backend Engineer",
+      "location": {
+        "city": "Bengaluru",
+        "country": "India",
+        "full_location": null,
+        "raw": "Bengaluru, Karnataka, India"
+      }
+    },
+    "experience": {
+      "employment_details": {
+        "current": [
+          {
+            "name": "Acme Pay",
+            "title": "Backend Engineer",
+            "crustdata_company_id": 999001,
+            "start_date": "2023-01-01T00:00:00+00:00",
+            "seniority_level": "Senior",
+            "company_headcount_latest": 120,
+            "company_headcount_range": "51-200",
+            "company_professional_network_industry": "Financial Services"
+          }
+        ],
+        "past": [
+          {
+            "name": "OldCo",
+            "title": "Software Engineer",
+            "start_date": "2018-06-01T00:00:00+00:00",
+            "end_date": "2022-12-01T00:00:00+00:00"
+          }
+        ]
+      }
+    },
+    "skills": {
+      "professional_network_skills": [
+        "Python (Programming Language)",
+        "Go (Programming Language)",
+        "Google Cloud Platform (GCP)"
+      ]
+    }
   }
 }

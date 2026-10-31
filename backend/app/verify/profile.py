@@ -134,6 +134,9 @@ class Job:
     domain: str | None = None
     path: str = ""  # e.g. current_employers[0]
     seniority_level: str | None = None
+    company_headcount: int | None = None  # job-level company facts that Person Enrich carries
+    company_headcount_range: str | None = None
+    company_industry: str | None = None
 
 
 @dataclass
@@ -173,12 +176,30 @@ def _jobs(person: dict, paths: tuple[str, ...]) -> list[Job]:
         if isinstance(dom, list):
             dom = dom[0] if dom else None
         level, _ = first(e, "seniority_level", "seniority")
+        hc, _ = first(e, "company_headcount_latest")
+        hc_range, _ = first(e, "company_headcount_range")
+        ind, _ = first(e, "company_professional_network_industry", "company_industries[0]")
         out.append(Job(company if isinstance(company, str) else None, title, parse_date(start), parse_date(end), cid, dom,
-                       f"{p}[{i}]", level if isinstance(level, str) else None))
+                       f"{p}[{i}]", level if isinstance(level, str) else None,
+                       hc if isinstance(hc, int) else None, hc_range if isinstance(hc_range, str) else None,
+                       ind if isinstance(ind, str) else None))
     return out
 
 
+def unwrap_record(d: Any, key: str = "person_data") -> dict:
+    """Accept a raw cached response ({response: [{matches: [{person_data}]}]}) as well as a bare record."""
+    if isinstance(d, dict) and "response" in d and not d.get("basic_profile"):
+        d = d["response"]
+    if isinstance(d, list):
+        d = d[0] if d else {}
+    if isinstance(d, dict) and isinstance(d.get("matches"), list):
+        m = d["matches"][0] if d["matches"] else {}
+        d = (m.get(key) if isinstance(m, dict) else None) or {}
+    return d if isinstance(d, dict) else {}
+
+
 def load_person(person: dict) -> Profile:
+    person = unwrap_record(person)
     pr = Profile()
     pr.endpoint = get_path(person, "_source.endpoint") or "person/enrich"
     pr.name, pr.name_field = first(person, "name", "basic_profile.name", "full_name")
@@ -303,3 +324,12 @@ def unwrap_url(url: Any) -> str | None:
             if qs.get(k) and qs[k][0].startswith("http"):
                 return unquote(qs[k][0])
     return url
+
+
+def skill_matches(wanted: str, have: str) -> bool:
+    """'Python' matches 'Python (Programming Language)'; 'Distributed Systems' matches 'Distributed Systems Design'."""
+    w = norm(wanted)
+    h = norm(re.sub(r"\([^)]*\)", " ", have))
+    if not w or not h:
+        return False
+    return w == h or w.replace(" ", "") == h.replace(" ", "") or bool(re.search(rf"\b{re.escape(w)}\b", h))
