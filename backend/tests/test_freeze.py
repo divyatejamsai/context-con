@@ -210,3 +210,39 @@ def test_http_routes(monkeypatch, slow_kind):
         assert r.json()["agents"][0]["outcome"] == "restored"
         assert c.post(f"/api/runtime/freeze/{fid}/restore", json={}).status_code == 400
         assert c.post("/api/runtime/freeze/frz_nope/restore", json={}).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_a_frozen_agent_comes_back_only_by_lifting_the_stop():
+    ags = fleet()
+    pid = ags["pipeline"]["agent_id"]
+    f = fz.freeze(None, "agent", pid, "check", "admin")
+    with pytest.raises(registry.Frozen, match=f["freeze_id"]):
+        await registry.reinstate(pid, crustdata())
+    assert registry.get_agent(pid)["status"] == "suspended" and ledger.is_revoked(pid)
+    # an agent suspended by hand before the stop isn't held by it: reinstating it from its page still works
+    did = ags["diligence"]["agent_id"]
+    registry.suspend(did, "on leave", by="sponsor")
+    f2 = fz.freeze(None, "all", None, "incident", "admin")
+    assert fz.holders(did) == [] and fz.holders(pid) == [f["freeze_id"]]
+    agent, _ = await registry.reinstate(did, crustdata())
+    assert agent["status"] == "active"
+    await fz.restore(None, f2["freeze_id"], "admin", crustdata())
+    assert registry.get_agent(pid)["status"] == "suspended"  # the first stop still holds it
+    await fz.restore(None, f["freeze_id"], "admin", crustdata())
+    assert registry.get_agent(pid)["status"] == "active"
+
+
+def test_reinstate_routes_refuse_a_frozen_agent(monkeypatch):
+    monkeypatch.setenv("RUNTIME_ENABLED", "0")
+    from app.main import app
+    ags = fleet()
+    rid = ags["reference"]["agent_id"]
+    with TestClient(app) as c:
+        fid = c.post("/api/runtime/freeze", json={"scope": "agent", "target": rid, "reason": "t"}).json()["freeze_id"]
+        r = c.post(f"/api/agents/{rid}/reinstate")
+        assert r.status_code == 409 and "lift the stop" in r.json()["detail"]
+        assert c.post("/api/passport/reinstate", json={"agent_id": rid, "reason": "x"}).status_code == 409
+        assert ledger.is_revoked(rid)
+        assert c.post(f"/api/runtime/freeze/{fid}/restore", json={}).json()["agents"][0]["outcome"] == "restored"
+        assert c.post(f"/api/agents/{rid}/reinstate").status_code == 400  # active now: nothing to reinstate

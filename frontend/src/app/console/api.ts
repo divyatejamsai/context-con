@@ -99,6 +99,8 @@ export interface Agent {
   workspace_id?: string | null;
   /** User ids of the people (recruiters) who work with it. They see only the agents assigned to them. */
   assignees?: string[];
+  /** Emergency stops in force that froze it. While any is on, only lifting the stop brings it back. */
+  frozen_by?: string[];
 }
 
 export interface Role {

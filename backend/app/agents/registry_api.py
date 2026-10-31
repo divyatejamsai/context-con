@@ -115,7 +115,8 @@ async def onboard(body: OnboardBody):
 
 @router.get("")
 async def list_agents(p=Depends(require_read)):
-    return [a for a in registry.list_agents() if authz.sees_agent(p, a)]
+    return [{**a, "frozen_by": registry.frozen_by(a["agent_id"]) if a["status"] == "suspended" else []}
+            for a in registry.list_agents() if authz.sees_agent(p, a)]
 
 
 @router.post("/recheck", dependencies=admin)
@@ -133,7 +134,8 @@ async def roles():  # public: the role templates and scope names hold no custome
 async def get_agent(agent_id: str, p=Depends(require_read)):
     authz.check_agent(agent_id, p)
     try:
-        return {**registry.get_agent(agent_id), "scorecard": registry.scorecard(agent_id)}
+        return {**registry.get_agent(agent_id), "scorecard": registry.scorecard(agent_id),
+                "frozen_by": registry.frozen_by(agent_id)}
     except registry.RegistryError as e:
         raise _bad(e)
 
@@ -165,6 +167,8 @@ async def reinstate(agent_id: str):
         c = _client()
         agent, v = await registry.reinstate(agent_id, c)
         return {"agent": agent, "verdict": v}
+    except registry.Frozen as e:
+        raise HTTPException(409, str(e))
     except registry.RegistryError as e:
         raise _bad(e)
 
