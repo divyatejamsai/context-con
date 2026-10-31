@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --muted: #f0efed;
+  --muted-foreground: #6b6560;
+  --border: #e4e2df;
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --ring: #6366f1;
+  --verified: #15803d;
+  --contradicted: #c2410c;
+  --unverifiable: #6b7280;
+  --flag: #a16207;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f0f10;
+    --foreground: #ececec;
+    --card: #18181b;
+    --card-foreground: #ececec;
+    --muted: #26262b;
+    --muted-foreground: #a1a1aa;
+    --border: #2e2e33;
+    --primary: #818cf8;
+    --primary-foreground: #0f0f10;
+    --ring: #818cf8;
+    --verified: #4ade80;
+    --contradicted: #fb923c;
+    --unverifiable: #a1a1aa;
+    --flag: #facc15;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-verified: var(--verified);
+  --color-contradicted: var(--contradicted);
+  --color-unverifiable: var(--unverifiable);
+  --color-flag: var(--flag);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --animate-fade: fade 150ms ease-out;
+  --animate-slide: slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-rise: rise 300ms ease-out;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
