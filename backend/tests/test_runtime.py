@@ -612,3 +612,30 @@ async def test_hiring_flow_hands_work_between_agents_with_passport_checks():
         assert c.get(f"/api/verify/{sid}").json()["verdict"] == "invalid"  # a suspended agent's letters stop verifying
     finally:
         await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_signed_email_reaches_the_test_inbox_and_verifies_from_the_mail(monkeypatch):
+    """The demo: an agent's signed note is emailed to our own inbox; pasting the email as received verifies."""
+    from app.agents import seal
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    from app.outbound import mailer
+    got = {}
+
+    async def fake_send(env):
+        got["text"] = mailer._text(env, "me@example.com")
+        return mailer.Delivery(provider="smtp", mode="test", delivered_to="me@example.com", provider_id=None,
+                               message_id="<x@y>", status="sent", from_addr="me@example.com")
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("SMTP_USER", "me@example.com")
+    monkeypatch.setenv("OUTBOUND_TEST_TO", "me@example.com")
+    monkeypatch.setattr(mailer, "send", fake_send)
+    rec = fleet()["sourced"]
+    p = Passport.model_validate(rec["passport"])
+    body = "Hi Divya,\n\nA signed note from Sourced.\n\nSourced"
+    sid, _ = seal.issue(p, sign_message(p, registry.private_key(rec["agent_id"]), body), body, "outreach.hiring")
+    res = await seal.email_copy(seal.get(sid), "please verify me")
+    assert res["emailed"] and f"/verify/{sid}" in got["text"] and "vouched for by" in got["text"]
+    v = await seal.verify(text=got["text"].replace("\n", "\r\n"))  # as a mail client hands it back
+    assert v["verdict"] == "genuine", v

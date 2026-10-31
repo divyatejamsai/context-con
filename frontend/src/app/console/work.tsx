@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useConfirm } from "@/components/ui/confirm";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, receiptUrl, runtime, type Approval, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
+  ApiError, receiptUrl, runtime, type Approval, type Flow, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
 } from "./api";
 import { Button, EmptyState, Field, PageHead, ScopeChip, SectionHead, VerdictList, ago, cardCls, checkLabel, inputCls } from "./parts";
 
@@ -33,6 +33,7 @@ const SEND_STATE: Record<string, { label: string; cls: string }> = {
   blocked: { label: "Blocked by Send Guard", cls: "text-contradicted" },
   pending_approval: { label: "Waiting for approval", cls: "text-flag" },
   sent: { label: "Sent (outbox)", cls: "text-verified" },
+  signed: { label: "Offer signed", cls: "text-verified" },
   rejected: { label: "Rejected by you", cls: "text-muted-foreground" },
   blocked_at_send: { label: "Blocked at send time", cls: "text-contradicted" },
   expired: { label: "Expired", cls: "text-faint" },
@@ -199,8 +200,11 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
                 outside={st.agents.find((x) => x.agent_id === a.agent_id)?.runtime === "external"}
                 onApprove={(body) => act(`apv:${a.approval_id}`, async () => {
                   const r = await runtime.approve(a.approval_id, body);
-                  if (r.status !== "sent") throw new Error(`Not sent: Send Guard blocked it at send time${r.result?.checks?.find((c) => c.status !== "pass") ? ` (${checkLabel(r.result.checks.find((c) => c.status !== "pass")!.name)})` : ""}`);
-                }, `${body ? "Edited and sent" : "Approved"}: message to ${a.to.name} (written to the outbox, never emailed)`)}
+                  if (r.status !== "sent" && r.status !== "signed") throw new Error(r.result?.error ? `Not ${a.action === "sign_offer" ? "signed" : "sent"}: ${r.result.error}` : `Not sent: Send Guard blocked it at send time${r.result?.checks?.find((c) => c.status !== "pass") ? ` (${checkLabel(r.result.checks.find((c) => c.status !== "pass")!.name)})` : ""}`);
+                  const what = a.action === "sign_offer" ? `Offer to ${a.to.name} signed` : `${body ? "Edited and sent" : "Approved"}: message to ${a.to.name}`;
+                  const mail = r.result?.email?.emailed ? ` A copy went to your test inbox (${r.result.email.delivered_to}).` : "";
+                  setTimeout(() => setToast({ tone: "ok", text: `${what}.${mail} Anyone can check it: ${r.result?.verify_url ?? ""}` }), 0);
+                })}
                 onReject={() => act(`apv:${a.approval_id}`, () => runtime.reject(a.approval_id), `Rejected: message to ${a.to.name}`)} />
             ))}
             {st.approvals.pending.length > 4 && (
@@ -215,6 +219,9 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
           </p>
         )}
       </section>
+
+      {!agentId && <FlowsSection flows={st.flows ?? []} busy={busy} onOpen={(id) => setOpenTask(id)}
+        onStart={(b) => act("flow", () => runtime.startFlow(b), "Hiring flow started: Agaxes is routing the first stage")} />}
 
       <section className={cn("mt-8", agentId && "max-w-[460px]")}>
         <SectionHead title={agentId ? "Right now" : "Agents"} aside={agentId ? undefined : (
@@ -335,7 +342,7 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
     <div className={cn(cardCls, "p-3.5")}>
       <div className="flex flex-wrap items-center gap-2 text-[12px]">
         <span className="font-[590]">{a.agent_name}</span>
-        <span className="text-faint">wants to message</span>
+        <span className="text-faint">{a.action === "sign_offer" ? "wants to sign an offer to" : "wants to message"}</span>
         <span className="font-[590]">{a.to.name}</span>
         <span className="text-muted-foreground">at {a.to.company}</span>
         <span className="ml-auto"><ScopeChip scope={a.scope} muted /></span>
@@ -347,13 +354,17 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
         <pre className="mt-2.5 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-elevated px-3 py-2 font-sans text-[12.5px] leading-relaxed">{a.body}</pre>
       )}
       {editing && <p className="mt-1 text-[11px] text-muted-foreground">The agent re-signs your edited text and Send Guard checks it again from scratch before it goes out.</p>}
+      {a.action === "sign_offer" ? (
+        <p className="mt-2 text-[11.5px] text-muted-foreground">{a.preview.note}</p>
+      ) : (
       <button onClick={() => setWhy(!why)} className="mt-2 inline-flex items-center gap-1 text-[11.5px] text-verified hover:underline">
         <CheckIcon className="size-3" /> Send Guard: {passed}/{a.preview.checks.length} checks passed {why ? "(hide)" : "(show)"}
       </button>
+      )}
       {why && <VerdictList verdict={{ subject: a.approval_id, decision: a.preview.decision, checks: a.preview.checks }} className="mt-2" />}
       <div className="mt-3 flex items-center gap-2">
         <Button variant="primary" onClick={() => onApprove(editing && draft.trim() !== a.body.trim() ? draft : undefined)} disabled={!!busy || (editing && !draft.trim())}>
-          {b ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} {editing ? "Send edited" : "Approve and send"}
+          {b ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} {a.action === "sign_offer" ? (editing ? "Sign edited" : "Approve and sign") : editing ? "Send edited" : "Approve and send"}
         </Button>
         {!outside && (
           <Button variant="ghost" onClick={() => { setEditing(!editing); setDraft(a.body); }} disabled={!!busy}>{editing ? "Cancel edit" : "Edit"}</Button>
@@ -826,5 +837,77 @@ function PolicySheet({ agent, busy, onClose, onSave }: {
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+const FLOW_TONE: Record<string, string> = {
+  done: "border-verified/50 bg-verified/10 text-verified", running: "border-primary/50 bg-primary/10",
+  waiting: "border-border text-faint", blocked: "border-contradicted/50 bg-contradicted/10 text-contradicted",
+  failed: "border-contradicted/50 bg-contradicted/10 text-contradicted", empty: "border-flag/50 bg-flag/10 text-flag",
+  refused: "border-contradicted/50 bg-contradicted/10 text-contradicted", cancelled: "border-border text-faint",
+};
+
+function FlowsSection({ flows, busy, onStart, onOpen }: {
+  flows: Flow[]; busy: string | null; onStart: (b: { brief: string; compensation?: string }) => void; onOpen: (taskId: string) => void;
+}) {
+  const [brief, setBrief] = useState("Senior backend engineer, payments, Bangalore, 5+ years");
+  const [comp, setComp] = useState("₹42 LPA fixed + ESOPs");
+  const latest = [...flows].reverse();
+  return (
+    <section className="mt-7">
+      <SectionHead title="Hiring flow">
+        One brief, four agents handing the work to each other: shortlist, independent record checks, interview slots,
+        offer letter. Agaxes checks each agent&apos;s passport at every handoff and refuses any agent without the permission.
+      </SectionHead>
+      <div className={cn(cardCls, "mt-3 flex flex-col gap-2 p-3.5 sm:flex-row sm:items-end")}>
+        <label className="min-w-0 flex-1 text-[11.5px] text-muted-foreground">Brief
+          <input value={brief} onChange={(e) => setBrief(e.target.value)} className={cn(inputCls, "mt-1")} />
+        </label>
+        <label className="text-[11.5px] text-muted-foreground sm:w-[220px]">Offer compensation
+          <input value={comp} onChange={(e) => setComp(e.target.value)} className={cn(inputCls, "mt-1")} />
+        </label>
+        <Button variant="primary" disabled={!!busy || !brief.trim()} onClick={() => onStart({ brief, compensation: comp })}>
+          {busy === "flow" ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />} Start hiring flow
+        </Button>
+      </div>
+      {latest.slice(0, 3).map((f) => (
+        <div key={f.flow_id} className={cn(cardCls, "mt-3 p-3.5")}>
+          <div className="flex flex-wrap items-center gap-2 text-[12px]">
+            <span className="font-[590]">{f.input.role}</span>
+            <span className={cn("rounded-full border px-2 py-px text-[11px] font-[560] capitalize", FLOW_TONE[f.status === "stopped" ? "failed" : f.status])}>
+              {f.status === "running" && <Loader2 className="mr-1 inline size-3 animate-spin" />}{f.status}
+            </span>
+            {f.error && <span className="text-contradicted">{f.error}</span>}
+            {f.hired.length > 0 && <span className="text-faint">hired for this: {f.hired.join(", ")}</span>}
+            <a className="ml-auto text-[11.5px] font-[510] text-primary hover:underline"
+              href={`data:text/markdown;charset=utf-8,${encodeURIComponent(f.packet)}`} download={`hiring-packet-${f.flow_id}.md`}>
+              Hiring-committee packet
+            </a>
+          </div>
+          <ol className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-4">
+            {f.stages.map((s, i) => (
+              <li key={s.key} className={cn("rounded-lg border p-2.5", FLOW_TONE[s.status] ?? "border-border")}>
+                <div className="flex items-center gap-1.5 text-[12px] font-[590] text-foreground">
+                  <span className="text-faint">{i + 1}</span> {s.label}
+                  <span className="ml-auto"><ScopeChip scope={s.scope} muted /></span>
+                </div>
+                <div className="mt-1 text-[11.5px] capitalize">{s.agent ? `${s.agent} · ` : ""}{s.status}</div>
+                <ul className="mt-1.5 space-y-0.5">
+                  {s.checks.map((c, j) => (
+                    <li key={j} className={cn("text-[11px] leading-snug", c.decision === "allow" ? "text-verified" : "text-contradicted")}>
+                      {c.decision === "allow" ? "✓" : "✕"} <b className="font-[590]">{c.agent}</b>: {c.decision === "allow" ? "allowed" : "refused"}
+                      <span className="text-muted-foreground"> ({c.why})</span>
+                    </li>
+                  ))}
+                </ul>
+                {s.task_id && (
+                  <button onClick={() => onOpen(s.task_id!)} className="mt-1.5 text-[11px] font-[510] text-primary hover:underline">Open task</button>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </section>
   );
 }

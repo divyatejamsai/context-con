@@ -81,12 +81,52 @@ def get(seal_id: str) -> dict | None:
     return None
 
 
+_BANNER = re.compile(r"^\s*\[[^\]]*this copy came to [^\]]*\]\s*", re.S)  # the test-inbox note (outbound/mailer.py)
+
+
 def split(text: str) -> tuple[str, str | None]:
-    """(the signed content, the seal id from the footer, if any)."""
-    i = text.replace("\r\n", "\n").rfind(MARK.strip("\n"))
-    m = _SEAL_RE.search(text)
-    content = text.replace("\r\n", "\n")[:i].rstrip("\n") if i >= 0 else text
+    """(the signed content, the seal id from the footer, if any). Tolerates the test-inbox banner and mail clients
+    that turn line endings into CRLF or trim the space in the "-- " signature line."""
+    t = _BANNER.sub("", text.replace("\r\n", "\n"), count=1)
+    m = _SEAL_RE.search(t)
+    i = max(t.rfind("\n-- \nSent by "), t.rfind("\n--\nSent by "))
+    content = t[:i].rstrip("\n") if i >= 0 else t
     return content, (m.group(1) if m else None)
+
+
+def latest(agent_id: str, body_sha: str) -> dict | None:
+    """The newest seal this agent got for exactly this content."""
+    try:
+        lines = path().read_text().splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        r = json.loads(line)
+        if r["agent_id"] == agent_id and r["sha256"] == body_sha:
+            return r
+    return None
+
+
+def sealed_text(rec: dict) -> str:
+    return (f"{rec['body']}{MARK}{rec['agent_name']}, AI agent for {rec['company']}, vouched for by {rec['sponsor']}. "
+            f"Verify: {base_url()}/verify/{rec['seal_id']}")
+
+
+async def email_copy(rec: dict, subject: str, to: dict | None = None) -> dict:
+    """Deliver the sealed text to the test inbox (OUTBOUND_TEST_TO, never the recipient: app/outbound/mailer.py), so a
+    person can open it in their mail client and click Verify. Never raises; says why when nothing was sent."""
+    from ..outbound import mailer
+    c = mailer.config()
+    if not c["ready"]:
+        return {"emailed": False, "why": c["reason"]}
+    try:
+        d = await mailer.send(mailer.Envelope(intended_to=(to or {}).get("email") or f"{rec.get('to') or 'recipient'} (no address on file)",
+                                              to_name=rec.get("to"), subject=subject, body=sealed_text(rec),
+                                              from_name=f"{rec['agent_name']} (AI agent, {rec['company']})"))
+    except Exception as e:  # noqa: BLE001
+        return {"emailed": False, "why": f"{type(e).__name__}: {e}"}
+    ledger.append("seal.emailed", {"seal_id": rec["seal_id"], "delivered_to": d.delivered_to, "provider": d.provider})
+    return {"emailed": True, "delivered_to": d.delivered_to, "provider": d.provider}
 
 
 async def verify(seal_id: str | None = None, text: str | None = None, client: Any = None) -> dict:

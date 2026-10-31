@@ -257,11 +257,18 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
             args["today"] = a["today"]
         res = await mcp.tool("send_message", args)
         sent = bool(res.get("sent"))
+        mail = None
         if sent:
             store.add_usage(a["agent_id"], sends=1)
+            from ..agents import seal
+            srec = seal.latest(a["agent_id"], seal.sha(a["body"]))
+            if srec:
+                mail = await seal.email_copy(srec, f"{rec['name']} (AI agent): a message for {a['to'].get('name') or 'you'}", a["to"])
+                mail["verify_url"] = f"{seal.base_url()}/verify/{srec['seal_id']}"
         status = "sent" if sent else "blocked_at_send"
         result = {"sent": sent, "decision": res["decision"], "checks": res.get("checks", []),
-                  "ledger_entry": res.get("ledger_entry"), "agent_status": rec.get("status")}
+                  "ledger_entry": res.get("ledger_entry"), "agent_status": rec.get("status"), "email": mail,
+                  "verify_url": (mail or {}).get("verify_url")}
     except BudgetExceeded as e:
         status, result = "blocked_at_send", {"sent": False, "error": str(e)}
     except Exception as e:  # noqa: BLE001 - fail closed: nothing was sent
@@ -303,9 +310,10 @@ async def _sign_offer(a: dict, by: str, mcp: Any, edited: str | None) -> dict:
         entry = ledger.append("offer.signed", {"agent_id": a["agent_id"], "task_id": a["task_id"], "to": a["to"],
                                                "sha256": sha, "agent_signature": sig, "approved_by": by,
                                                "passport_check": v.get("ledger_entry"), "edited": bool(edited)})
+        mail = await seal.email_copy(seal.get(seal_id), f"Offer letter from {p.sponsor.company}: {a['to'].get('name')}", a["to"])
         status, result = "signed", {"signed": True, "sha256": sha, "signature": sig, "ledger_entry": entry,
                                     "checks": v.get("checks", []), "seal_id": seal_id,
-                                    "verify_url": f"{seal.base_url()}/verify/{seal_id}"}
+                                    "verify_url": f"{seal.base_url()}/verify/{seal_id}", "email": mail}
     else:
         failed = [f"{c['name']}: {c['detail']}" for c in v.get("checks", []) if c.get("status") != "pass"]
         entry = ledger.append("offer.refused", {"agent_id": a["agent_id"], "task_id": a["task_id"], "sha256": sha,

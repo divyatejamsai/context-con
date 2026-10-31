@@ -357,17 +357,26 @@ export interface Approval {
   task_id: string;
   agent_id: string;
   agent_name: string;
-  action: "send";
+  action: "send" | "sign_offer";
   to: Recipient;
   body: string;
   scope: Scope;
-  status: "pending" | "sending" | "sent" | "rejected" | "blocked_at_send" | "expired";
-  preview: { decision: "allow" | "block"; checks: Check[]; ledger_entry?: string | null };
+  status: "pending" | "sending" | "sent" | "signed" | "rejected" | "blocked_at_send" | "expired";
+  preview: { decision: "allow" | "block"; checks: Check[]; ledger_entry?: string | null; note?: string };
   created_at: string;
   decided_at?: string | null;
   decided_by?: string | null;
   note?: string | null;
-  result?: { sent: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string } | null;
+  result?: { sent?: boolean; signed?: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string;
+    verify_url?: string | null; email?: { emailed: boolean; why?: string; delivered_to?: string } | null } | null;
+}
+
+export interface FlowCheck { agent: string; scope: string; decision: "allow" | "deny"; why: string; ledger_entry?: string | null }
+export interface FlowStage { key: string; label: string; scope: Scope; status: string; task_id: string | null; agent: string | null; checks: FlowCheck[] }
+export interface Flow {
+  flow_id: string; status: "running" | "done" | "stopped"; created_at: string; finished_at: string | null; by: string;
+  input: { brief: string; role: string; compensation: string; start_date: string; interviewer: string; slots: string };
+  stage: number; stages: FlowStage[]; hired: string[]; error: string | null; packet: string;
 }
 
 export interface Budget {
@@ -452,6 +461,7 @@ export interface RuntimeState {
   tasks: Task[];
   approvals: { pending: Approval[]; decided: Approval[] };
   schedules: Schedule[];
+  flows?: Flow[];
   payroll: { enabled: boolean; every_minutes: number; last_run_at?: string | null; next_run_at?: string | null; running?: boolean;
     last_result?: { at: string; by: string; checked: number; suspended: string[]; error?: string; ledger_entry?: string } | null };
   ledger: { chain_ok: boolean; first_bad_seq: number | null };
@@ -480,5 +490,6 @@ export const runtime = {
   toggleSchedule: (id: string) => post<Schedule>(`/runtime/schedules/${id}/toggle`),
   deleteSchedule: (id: string) => post<{ deleted: string }>(`/runtime/schedules/${id}`, undefined, "DELETE"),
   setPayroll: (b: { enabled?: boolean; every_minutes?: number }) => post<RuntimeState["payroll"]>("/runtime/payroll", b, "PUT"),
+  startFlow: (b: { brief: string; compensation?: string; start_date?: string }) => post<Flow>("/runtime/flows", b),
   runPayroll: () => post<NonNullable<RuntimeState["payroll"]["last_result"]>>("/runtime/payroll/run"),
 };

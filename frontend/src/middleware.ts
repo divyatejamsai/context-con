@@ -4,7 +4,7 @@ import { BACKEND_URL, SESSION_COOKIE } from "@/lib/auth";
 // Every page and API route except the auth pages needs a live session. The cookie alone isn't trusted:
 // each request checks the token against the backend's session table, so logging out, expiry or a deleted
 // session take effect immediately.
-const PUBLIC = ["/login", "/signup", "/forgot", "/reset", "/api/auth/"];
+const PUBLIC = ["/login", "/signup", "/forgot", "/reset", "/api/auth/", "/verify", "/api/public-verify"];
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
