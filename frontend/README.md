@@ -9,8 +9,8 @@ cp .env.example .env.local      # NEXT_PUBLIC_API_URL=http://localhost:8000
 npm run dev                     # http://localhost:3000
 ```
 
-- **Replay** (default): `/api/replay` streams `frontend/fixtures/run.jsonl` (or `FIXTURE_PATH`, or `../fixtures/run.jsonl`) as SSE with realistic pacing. `?speed=2` doubles it. No backend needed: demo safety net.
-- **Live**: toggle top-right, or open `/?mode=live`. POSTs `{brief}` to `$NEXT_PUBLIC_API_URL/api/run` and reads the SSE stream.
+- **Live** (default): POSTs `{brief}` to `$NEXT_PUBLIC_API_URL/api/run` and reads the SSE stream. If `NEXT_PUBLIC_AGENT_ID` is set, it calls `/api/agents/{id}/run` instead, so the run happens under that agent's Countersign passport: a `passport` step gates the run, a `guard` step checks each shortlisted draft, and candidates carry a `guard` verdict shown as a Cleared / Blocked badge.
+- **Replay** (fallback): toggle top-right, or open `/?mode=replay`. `/api/replay` streams `frontend/fixtures/run.jsonl` (or `FIXTURE_PATH`, or `../fixtures/run.jsonl`) as SSE with realistic pacing. `?speed=2` doubles it. No backend needed, and it is labelled as a sample run. Set `NEXT_PUBLIC_DEFAULT_MODE=replay` to start in it.
 
 Event handling (contract in CONTEXT.md section 6):
 - `step` with `data.criteria` fills "What the agent understood"; `data.order` sets the final shortlist order (otherwise sorted by score).

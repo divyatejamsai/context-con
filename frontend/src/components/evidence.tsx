@@ -1,6 +1,6 @@
-import { CheckCircle2, CircleDashed, XCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, ShieldCheck, ShieldX, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Candidate, ClaimStatus } from "@/lib/types";
+import type { Candidate, ClaimStatus, Guard } from "@/lib/types";
 import { normalizeStatus } from "@/lib/run-state";
 
 export const STATUS_LABEL: Record<ClaimStatus, string> = {
@@ -86,6 +86,25 @@ export function Avatar({ name, size = 28, className }: { name: string; size?: nu
       style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {initials}
+    </span>
+  );
+}
+
+/** Send Guard verdict on a candidate's outreach draft. "Cleared" still means not sent (event rule). */
+export function GuardBadge({ guard, className }: { guard?: Guard | null; className?: string }) {
+  if (!guard) return null;
+  const ok = guard.decision === "allow";
+  const Icon = ok ? ShieldCheck : ShieldX;
+  return (
+    <span
+      className={cn(
+        "inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full border px-1.5 text-[10.5px] font-[510]",
+        ok ? "border-verified/30 bg-verified/10 text-verified" : "border-contradicted/30 bg-contradicted/10 text-contradicted",
+        className,
+      )}
+      title={ok ? "Send Guard cleared this draft. It is never sent automatically." : guard.error ?? "Send Guard blocked this draft"}
+    >
+      <Icon className="size-3" /> {ok ? "Cleared" : "Blocked"}
     </span>
   );
 }

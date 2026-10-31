@@ -1,16 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Check, ChevronDown, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
+import { BadgeCheck, Check, ChevronDown, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { BriefInput, EXAMPLES } from "@/components/brief";
 import { Trace } from "@/components/trace";
 import { Dossier } from "@/components/dossier";
 import { CompareTable, ShortlistRows, type Row, type SortKey } from "@/components/shortlist";
-import { API_URL, streamRun, type RunMode } from "@/lib/stream";
+import { AGENT_ID, API_URL, streamRun, type RunMode } from "@/lib/stream";
 import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run-state";
 import { download, toCSV, toMarkdown } from "@/lib/export";
-import type { Criteria } from "@/lib/types";
+import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function useWide() {
@@ -35,7 +35,7 @@ const toggle = (s: Set<string>, id: string) => {
 export default function Home() {
   const [brief, setBrief] = useState(EXAMPLES[0].brief);
   const [lastBrief, setLastBrief] = useState("");
-  const [mode, setMode] = useState<RunMode>(process.env.NEXT_PUBLIC_DEFAULT_MODE === "live" ? "live" : "replay");
+  const [mode, setMode] = useState<RunMode>(process.env.NEXT_PUBLIC_DEFAULT_MODE === "replay" ? "replay" : "live");
   const [run, dispatch] = useReducer(runReducer, initialRun);
   const [selected, setSelected] = useState<string>();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -229,10 +229,10 @@ export default function Home() {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[12px] font-[510] text-muted-foreground">Agent run</h2>
               <span className="rounded-full border border-border-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">
-                {mode === "live" ? "live · crustdata" : "replay"}
+                {mode === "live" ? (AGENT_ID ? "live · agent" : "live · crustdata") : "replay · sample"}
               </span>
             </div>
-            <Trace run={run} now={now} />
+            <Trace run={run} now={now} pipeline={mode === "live" && AGENT_ID ? AGENT_STEPS : PIPELINE_STEPS} />
           </aside>
 
           <section className="min-w-0">
@@ -240,6 +240,14 @@ export default function Home() {
               <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={start} onStop={stop} running={run.running} compact />
               {run.criteria && <CriteriaChips criteria={run.criteria} />}
             </div>
+
+            {run.passport?.decision === "block" && (
+              <div className="mx-4 mt-3 rounded-lg border border-contradicted/30 bg-contradicted/[0.06] px-3 py-2.5 text-[13px]">
+                <span className="font-[510] text-contradicted">Run refused by Countersign.</span>{" "}
+                <span className="text-secondary">{run.passport.error ?? run.passport.message}</span>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">The agent&apos;s passport did not pass its live check, so nothing was searched. Re-onboard it with a sponsor Crustdata can vouch for.</p>
+              </div>
+            )}
 
             {run.fatal && (
               <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-contradicted/30 bg-contradicted/[0.08] px-3 py-2.5 text-[13px]">
@@ -413,6 +421,14 @@ function TopBar({
         <span className="hidden text-[14px] text-border-strong sm:inline">/</span>
         <span className="mr-auto hidden truncate text-[13px] text-muted-foreground sm:inline">{started ? "Shortlist" : "New search"}</span>
         <div className="flex items-center gap-2.5">
+          <Link
+            href="/console"
+            prefetch={false}
+            className="hidden h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-muted-foreground transition hover:bg-hover hover:text-foreground sm:inline-flex"
+            title="Countersign console: the agent's passport, Send Guard verdicts and the ledger"
+          >
+            <BadgeCheck className="size-3.5" /> Countersign
+          </Link>
           {started && (
             <span className="hidden items-center gap-1.5 font-mono text-[11px] text-muted-foreground tabular-nums sm:flex">
               <span className={cn("size-1.5 rounded-full", running ? "animate-pulse bg-primary" : done ? "bg-verified" : "bg-faint")} />
@@ -456,7 +472,7 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             footer={
               <span className="inline-flex items-center gap-1.5 text-[11.5px] text-faint">
                 <span className={cn("size-1.5 rounded-full", mode === "live" ? "bg-primary" : "bg-faint")} />
-                {mode === "live" ? "Live: calls the agent backend" : "Replay: recorded run, no backend needed"}
+                {mode === "live" ? (AGENT_ID ? "Live: runs under the agent passport, drafts checked by Send Guard" : "Live: searches Crustdata through the backend") : "Replay: a recorded sample run, for when the backend is offline"}
               </span>
             }
           />

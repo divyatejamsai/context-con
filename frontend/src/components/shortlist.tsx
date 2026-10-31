@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Flag, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Candidate } from "@/lib/types";
 import { claimCounts, evidenceStrength } from "@/lib/run-state";
-import { Avatar, EvidenceStrip, FitBadge, StatusPill } from "@/components/evidence";
+import { Avatar, EvidenceStrip, FitBadge, GuardBadge, StatusPill } from "@/components/evidence";
 
 export interface Row {
   c: Candidate;
@@ -38,6 +38,7 @@ export function ShortlistRows({ rows, selected, onSelect }: { rows: Row[]; selec
                   <span className={cn("truncate text-[14px] font-[510]", dismissed && "line-through")}>{c.name}</span>
                   {pinned && <Pin className="size-3 shrink-0 fill-primary text-primary" />}
                   {k.contradicted > 0 && <StatusPill status="contradicted" count={k.contradicted} className="ml-0.5" />}
+                  <GuardBadge guard={c.guard} />
                 </div>
                 <p className="truncate text-[12.5px] text-muted-foreground">
                   {[c.title, c.company].filter(Boolean).join(" · ") || "Title unknown"}

@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Check, Copy, ExternalLink, EyeOff, Flag, Link2, MapPin, Pin, RotateCcw, Gauge } from "lucide-react";
+import { Building2, Check, Copy, ExternalLink, EyeOff, Flag, Link2, MapPin, Pin, RotateCcw, Gauge, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Candidate, ClaimStatus } from "@/lib/types";
 import { claimCounts, evidenceStrength, normalizeStatus } from "@/lib/run-state";
-import { Avatar, FitBadge, StatusIcon, StatusPill, STATUS_LABEL, matchLabel } from "@/components/evidence";
+import { Avatar, FitBadge, GuardBadge, StatusIcon, StatusPill, STATUS_LABEL, matchLabel } from "@/components/evidence";
 
 type Filter = "all" | ClaimStatus;
 
@@ -136,6 +136,14 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
               <span className="text-faint">verified · {counts.total} claims</span>
             </span>
           </Prop>
+          {c.guard && (
+            <Prop icon={<ShieldCheck className="size-3.5" />} label="Send Guard">
+              <span className="inline-flex items-center gap-1.5">
+                <GuardBadge guard={c.guard} />
+                <span className="text-faint">{c.guard.decision === "allow" ? "draft cleared, not sent" : "draft blocked"}</span>
+              </span>
+            </Prop>
+          )}
           {!!c.flags?.length && (
             <Prop icon={<Flag className="size-3.5" />} label="Flags">
               <span className="flex flex-wrap gap-1">
@@ -280,6 +288,31 @@ export function Dossier({ candidate: c, rank, pinned, dismissed, draft, onDraft,
               rows={Math.min(14, Math.max(6, text.split("\n").length + 1))}
               className="w-full resize-y bg-transparent px-3 py-2.5 text-[13.5px] leading-relaxed text-secondary focus:outline-none"
             />
+            {c.guard && (
+              <div className="border-t border-border px-3 py-2 text-[12px]">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="font-[510] text-muted-foreground">Send Guard</span>
+                  <GuardBadge guard={c.guard} />
+                </div>
+                {c.guard.error && <p className="text-contradicted">{c.guard.error}. Blocked to be safe.</p>}
+                <ul>
+                  {(c.guard.checks ?? []).map((k, i) => (
+                    <li key={k.id ?? i} className="flex gap-2 py-0.5">
+                      {k.status === "pass" ? (
+                        <Check className="mt-0.5 size-3 shrink-0 text-verified" />
+                      ) : (
+                        <X className={cn("mt-0.5 size-3 shrink-0", k.status === "fail" ? "text-contradicted" : "text-unverifiable")} />
+                      )}
+                      <span className="min-w-0">
+                        <span className="text-secondary">{k.name}</span>
+                        {k.detail && <span className="text-faint"> · {k.detail}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {c.guard.ledger_entry && <p className="mt-1 font-mono text-[10.5px] text-faint">ledger {c.guard.ledger_entry.slice(0, 12)}</p>}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-[13px] text-faint">No draft. The agent only writes outreach for strong, verified matches.</p>

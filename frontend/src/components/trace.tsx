@@ -1,31 +1,36 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronRight, Database, FileSearch, Mail, ScanSearch, ShieldCheck, FileText, Trophy } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Check, ChevronRight, Database, FileSearch, FileText, Mail, ScanSearch, ShieldCheck, Trophy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PIPELINE_STEPS } from "@/lib/types";
+import { AGENT_STEPS, PIPELINE_STEPS } from "@/lib/types";
 import type { RunState, StepState } from "@/lib/run-state";
 
 const META: Record<string, { label: string; todo: string; tool: string; Icon: typeof Database }> = {
+  passport: { todo: "Check passport", label: "Checked passport", tool: "countersign · verify_passport(data.read)", Icon: BadgeCheck },
   parse: { todo: "Read the brief", label: "Read the brief", tool: "llm · parse_brief", Icon: FileText },
   search: { todo: "Search people", label: "Searched people", tool: "crustdata · person/search", Icon: ScanSearch },
   enrich: { todo: "Enrich profiles", label: "Enriched profiles", tool: "crustdata · person/enrich, company/enrich", Icon: Database },
   verify: { todo: "Verify claims", label: "Verified claims", tool: "crustdata · enrich + web/fetch", Icon: ShieldCheck },
   rank: { todo: "Rank candidates", label: "Ranked candidates", tool: "llm · rank (cites claim ids)", Icon: Trophy },
   outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft (never sent)", Icon: Mail },
+  guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send (nothing is sent)", Icon: ShieldCheck },
 };
+
+const CHECK_CLS = { pass: "text-verified", fail: "text-contradicted", unverifiable: "text-unverifiable" } as const;
 
 const fmt = (ms?: number) => (ms === undefined ? "" : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
 
-export function Trace({ run, now }: { run: RunState; now: number }) {
+export function Trace({ run, now, pipeline = PIPELINE_STEPS }: { run: RunState; now: number; pipeline?: readonly string[] }) {
   const endRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [run.log.length]);
 
-  const extra = Object.keys(run.steps).filter((s) => !(PIPELINE_STEPS as readonly string[]).includes(s));
-  const seen = [...PIPELINE_STEPS, ...extra].filter((s) => run.steps[s] || run.log.some((l) => l.step === s));
-  const pending = run.running ? PIPELINE_STEPS.filter((s) => !seen.includes(s)) : [];
+  const known = AGENT_STEPS as readonly string[];
+  const extra = Object.keys(run.steps).filter((s) => !known.includes(s));
+  const seen = [...known, ...extra].filter((s) => run.steps[s] || run.log.some((l) => l.step === s));
+  const pending = run.running ? pipeline.filter((s) => !seen.includes(s)) : [];
   const ungrouped = run.log.filter((l) => !l.step);
 
   return (
@@ -37,7 +42,9 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
         const active = status === "active" && run.running;
         const dur = st?.startedAt ? Math.max(0, (st.endedAt ?? (run.running ? now : st.startedAt)) - st.startedAt) : undefined;
         const m = META[s] ?? { label: s, todo: s, tool: s, Icon: FileSearch };
-        const isOpen = open[s] ?? (active || lines.some((l) => l.kind === "error"));
+        const failed = s === "passport" && run.passport?.decision === "block";
+        const checks = s === "passport" ? run.passport?.checks ?? [] : [];
+        const isOpen = open[s] ?? (active || failed || lines.some((l) => l.kind === "error"));
         return (
           <div key={s} className={cn("animate-rise rounded-lg border bg-panel transition-colors", active ? "border-primary/40" : "border-border")}>
             <button
@@ -62,7 +69,9 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
                     </span>
                   )}
                   <span className="ml-auto font-mono text-[10.5px] text-faint tabular-nums">{fmt(dur)}</span>
-                  {status === "done" || status === "warn" || !run.running ? (
+                  {failed ? (
+                    <X className="size-3.5 shrink-0 text-contradicted" />
+                  ) : status === "done" || status === "warn" || !run.running ? (
                     <Check className={cn("size-3.5 shrink-0", status === "warn" ? "text-flag" : "text-verified")} />
                   ) : (
                     <span className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-primary border-t-transparent" />
@@ -83,6 +92,22 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
                   </li>
                 ))}
               </ol>
+            )}
+            {isOpen && checks.length > 0 && (
+              <ul className="border-t border-border px-3 py-2 text-[11.5px]">
+                {checks.map((k, i) => (
+                  <li key={k.id ?? i} className="flex gap-2 py-0.5">
+                    {k.status === "pass" ? <Check className={cn("mt-0.5 size-3 shrink-0", CHECK_CLS.pass)} /> : <X className={cn("mt-0.5 size-3 shrink-0", CHECK_CLS[k.status] ?? "text-faint")} />}
+                    <span className="min-w-0">
+                      <span className="text-secondary">{k.name}</span>
+                      {k.detail && <span className="text-faint"> · {k.detail}</span>}
+                    </span>
+                  </li>
+                ))}
+                {run.passport?.ledger_entry && (
+                  <li className="pt-1 font-mono text-[10.5px] text-faint">ledger {run.passport.ledger_entry.slice(0, 12)}</li>
+                )}
+              </ul>
             )}
           </div>
         );

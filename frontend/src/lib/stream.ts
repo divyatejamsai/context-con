@@ -2,14 +2,19 @@ import type { RunEvent } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
+// When set, live runs go through the Countersign agent endpoint: passport check, ledger entries and Send Guard.
+export const AGENT_ID = process.env.NEXT_PUBLIC_AGENT_ID || "";
+
 export type RunMode = "replay" | "live";
+
+export const liveUrl = () => (AGENT_ID ? `${API_URL}/api/agents/${encodeURIComponent(AGENT_ID)}/run` : `${API_URL}/api/run`);
 
 /**
  * POSTs the brief and yields parsed events. Works for both real SSE ("data: {...}\n\n")
  * and plain NDJSON lines, so it tolerates whatever the backend ends up emitting.
  */
 export async function* streamRun(brief: string, mode: RunMode, signal: AbortSignal): AsyncGenerator<RunEvent> {
-  const url = mode === "live" ? `${API_URL}/api/run` : "/api/replay";
+  const url = mode === "live" ? liveUrl() : "/api/replay";
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },

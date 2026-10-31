@@ -34,6 +34,28 @@ export interface Candidate {
   claims?: Claim[];
   flags?: string[];
   outreach_draft?: string | null;
+  guard?: Guard | null; // Send Guard verdict on the outreach draft (agent runs only)
+}
+
+// Countersign checks: the passport check before a run, and Send Guard on each draft.
+export interface GuardCheck {
+  id?: string;
+  name: string;
+  status: "pass" | "fail" | "unverifiable";
+  detail?: string;
+  source?: Source | null;
+}
+
+export interface Guard {
+  decision: "allow" | "block";
+  checks?: GuardCheck[];
+  ledger_entry?: string | null;
+  error?: string;
+}
+
+export interface PassportCheck extends Guard {
+  agent_id?: string;
+  message?: string;
 }
 
 export interface Criteria {
@@ -62,6 +84,8 @@ export type RunEvent =
   | { type: "done"; summary?: Summary; ts?: string };
 
 export const PIPELINE_STEPS = ["parse", "search", "enrich", "verify", "rank", "outreach"] as const;
+// Agent runs (/api/agents/{id}/run) wrap the pipeline in a passport check and Send Guard.
+export const AGENT_STEPS = ["passport", ...PIPELINE_STEPS, "guard"] as const;
 
 // Accept older/alternate step names from fixtures.
 export const STEP_ALIASES: Record<string, string> = { parse_brief: "parse" };
