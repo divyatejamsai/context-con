@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, BadgeCheck, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, MousePointerClick, Plus, RefreshCw, RotateCcw, Send,
+  ArrowLeft, BadgeCheck, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, MousePointerClick, Plus, RefreshCw, RotateCcw, Send,
   ShieldAlert, ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -151,6 +151,13 @@ export default function Console() {
             </span>
             <nav className="ml-4 hidden items-center gap-0.5 md:flex" aria-label="Countersign">
               {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
+              <Link
+                href="/console/demo"
+                title="Watch six AI employees go through seven situations, with every decision and its source"
+                className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] text-muted-foreground transition hover:text-foreground"
+              >
+                <Play className="size-3.5" /> Guided demo
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-2">
@@ -175,6 +182,13 @@ export default function Console() {
         </div>
         <nav className="flex gap-0.5 overflow-x-auto px-3 pb-2 md:hidden" aria-label="Countersign">
           {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
+          <Link
+            href="/console/demo"
+            title="Watch six AI employees go through seven situations, with every decision and its source"
+            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] text-muted-foreground transition hover:text-foreground"
+          >
+            <Play className="size-3.5" /> Guided demo
+          </Link>
         </nav>
       </header>
 
