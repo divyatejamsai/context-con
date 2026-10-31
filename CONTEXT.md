@@ -106,6 +106,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~11:08 | WS2 domain fix merged (f45233a): each search level with titles also runs a domain query (all title variants + location + up to 3 domain terms, matched on skills OR headline). Hits get a +3 prescore boost. Skills and headline field names are not live-verified yet, but a rejected query fails alone |
 | ~11:06 | **First live run (real Crustdata, mock LLM)**, brief "senior backend engineer, payments experience, Bangalore": 4 title-variant searches returned 62 profiles, 10 were enriched and shortlisted, 0 errors. Claims: 61 verified, 9 unverifiable, 0 contradicted. City filter confirmed on the real API. Issues sent to WS2/WS3: (a) the skills filter only applies at the last broaden step, so a domain like "payments" never shapes the search; (b) the verifier treats "payments" as a LinkedIn skill, so it's always unverifiable (fix: evidence it from employer industry); (c) false "concurrent roles: Wipro, Wipro" flag (fix: dedupe by company) |
 | ~11:02 | **Blocker:** Vertex returns 403 BILLING_DISABLED on the GCP project, although the ADC login works. The user needs to link a billing account. Meanwhile, live Crustdata runs use `LLM_MODE=mock` |
 | ~11:00 | WS1 person fixtures merged into main (e476941). 36 tests pass in replay mode |
