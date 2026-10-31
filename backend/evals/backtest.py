@@ -426,22 +426,43 @@ async def _first_ok(label: str, attempts: list[tuple[str, Any]]):
     raise RuntimeError(f"{label}: every filter shape was refused; last error: {last}")
 
 
+def _months(start: date, end: date) -> list[tuple[date, date]]:
+    out, cur = [], date(start.year, start.month, 1)
+    while cur <= end:
+        nxt = date(cur.year + cur.month // 12, cur.month % 12 + 1, 1)
+        out.append((max(cur, start), min(nxt - timedelta(days=1), end)))
+        cur = nxt
+    return out
+
+
 async def fetch_jobs(client, start: str, end: str, country: str | None, categories: list[str], limit: int) -> tuple[str, list[dict]]:
-    date_leaves = [{"field": "metadata.date_added", "type": "=>", "value": start},
-                   {"field": "metadata.date_added", "type": "=<", "value": end}]
+    """Postings across the whole window: one query per month (a single query returns only the newest day)."""
     loc = {"field": "location.country", "type": "=", "value": country} if country else None
     cat = ({"field": "job_details.category", "type": "in", "value": categories} if len(categories) > 1 else
            {"field": "job_details.category", "type": "=", "value": categories[0]}) if categories else None
-    attempts = [
-        ("date+country+category", lambda: client.job_search(_and(*date_leaves, loc, cat), limit=limit)),
-        ("date(T00:00:00)+country+category", lambda: client.job_search(_and(
-            *[{**d, "value": d["value"] + "T00:00:00"} for d in date_leaves], loc, cat), limit=limit)),
-        ("date+country", lambda: client.job_search(_and(*date_leaves, loc), limit=limit)),
-    ]
-    shape, rows = await _first_ok("job_search", attempts)
     lo, hi = _d(start), _d(end)
+    months = _months(lo, hi)
+    per = max(3, -(-limit // len(months)))
+    rows, shape = [], None
+    for a, b in months:
+        dl = [{"field": "metadata.date_added", "type": "=>", "value": a.isoformat()},
+              {"field": "metadata.date_added", "type": "=<", "value": b.isoformat()}]
+        attempts = [
+            ("date+country+category", lambda dl=dl: client.job_search(_and(*dl, loc, cat), limit=per)),
+            ("date(T00:00:00)+country+category", lambda dl=dl: client.job_search(_and(
+                *[{**d, "value": d["value"] + "T00:00:00"} for d in dl], loc, cat), limit=per)),
+            ("date+country", lambda dl=dl: client.job_search(_and(*dl, loc), limit=per)),
+        ]
+        try:
+            shape, got = await _first_ok(f"job_search {a:%Y-%m}", attempts)
+        except RuntimeError as e:
+            log.warning("%s", e)
+            continue
+        rows += got
+    if shape is None:
+        raise RuntimeError("job_search: every month's query was refused")
     rows = [r for r in rows if (dt := _d(people.first(r, "metadata.date_added"))) and lo <= dt <= hi]
-    return shape, rows
+    return f"{shape}, {len(months)} monthly queries x {per}", rows
 
 
 async def find_hires(client, op: Opening, limit: int = 100) -> tuple[list[dict], dict]:
@@ -457,11 +478,16 @@ async def find_hires(client, op: Opening, limit: int = 100) -> tuple[list[dict],
         by_id_in = {"field": f"{base}.crustdata_company_id", "type": "in", "value": [op.company_id]} if op.company_id else None
         by_name = {"field": f"{base}.name", "type": "(.)", "value": op.company}
         since = {"field": f"{base}.start_date", "type": "=>", "value": lo.isoformat()}
+        until = {"field": f"{base}.start_date", "type": "=<", "value": hi.isoformat()}
         attempts = []
-        for label, who in (("id", by_id), ("id-in", by_id_in), ("name", by_name)):
-            if who:
-                attempts.append((f"{kind}:{label}+start", lambda w=who: client.person_search(_and(w, since), limit=limit, fields=fields)))
-                attempts.append((f"{kind}:{label}", lambda w=who: client.person_search(w, limit=limit, fields=fields)))
+        # company-id fields are refused by person/search ("Unsupported filter field"); the name match is filtered
+        # back to the exact company by id on each employment row (_at_company)
+        for label, who in (("name", by_name), ("id", by_id), ("id-in", by_id_in)):
+            if not who:
+                continue
+            for lim in dict.fromkeys((limit, 25)):
+                attempts.append((f"{kind}:{label}+window/{lim}", lambda w=who, n=lim: client.person_search(_and(w, since, until), limit=n, fields=fields)))
+                attempts.append((f"{kind}:{label}+start/{lim}", lambda w=who, n=lim: client.person_search(_and(w, since), limit=n, fields=fields)))
         try:
             shape, got = await _first_ok(f"hires {op.company}", attempts)
             info[kind] = shape
