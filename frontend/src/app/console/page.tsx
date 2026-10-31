@@ -19,9 +19,10 @@ import {
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
+import { DemoView } from "./demo";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "verify" | "guard" | "ledger";
+type View = "employees" | "verify" | "guard" | "ledger" | "demo";
 type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
@@ -31,6 +32,7 @@ const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string }[]
   { v: "verify", label: "Verify passport", icon: ShieldCheck, desc: "Check whether an agent that contacts you can be trusted" },
   { v: "guard", label: "Send Guard", icon: Send, desc: "Check a drafted message before an agent can send it" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision" },
+  { v: "demo", label: "Guided demo", icon: Play, desc: "Watch six AI employees go through seven situations, with every decision and its source" },
 ];
 const ALL_SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -151,13 +153,6 @@ export default function Console() {
             </span>
             <nav className="ml-4 hidden items-center gap-0.5 md:flex" aria-label="Countersign">
               {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
-              <Link
-                href="/console/demo"
-                title="Watch six AI employees go through seven situations, with every decision and its source"
-                className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] text-muted-foreground transition hover:text-foreground"
-              >
-                <Play className="size-3.5" /> Guided demo
-              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-2">
@@ -182,13 +177,6 @@ export default function Console() {
         </div>
         <nav className="flex gap-0.5 overflow-x-auto px-3 pb-2 md:hidden" aria-label="Countersign">
           {VIEWS.map((x) => <NavItem key={x.v} {...x} active={view === x.v} onClick={() => setView(x.v)} />)}
-          <Link
-            href="/console/demo"
-            title="Watch six AI employees go through seven situations, with every decision and its source"
-            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] text-muted-foreground transition hover:text-foreground"
-          >
-            <Play className="size-3.5" /> Guided demo
-          </Link>
         </nav>
       </header>
 
@@ -204,6 +192,8 @@ export default function Console() {
         <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
       ) : view === "guard" ? (
         <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
+      ) : view === "demo" ? (
+        <DemoView onChanged={refresh} onOpen={setView} />
       ) : view === "ledger" ? (
         <LedgerExplorer agents={agents} onChain={setChain} onOnboard={startOnboarding} />
       ) : (

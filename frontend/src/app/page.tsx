@@ -575,7 +575,7 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             Countersign console
           </Link>
           , or{" "}
-          <Link href="/console/demo" prefetch={false} className="text-primary hover:underline">
+          <Link href="/console?view=demo" prefetch={false} className="text-primary hover:underline">
             watch the guided demo
           </Link>
           .
