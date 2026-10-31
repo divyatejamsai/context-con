@@ -639,3 +639,20 @@ async def test_signed_email_reaches_the_test_inbox_and_verifies_from_the_mail(mo
     assert res["emailed"] and f"/verify/{sid}" in got["text"] and "vouched for by" in got["text"]
     v = await seal.verify(text=got["text"].replace("\n", "\r\n"))  # as a mail client hands it back
     assert v["verdict"] == "genuine", v
+
+
+@pytest.mark.asyncio
+async def test_hiring_flow_skips_a_paused_agent_and_routes_to_the_next():
+    from app.runtime import flow
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    rt.pause(ags["diligence"]["agent_id"], "test", "on a break")
+    await rt.start()
+    try:
+        f = await flow.start(rt, {"brief": "Senior backend engineer, payments, Bangalore, 5+ years"}, by="test")
+        await until(lambda: flow.get(f["flow_id"])["stages"][1]["status"] != "waiting", 120)
+        v = flow.get(f["flow_id"])["stages"][1]
+        assert v["agent"] == "Reference", v
+        assert any(c["agent"] == "Diligence" and "paused" in c["why"] for c in v["checks"])
+    finally:
+        await rt.stop()
