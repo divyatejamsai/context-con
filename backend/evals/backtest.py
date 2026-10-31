@@ -76,7 +76,7 @@ WINDOW_START = "2025-06-01"
 WINDOW_END = "2025-12-31"
 HIRE_SLACK_DAYS = 31       # month-precision start dates: a hire "starting" 2025-10-01 can be for a 2025-10-15 posting
 HIRE_HORIZON_DAYS = 180    # joined within six months of the posting
-MAX_HIRES = 3              # more title-matching joiners than this = ambiguous opening, dropped
+MAX_HIRES = 5              # more title-matching joiners than this = ambiguous opening, dropped
 MIN_HEADCOUNT, MAX_HEADCOUNT = 10, 5000
 DISTRACTORS = 24           # task B slate = hires + this many others from the as-of pool
 KS = (1, 3, 5, 10)
@@ -123,10 +123,20 @@ _FUNCTION = {"engineer", "developer", "designer", "manager", "analyst", "scienti
              "researcher", "strategist", "partner", "advisor", "editor", "operator", "technician", "sales"}
 
 
+_SAME_FUNCTION = {"developer": "engineer", "programmer": "engineer", "dev": "engineer", "engg": "engineer",
+                  "sde": "engineer", "swe": "engineer"}
+_JOIN = [(r"\bback\s*end\b", "backend"), (r"\bfront\s*end\b", "frontend"), (r"\bfull\s*stack\b", "fullstack"),
+         (r"\bdev\s*ops\b", "devops"), (r"\bquality assurance\b", "qa"), (r"\bbusiness intelligence\b", "bi"), (r"\bsoftware development engineer\b", "software engineer")]
+
+
 def core_tokens(title: str | None) -> set[str]:
     t = re.sub(r"\([^)]*\)|\[[^\]]*\]", " ", title or "")   # "(Node.js/TypeScript)" is a stack, not the role
-    t = re.split(r"\s[-|–—@]\s|,", t)[0]                    # "Backend Engineer - Payments | Bangalore"
-    toks = set(norm(expand_title(t)).split())
+    # "Backend Engineer - Payments | Bangalore", "Full Stack Engineer with AWS LEX", "QA Engineer for Fintech"
+    t = re.split(r"\s[-|–—@/]\s|,|\s(?:with|for|at|in)\s", t, flags=re.I)[0]
+    t = norm(expand_title(t))
+    for pat, rep in _JOIN:
+        t = re.sub(pat, rep, t)
+    toks = {_SAME_FUNCTION.get(x, x) for x in t.split()}
     return {x for x in toks if len(x) > 1 and x not in _SENIORITY and x not in _STOP}
 
 
@@ -141,8 +151,12 @@ def role_match(posting_title: str | None, person_title: str | None) -> bool:
     shared = a & b
     jacc = len(shared) / len(a | b)
     fa, fb = a & _FUNCTION, b & _FUNCTION
-    same_function = bool(fa & fb) or (not fa and not fb)
-    return same_function and (jacc >= 0.5 or len(shared) >= 2)
+    # "Java Full Stack" names no function word: any matching function on the joiner's side is fine
+    same_function = bool(fa & fb) or not fa or not fb
+    specific = shared - _FUNCTION  # the specialisation must match, not just "engineer"
+    sa, sb = a - _FUNCTION, b - _FUNCTION
+    nested = bool(sa and sb) and (sa <= sb or sb <= sa)  # "Java Full Stack" ~ "Full Stack Developer"
+    return same_function and bool(specific) and (jacc >= 0.5 or len(shared) >= 2 or nested)
 
 
 # =============================================================================================== point in time
@@ -407,6 +421,9 @@ def opening_from_job(j: dict) -> Opening | None:
     )
 
 
+_STAFFING = re.compile(r"staffing|recruit|job ?board|jobgether|talent solutions|manpower|placement|outsourc", re.I)
+
+
 def _and(*conds):
     conds = [c for c in conds if c]
     return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
@@ -528,6 +545,8 @@ async def build_openings(client, args) -> list[Opening]:
             continue
         if op.headcount is not None and not (MIN_HEADCOUNT <= op.headcount <= MAX_HEADCOUNT):
             continue
+        if _STAFFING.search(f"{op.company} {op.industry or ''}"):
+            continue  # staffing firms and job boards post for clients; their own joiners aren't the hire
         key = (op.company_id or op.company, core_tokens(op.title).__repr__())
         if key in seen_co:
             continue  # the same role reposted
@@ -758,7 +777,8 @@ def scorecard(rows: list[dict], meta: dict) -> str:
         "## How it was run",
         "",
         "- Openings: Crustdata Job Search, postings at companies of "
-        f"{MIN_HEADCOUNT}-{MAX_HEADCOUNT} people, one per company and role.",
+        f"{MIN_HEADCOUNT}-{MAX_HEADCOUNT} people, one per company and role. Staffing firms and job boards are "
+        "excluded, since they post for clients and their own joiners aren't the hire.",
         f"- Real hire: someone whose job at that company started between {HIRE_SLACK_DAYS} days before and "
         f"{HIRE_HORIZON_DAYS} days after the posting date, in a role whose title matches the posting, and who was not "
         "already at the company (internal moves are excluded). Found with Crustdata Person Search on current and "

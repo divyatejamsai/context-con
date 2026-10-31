@@ -64,7 +64,10 @@ def test_widened_filter_and_local_recheck():
     ("Backend Engineer", "Sales Manager", False),
     ("Product Designer", "Product Manager", False),
     ("Software Development Engineer II", "SDE 2", True),
-    ("Frontend Engineer, Bangalore", "Frontend Developer", False),
+    ("Frontend Engineer, Bangalore", "Frontend Developer", True),
+    ("Java Full Stack", "Full Stack Developer", True),
+    ("Full Stack Engineer with AWS LEX", "Fullstack Developer", True),
+    ("Backend Engineer", "Software Engineer", False),
     ("Machine Learning Engineer", "ML Engineer", True),
 ])
 def test_role_match(posting, title, ok):
