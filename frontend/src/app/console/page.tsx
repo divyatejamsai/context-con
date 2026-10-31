@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, ClipboardCheck, Link2, Loader2, Plus, RefreshCw, 
   Building2, LayoutDashboard, ShieldAlert, ShieldCheck, UserCog, Users, X,
@@ -487,12 +487,13 @@ function Sidebar({
 
       <div className="hidden border-t border-border p-3 lg:block">
         {ws && <AccessNote ws={ws} />}
-        <div className="mt-2 flex items-center justify-between gap-2 px-1">
+        {/* relative: the token and account popovers open upward across this whole row, so they stay inside the sidebar */}
+        <div className="relative mt-2 flex items-center justify-between gap-2 px-1">
           <BackendDot mode={mode} />
           <div className="flex items-center gap-0.5">
             <AdminToken up />
             <ThemeToggle />
-            <AccountMenu />
+            <AccountMenu up />
           </div>
         </div>
       </div>
@@ -594,9 +595,19 @@ function AdminToken({ up }: { up?: boolean }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [has, setHas] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => setHas(!!getAdminToken()), []);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
   return (
-    <div className="relative">
+    // In the sidebar footer (up) the popover anchors to the footer row, not this button, so it can't run off the left edge.
+    <div ref={ref} className={up ? undefined : "relative"}>
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn("grid size-7 place-items-center rounded-md hover:bg-elevated", has ? "text-foreground" : "text-muted-foreground")}
@@ -614,7 +625,7 @@ function AdminToken({ up }: { up?: boolean }) {
             setValue("");
             setOpen(false);
           }}
-          className={cn(cardCls, up ? "absolute bottom-9 right-0 z-40 w-72 p-3 shadow-lg animate-fade" : "absolute right-0 top-9 z-40 w-72 p-3 shadow-lg animate-fade")}
+          className={cn(cardCls, up ? "absolute inset-x-0 bottom-9 z-40 p-3 shadow-lg animate-fade" : "absolute right-0 top-9 z-40 w-72 max-w-[calc(100vw-2rem)] p-3 shadow-lg animate-fade")}
         >
           <p className="text-[12.5px] font-[510]">Admin token</p>
           <p className="mt-0.5 text-[11.5px] text-muted-foreground">Needed to change agents when the backend sets COUNTERSIGN_ADMIN_TOKEN. Stored in this browser only.</p>
