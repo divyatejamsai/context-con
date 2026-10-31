@@ -27,7 +27,7 @@ from typing import Any
 from ..agents import ledger, registry
 from ..fleet.demo import store_dir
 from . import store
-from .kinds import KINDS, can_do, title_for
+from .kinds import KINDS, can_do, is_external, title_for
 from .worker import METER, BudgetExceeded, InprocMCP, Meter, MeteredClient, execute_approval, meter_llm, reject_approval
 
 log = logging.getLogger(__name__)
@@ -246,7 +246,7 @@ class Runtime:
                 why = f"{ag['name']} is {ag['status']}"
             elif store.policy(ag["agent_id"])["paused"]:
                 why = f"{ag['name']} is paused"
-            elif ag["agent_id"] in busy or (ag.get("runtime") == "external" and store.tasks(ag["agent_id"], status="running")):
+            elif ag["agent_id"] in busy or (is_external(ag) and store.tasks(ag["agent_id"], status="running")):
                 why = f"{ag['name']} is busy with another task"
             elif store.usage(ag["agent_id"])["tasks"] >= store.policy(ag["agent_id"])["budget"]["tasks_per_day"]:
                 why = "daily task budget reached"
@@ -254,7 +254,11 @@ class Runtime:
                 if t.get("waiting_on") != why:
                     store.update_task(t["task_id"], waiting_on=why)
                 continue
-            if ag.get("runtime") == "external":
+            if bool(KINDS.get(t["kind"], {}).get("external")) != is_external(ag):
+                # e.g. an in-house agent that rotated to its own key: Agaxes can no longer sign for it
+                self._finish(t["task_id"], "failed", error=can_do(ag, t["kind"]) or "agent can't take this kind of task")
+                continue
+            if is_external(ag):
                 why = f"waiting for {ag['name']} to pick it up"
                 if self.launch_claude and t["task_id"] not in self.launches:
                     self._launch(t, ag)

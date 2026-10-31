@@ -229,7 +229,8 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
     edited = body is not None and body.strip() and body.strip() != (store.get_approval(approval_id) or {}).get("body", "").strip()
     if edited:
         cur = store.get_approval(approval_id)
-        if cur and registry.get_agent(cur["agent_id"]).get("runtime") == "external":
+        from .kinds import is_external
+        if cur and is_external(registry.get_agent(cur["agent_id"])):
             raise ValueError("an outside agent's draft can't be edited here: reject it and ask the agent for a new one")
     a = store.claim_approval(approval_id, by)
     if a is None:

@@ -201,7 +201,7 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
       </section>
 
       <section className={cn("mt-8", agentId && "max-w-[460px]")}>
-        <SectionHead title={agentId ? "Right now" : "Agents"} aside={
+        <SectionHead title={agentId ? "Right now" : "Agents"} aside={agentId ? undefined : (
           <div className="flex gap-1.5">
             {templates.filter((t) => !t.hired).map((t) => (
               <Button key={t.key} disabled={!!busy} title={t.job}
@@ -214,7 +214,7 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
               </Button>
             ))}
           </div>
-        }>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
+        )}>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
         {live.length ? (
           <div className={cn("mt-3 grid grid-cols-1 gap-3", !agentId && "md:grid-cols-2 xl:grid-cols-3")}>
             {live.map((a) => (

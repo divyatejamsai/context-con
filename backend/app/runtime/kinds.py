@@ -210,13 +210,18 @@ def title_for(kind: str, inp: dict) -> str:
     return kind
 
 
+def is_external(agent: dict) -> bool:
+    """Runs on its own machine, or holds its own key (enrolled / rotated): Agaxes can't run its code or sign for it."""
+    return agent.get("runtime") == "external" or agent.get("key_custody") == "agent"
+
+
 def can_do(agent: dict, kind: str) -> str | None:
     """None if the agent may take this kind of task, else why not."""
     spec = KINDS.get(kind)
     if not spec:
         return f"unknown task kind {kind}"
-    if bool(spec.get("external")) != (agent.get("runtime") == "external"):
-        return (f"{agent['name']} runs on its own machine: give it an outside-agent task" if agent.get("runtime") == "external"
+    if bool(spec.get("external")) != is_external(agent):
+        return (f"{agent['name']} runs on its own machine: give it an outside-agent task" if is_external(agent)
                 else f"{spec['label']} is for outside agents (like Claude Code)")
     if spec["scope"] not in agent["passport"]["scopes"]:
         return f"{agent['name']}'s passport has no {spec['scope']} scope"
