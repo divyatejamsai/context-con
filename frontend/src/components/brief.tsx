@@ -1,13 +1,13 @@
 "use client";
 import { forwardRef } from "react";
-import { ArrowRight, CornerDownLeft, Square } from "lucide-react";
+import { ArrowUp, CornerDownLeft, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const EXAMPLES = [
-  { label: "Payments backend", brief: "need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon" },
-  { label: "Founding ML", brief: "founding ML engineer for a seed-stage fintech in Mumbai, LLM + ranking experience" },
-  { label: "Growth lead", brief: "head of growth, B2B SaaS, has scaled 0→1, remote india ok" },
-  { label: "Messy one", brief: "pm?? fintech-ish. delhi or gurgaon. NOT big tech. someone scrappy" },
+  { label: "Payments backend, Bangalore", brief: "need a senior backend eng, payments exp, Bangalore, ex-startup, can start soon" },
+  { label: "Founding ML, Mumbai", brief: "founding ML engineer for a seed-stage fintech in Mumbai, LLM + ranking experience" },
+  { label: "Head of growth, remote", brief: "head of growth, B2B SaaS, has scaled 0→1, remote india ok" },
+  { label: "A messy one", brief: "pm?? fintech-ish. delhi or gurgaon. NOT big tech. someone scrappy" },
 ];
 
 interface Props {
@@ -17,11 +17,17 @@ interface Props {
   onStop: () => void;
   running: boolean;
   compact?: boolean;
+  footer?: React.ReactNode;
 }
 
-export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefInput({ value, onChange, onRun, onStop, running, compact }, ref) {
+export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefInput({ value, onChange, onRun, onStop, running, compact, footer }, ref) {
   return (
-    <div className={cn("group relative rounded-lg border border-rule bg-paper transition focus-within:border-foreground", compact ? "shadow-none" : "shadow-[0_1px_0_var(--rule),0_12px_32px_-16px_rgba(0,0,0,0.25)]")}>
+    <div
+      className={cn(
+        "relative rounded-xl border border-border-strong bg-panel transition focus-within:border-primary/60",
+        !compact && "shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_24px_64px_-24px_var(--glow)] focus-within:shadow-[0_0_0_4px_var(--glow),0_24px_64px_-24px_var(--glow)]",
+      )}
+    >
       <textarea
         ref={ref}
         value={value}
@@ -33,38 +39,49 @@ export const BriefInput = forwardRef<HTMLTextAreaElement, Props>(function BriefI
           }
           if (e.key === "Escape") (e.target as HTMLTextAreaElement).blur();
         }}
-        placeholder="Describe the role the way you'd say it to a recruiter…"
+        placeholder="Tell me who you're hiring, however it comes out…"
         rows={compact ? 1 : 3}
+        wrap={compact ? "off" : "soft"}
         disabled={running}
         className={cn(
-          "w-full resize-none bg-transparent focus:outline-none disabled:opacity-70",
-          compact ? "px-4 py-3 pr-36 text-[15px]" : "font-display px-6 pb-16 pt-5 text-2xl leading-snug placeholder:text-muted-foreground/70 sm:text-[28px]",
+          "w-full resize-none bg-transparent placeholder:text-faint focus:outline-none disabled:opacity-60",
+          compact ? "block h-10 overflow-hidden px-3.5 py-2.5 pr-28 text-[13.5px]" : "px-4 pb-2 pt-4 text-[17px] leading-relaxed",
         )}
         aria-label="Hiring brief"
       />
-      <div className={cn("absolute flex items-center gap-2", compact ? "right-2 top-1/2 -translate-y-1/2" : "bottom-3 right-3")}>
-        {!compact && (
-          <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
-            <kbd>⌘</kbd>
-            <kbd>↵</kbd>
-          </span>
-        )}
-        {running ? (
-          <button onClick={onStop} className="inline-flex h-9 items-center gap-2 rounded-md border border-foreground px-4 text-sm font-medium hover:bg-muted">
-            <Square className="size-3.5 fill-current" /> Stop
-          </button>
-        ) : (
-          <button
-            onClick={onRun}
-            disabled={!value.trim()}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-foreground px-4 text-sm font-medium text-background transition hover:opacity-90 disabled:opacity-40"
-          >
-            {compact ? <CornerDownLeft className="size-4" /> : null}
-            {compact ? "Re-run" : "Build shortlist"}
-            {!compact && <ArrowRight className="size-4" />}
-          </button>
-        )}
-      </div>
+      {compact ? (
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+          <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Re-run" />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2 px-3 pb-3">
+          <div className="min-w-0">{footer}</div>
+          <div className="flex items-center gap-2">
+            <span className="hidden items-center gap-1 text-[11px] text-faint sm:inline-flex">
+              <kbd>⌘</kbd>
+              <kbd>↵</kbd>
+            </span>
+            <RunButton running={running} disabled={!value.trim()} onRun={onRun} onStop={onStop} label="Find candidates" />
+          </div>
+        </div>
+      )}
     </div>
   );
 });
+
+function RunButton({ running, disabled, onRun, onStop, label }: { running: boolean; disabled: boolean; onRun: () => void; onStop: () => void; label: string }) {
+  return running ? (
+    <button onClick={onStop} className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12.5px] font-[510] hover:bg-hover">
+      <Square className="size-3 fill-current" /> Stop
+    </button>
+  ) : (
+    <button
+      onClick={onRun}
+      disabled={disabled}
+      className="inline-flex h-7 items-center gap-1.5 rounded-md bg-primary-strong px-2.5 text-[12.5px] font-[510] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition hover:bg-primary disabled:opacity-40"
+    >
+      {label === "Re-run" ? <CornerDownLeft className="size-3.5" /> : <ArrowUp className="size-3.5" />}
+      {label}
+    </button>
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Download, FileText, Keyboard, Radio, Rows3, Table2 } from "lucide-react";
+import { Check, Download, FileText, Keyboard, Radio, Rows3, ShieldCheck, Table2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { BriefInput, EXAMPLES } from "@/components/brief";
 import { Trace } from "@/components/trace";
@@ -199,77 +199,77 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <TopBar
-        mode={mode}
-        setMode={setMode}
-        running={run.running}
-        done={run.done}
-        elapsed={elapsed}
-        started={started}
-        onHelp={() => setHelp((h) => !h)}
-      />
+      <TopBar mode={mode} setMode={setMode} running={run.running} done={run.done} elapsed={elapsed} started={started} onHelp={() => setHelp((h) => !h)} />
 
       {!started ? (
-        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} />
+        <Hero brief={brief} setBrief={setBrief} onRun={start} briefRef={briefRef} mode={mode} />
       ) : (
-        <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-6">
-          <div className="sticky top-14 z-20 -mx-4 bg-background/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-            <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={start} onStop={stop} running={run.running} compact />
-          </div>
-
-          {run.fatal && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-contradicted/50 bg-contradicted/[0.06] px-4 py-3 text-sm">
-              <span><span className="font-medium text-contradicted">Run failed.</span> {run.fatal}</span>
-              {mode === "live" && (
-                <button onClick={() => setMode("replay")} className="rounded-full border border-rule px-3 py-1 text-xs font-medium hover:border-foreground">
-                  Switch to replay
-                </button>
-              )}
+        <main className="mx-auto grid max-w-[1680px] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,500px)] 2xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,560px)]">
+          <aside className="order-last border-t border-border px-4 py-4 lg:order-none lg:sticky lg:border-t-0 lg:top-12 lg:h-[calc(100vh-3rem)] lg:overflow-y-auto lg:border-r">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[12px] font-[510] text-muted-foreground">Agent run</h2>
+              <span className="rounded-full border border-border-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">
+                {mode === "live" ? "live · crustdata" : "replay"}
+              </span>
             </div>
-          )}
+            <Trace run={run} now={now} />
+          </aside>
 
-          <div className="mt-4 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,520px)] 2xl:grid-cols-[280px_minmax(0,1fr)_minmax(0,600px)]">
-            <aside className="flex flex-col gap-6 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:self-start lg:overflow-y-auto">
-              <Trace run={run} now={now} />
-              {run.criteria && <Understood criteria={run.criteria} />}
-            </aside>
+          <section className="min-w-0">
+            <div className="sticky top-12 z-20 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-xl">
+              <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={start} onStop={stop} running={run.running} compact />
+              {run.criteria && <CriteriaChips criteria={run.criteria} />}
+            </div>
 
-            <section className="min-w-0">
-              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-foreground/80 pb-3">
-                <div>
-                  <h2 className="font-display text-3xl font-medium tracking-tight">
-                    Shortlist <span className="font-light text-muted-foreground">{rows.length}</span>
-                  </h2>
-                  <Funnel summary={run.summary} shortlisted={Object.keys(run.candidates).length} totals={totals} />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Seg
-                    value={view}
-                    onChange={setView}
-                    options={[
-                      { v: "list", label: "Dossiers", icon: <Rows3 className="size-3.5" /> },
-                      { v: "compare", label: "Compare", icon: <Table2 className="size-3.5" /> },
-                    ]}
-                  />
-                  <button
-                    onClick={() => setHideContra((h) => !h)}
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-medium transition",
-                      hideContra ? "border-contradicted bg-contradicted text-white" : "border-rule hover:border-foreground",
-                    )}
-                    title="Hide candidates with any contradicted claim (h)"
-                  >
-                    {hideContra ? "Contradicted hidden" : "Hide contradicted"}
+            {run.fatal && (
+              <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-contradicted/30 bg-contradicted/[0.08] px-3 py-2.5 text-[13px]">
+                <span>
+                  <span className="font-[510] text-contradicted">Run failed.</span> <span className="text-secondary">{run.fatal}</span>
+                </span>
+                {mode === "live" && (
+                  <button onClick={() => setMode("replay")} className="h-7 rounded-md border border-border-strong bg-elevated px-2.5 text-[12px] font-[510] hover:bg-hover">
+                    Switch to replay
                   </button>
-                  <ExportMenu
-                    disabled={!rows.length}
-                    onMd={() => download("shortlist.md", toMarkdown(lastBrief, run.criteria, exportRows()), "text/markdown")}
-                    onCsv={() => download("shortlist.csv", toCSV(exportRows()), "text/csv")}
-                    onJson={() => download("shortlist.json", JSON.stringify({ brief: lastBrief, criteria: run.criteria, candidates: exportRows() }, null, 2), "application/json")}
-                  />
-                </div>
+                )}
               </div>
+            )}
 
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-2 pt-4">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-[15px] font-[590]">Shortlist</h1>
+                <span className="font-mono text-[12px] text-muted-foreground tabular-nums">{rows.length}</span>
+                <Funnel summary={run.summary} totals={totals} />
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Seg
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    { v: "list", label: "List", icon: <Rows3 className="size-3.5" /> },
+                    { v: "compare", label: "Compare", icon: <Table2 className="size-3.5" /> },
+                  ]}
+                />
+                <button
+                  onClick={() => setHideContra((h) => !h)}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-[510] transition",
+                    hideContra ? "border-contradicted/40 bg-contradicted/10 text-contradicted" : "border-border-strong bg-elevated text-secondary hover:bg-hover",
+                  )}
+                  title="Hide candidates with any contradicted claim (H)"
+                >
+                  {hideContra ? <X className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+                  {hideContra ? "Contradicted hidden" : "Clean records only"}
+                </button>
+                <ExportMenu
+                  disabled={!rows.length}
+                  onMd={() => download("shortlist.md", toMarkdown(lastBrief, run.criteria, exportRows()), "text/markdown")}
+                  onCsv={() => download("shortlist.csv", toCSV(exportRows()), "text/csv")}
+                  onJson={() => download("shortlist.json", JSON.stringify({ brief: lastBrief, criteria: run.criteria, candidates: exportRows() }, null, 2), "application/json")}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-border">
               {rows.length ? (
                 view === "list" ? (
                   <ShortlistRows rows={rows} selected={selected} onSelect={select} />
@@ -279,30 +279,34 @@ export default function Home() {
               ) : (
                 <Empty running={run.running} done={run.done} filtered={hideContra && Object.keys(run.candidates).length > 0} />
               )}
-              {rows.length > 0 && (
-                <p className="mt-4 hidden flex-wrap items-center gap-x-4 gap-y-1 whitespace-nowrap font-mono text-[11px] text-muted-foreground sm:flex">
-                  <span><kbd>j</kbd> <kbd>k</kbd> move</span>
-                  <span><kbd>p</kbd> pin</span>
-                  <span><kbd>x</kbd> pass</span>
-                  <span><kbd>c</kbd> copy outreach</span>
-                  <span><kbd>v</kbd> compare</span>
-                  <span><kbd>?</kbd> all shortcuts</span>
-                </p>
-              )}
-            </section>
-
-            {wide && (
-              <aside className="sticky top-32 hidden max-h-[calc(100vh-9rem)] self-start overflow-y-auto rounded-lg border border-rule bg-paper shadow-[0_24px_48px_-32px_rgba(0,0,0,0.35)] xl:block">
-                {dossier ?? <p className="p-8 text-sm text-muted-foreground">{run.running ? "The top candidate's dossier opens here as soon as they're verified." : "Select a candidate to open their dossier."}</p>}
-              </aside>
+            </div>
+            {rows.length > 0 && (
+              <p className="hidden flex-wrap items-center gap-x-4 gap-y-1 whitespace-nowrap px-4 py-3 text-[11.5px] text-faint sm:flex">
+                <span className="inline-flex items-center gap-1"><kbd>J</kbd><kbd>K</kbd> move</span>
+                <span className="inline-flex items-center gap-1"><kbd>P</kbd> pin</span>
+                <span className="inline-flex items-center gap-1"><kbd>X</kbd> pass</span>
+                <span className="inline-flex items-center gap-1"><kbd>C</kbd> copy outreach</span>
+                <span className="inline-flex items-center gap-1"><kbd>V</kbd> compare</span>
+                <span className="inline-flex items-center gap-1"><kbd>?</kbd> shortcuts</span>
+              </p>
             )}
-          </div>
+          </section>
+
+          {wide && (
+            <aside className="sticky top-12 hidden h-[calc(100vh-3rem)] overflow-y-auto border-l border-border bg-panel xl:block">
+              {dossier ?? (
+                <div className="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
+                  {run.running ? "The top candidate opens here as soon as their claims are checked." : "Select a candidate."}
+                </div>
+              )}
+            </aside>
+          )}
         </main>
       )}
 
       {!wide && (
         <Sheet open={sheetOpen && !!dossier} onOpenChange={setSheetOpen}>
-          <SheetContent className="bg-paper">
+          <SheetContent className="border-border bg-panel">
             <SheetTitle className="sr-only">{cur?.name ?? "Candidate"}</SheetTitle>
             <div className="h-full overflow-y-auto pt-6">{dossier}</div>
           </SheetContent>
@@ -314,21 +318,30 @@ export default function Home() {
   );
 }
 
+function Logo() {
+  return (
+    <span className="relative grid size-6 place-items-center rounded-md bg-gradient-to-br from-primary to-primary-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+      <Check className="size-3.5 text-white" strokeWidth={3} />
+    </span>
+  );
+}
+
 function TopBar({
   mode, setMode, running, done, elapsed, started, onHelp,
 }: { mode: RunMode; setMode: (m: RunMode) => void; running: boolean; done: boolean; elapsed: number; started: boolean; onHelp: () => void }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-rule bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-semibold italic tracking-tight">Dossier</span>
-          <span className="hidden font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">verified shortlists · on Crustdata</span>
+    <header className="sticky top-0 z-30 h-12 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-full max-w-[1680px] items-center justify-between gap-4 px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <Logo />
+          <span className="text-[14px] font-[590] tracking-[-0.01em]">Sourced</span>
+          <span className="hidden rounded-full border border-border-strong px-1.5 text-[10.5px] font-[510] text-muted-foreground sm:inline">on Crustdata</span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {started && (
-            <span className="flex items-center gap-2 font-mono text-xs tabular-nums">
-              <span className={cn("size-2 rounded-full", running ? "animate-pulse bg-primary" : done ? "bg-verified" : "bg-unverifiable")} />
-              {running ? "working" : done ? "done" : "stopped"} · {elapsed.toFixed(1)}s
+            <span className="hidden items-center gap-1.5 font-mono text-[11px] text-muted-foreground tabular-nums sm:flex">
+              <span className={cn("size-1.5 rounded-full", running ? "animate-pulse bg-primary" : done ? "bg-verified" : "bg-faint")} />
+              {running ? "running" : done ? "done" : "stopped"} · {elapsed.toFixed(1)}s
             </span>
           )}
           <Seg
@@ -339,7 +352,7 @@ function TopBar({
               { v: "live", label: "Live", icon: <Radio className="size-3" /> },
             ]}
           />
-          <button onClick={onHelp} className="hidden rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:block" aria-label="Keyboard shortcuts">
+          <button onClick={onHelp} className="hidden size-7 place-items-center rounded-md text-muted-foreground hover:bg-elevated hover:text-foreground sm:grid" aria-label="Keyboard shortcuts">
             <Keyboard className="size-4" />
           </button>
         </div>
@@ -348,115 +361,127 @@ function TopBar({
   );
 }
 
-function Hero({ brief, setBrief, onRun, briefRef }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement> }) {
+function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBrief: (s: string) => void; onRun: () => void; briefRef: React.Ref<HTMLTextAreaElement>; mode: RunMode }) {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col px-4 pb-20 pt-14 sm:px-6 sm:pt-24">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">No human in the loop · every claim cited</p>
-      <h1 className="font-display mt-3 text-5xl font-light leading-[1.02] tracking-tight sm:text-7xl">
-        Who are you <em className="font-normal">hiring?</em>
-      </h1>
-      <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-        Write the brief however it comes out. The agent finds people on Crustdata, checks what their profiles claim, and hands back a ranked shortlist with a source for every line.
-      </p>
-      <div className="mt-8">
-        <BriefInput ref={briefRef} value={brief} onChange={setBrief} onRun={onRun} onStop={() => {}} running={false} />
+    <main className="relative overflow-hidden">
+      <div className="hero-grid pointer-events-none absolute inset-0" />
+      <div className="pointer-events-none absolute left-1/2 top-[-240px] h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,var(--glow),transparent)]" />
+      <div className="relative mx-auto flex max-w-[760px] flex-col items-center px-4 pb-24 pt-20 text-center sm:pt-28">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-panel/70 py-1 pl-1 pr-3 text-[12px] text-secondary backdrop-blur">
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-[590] text-primary">New</span>
+          Every claim checked against Crustdata&apos;s people graph
+        </span>
+        <h1 className="mt-6 text-[44px] font-[590] leading-[1.02] tracking-[-0.035em] sm:text-[64px]">
+          Hire from evidence,
+          <br />
+          <span className="bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent">not from profiles.</span>
+        </h1>
+        <p className="mt-5 max-w-[520px] text-[16px] leading-relaxed text-muted-foreground">
+          Paste any hiring brief. The agent searches, enriches and verifies every candidate, then gives you a ranked shortlist where each line cites its source.
+        </p>
+        <div className="mt-9 w-full text-left">
+          <BriefInput
+            ref={briefRef}
+            value={brief}
+            onChange={setBrief}
+            onRun={onRun}
+            onStop={() => {}}
+            running={false}
+            footer={
+              <span className="inline-flex items-center gap-1.5 text-[11.5px] text-faint">
+                <span className={cn("size-1.5 rounded-full", mode === "live" ? "bg-verified" : "bg-flag")} />
+                {mode === "live" ? "Live: calls the agent backend" : "Replay: recorded run, no backend needed"}
+              </span>
+            }
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex.label}
+              onClick={() => setBrief(ex.brief)}
+              className={cn(
+                "h-7 rounded-full border px-3 text-[12px] font-[510] transition",
+                brief === ex.brief ? "border-primary/50 bg-primary/10 text-foreground" : "border-border-strong bg-panel/60 text-muted-foreground hover:text-foreground",
+              )}
+              title={ex.brief}
+            >
+              {ex.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-20 grid w-full overflow-hidden rounded-xl border border-border bg-panel/60 text-left backdrop-blur sm:grid-cols-3">
+          {[
+            ["Search", "Expands the brief into title variants and searches the people graph. If nothing comes back it broadens the search instead of giving up.", "person/search"],
+            ["Verify", "Checks employer, tenure, location and company stage against enrich data, and marks each claim verified, contradicted or unverifiable.", "person/enrich · company/enrich"],
+            ["Cite", "Ranks candidates with reasons that link to the evidence, then drafts outreach. Nothing is ever sent.", "claim ids → sources"],
+          ].map(([t, d, tool], i) => (
+            <div key={t} className={cn("p-5", i > 0 && "border-t border-border sm:border-l sm:border-t-0")}>
+              <div className="font-mono text-[10.5px] text-faint">0{i + 1}</div>
+              <h3 className="mt-2 text-[15px] font-[590]">{t}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{d}</p>
+              <p className="mt-3 font-mono text-[10.5px] text-primary/80">{tool}</p>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex.label}
-            onClick={() => setBrief(ex.brief)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-left text-xs transition",
-              brief === ex.brief ? "border-foreground bg-foreground text-background" : "border-rule text-muted-foreground hover:border-foreground hover:text-foreground",
-            )}
-            title={ex.brief}
-          >
-            {ex.label}
-          </button>
-        ))}
-      </div>
-      <ol className="mt-16 grid gap-6 border-t border-rule pt-8 sm:grid-cols-3">
-        {[
-          ["01", "Search", "Expands your brief into title variants and searches Crustdata's people graph, broadening if it comes up empty."],
-          ["02", "Verify", "Checks employer, tenure, location and company stage against enrich data. Each claim is stamped verified, contradicted or unverifiable."],
-          ["03", "Cite", "Ranks candidates with reasons that footnote the evidence, then drafts outreach. Nothing is ever sent."],
-        ].map(([n, t, d]) => (
-          <li key={n}>
-            <span className="font-mono text-[11px] text-muted-foreground">{n}</span>
-            <h3 className="font-display mt-1 text-xl font-medium">{t}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{d}</p>
-          </li>
-        ))}
-      </ol>
     </main>
   );
 }
 
-function Funnel({ summary, shortlisted, totals }: { summary?: Record<string, number | undefined>; shortlisted: number; totals: { v: number; x: number; u: number } }) {
-  const steps: [string, number | undefined][] = [
-    ["searched", summary?.searched],
-    ["enriched", summary?.enriched],
-    ["shortlisted", summary?.shortlisted ?? (shortlisted || undefined)],
-  ];
+function Funnel({ summary, totals }: { summary?: Record<string, number | undefined>; totals: { v: number; x: number; u: number } }) {
+  const parts: string[] = [];
+  if (summary?.searched !== undefined) parts.push(`${summary.searched} searched`);
+  if (summary?.enriched !== undefined) parts.push(`${summary.enriched} enriched`);
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted-foreground">
-      {steps
-        .filter(([, n]) => n !== undefined)
-        .map(([l, n], i, a) => (
-          <span key={l}>
-            <span className="font-medium tabular-nums text-foreground">{n}</span> {l}
-            {i < a.length - 1 && <span className="ml-2">→</span>}
-          </span>
-        ))}
+    <span className="ml-2 hidden items-center gap-2 text-[12px] text-faint md:inline-flex">
+      {parts.length > 0 && <span>{parts.join(" → ")}</span>}
       {totals.v + totals.x + totals.u > 0 && (
-        <span className="ml-1">
-          · <span className="text-verified">{totals.v} verified</span> · <span className="text-contradicted">{totals.x} contradicted</span> · {totals.u} unverifiable
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-verified" />{totals.v}</span>
+          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-contradicted" />{totals.x}</span>
+          <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-faint" />{totals.u}</span>
         </span>
       )}
-    </p>
+    </span>
   );
 }
 
-function Understood({ criteria: c }: { criteria: Criteria }) {
-  const rows: [string, string[] | undefined][] = [
-    ["Titles", c.title_variants],
-    ["Skills", c.skills],
-    ["Where", c.locations],
-    ["Companies", c.company_preferences],
-    ["Must", c.must_haves],
-    ["Nice", c.nice_to_haves],
-  ];
+function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
+  const chips: { k: string; v: string }[] = [];
+  if (c.role) chips.push({ k: "Role", v: c.role + (c.seniority ? ` · ${c.seniority}` : "") });
+  for (const l of c.locations ?? []) chips.push({ k: "in", v: l });
+  for (const s of c.skills ?? []) chips.push({ k: "skill", v: s });
+  for (const s of c.company_preferences ?? []) chips.push({ k: "from", v: s });
+  for (const s of c.must_haves ?? []) chips.push({ k: "must", v: s });
+  const extra = (c.title_variants?.length ?? 0) + (c.nice_to_haves?.length ?? 0);
+  const shown = chips.slice(0, 7);
+  const more = chips.length - shown.length + extra;
   return (
-    <div className="animate-rise">
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">What the agent understood</div>
-      {c.role && (
-        <p className="font-display text-lg leading-tight">
-          {c.role}
-          {c.seniority && <span className="text-muted-foreground">, {c.seniority}</span>}
-        </p>
+    <div className="mt-2 flex flex-wrap items-center gap-1.5 animate-fade">
+      <span className="text-[11.5px] text-faint">Understood as</span>
+      {shown.map((ch, i) => (
+        <span key={i} className="inline-flex h-6 items-center gap-1 rounded-md border border-border-strong bg-panel px-2 text-[12px]">
+          <span className="text-faint">{ch.k}</span>
+          <span className="font-[510]">{ch.v}</span>
+        </span>
+      ))}
+      {more > 0 && (
+        <span
+          className="inline-flex h-6 items-center rounded-md border border-dashed border-border-strong px-2 text-[12px] text-muted-foreground"
+          title={[...(c.title_variants ?? []).map((t) => `title: ${t}`), ...(c.nice_to_haves ?? []).map((t) => `nice: ${t}`)].join("\n")}
+        >
+          +{more} more
+        </span>
       )}
-      <dl className="mt-2 flex flex-col gap-1.5">
-        {rows
-          .filter(([, v]) => v?.length)
-          .map(([label, v]) => (
-            <div key={label} className="grid grid-cols-[64px_1fr] gap-2 text-xs">
-              <dt className="pt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
-              <dd className="flex flex-wrap gap-1">
-                {v!.map((x) => (
-                  <span key={x} className="rounded-sm border border-rule bg-paper px-1.5 py-0.5">{x}</span>
-                ))}
-              </dd>
-            </div>
-          ))}
-      </dl>
     </div>
   );
 }
 
 function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: React.ReactNode }[] }) {
   return (
-    <div className="inline-flex rounded-full border border-rule bg-paper p-0.5 text-xs" role="radiogroup">
+    <div className="inline-flex h-7 items-center rounded-md border border-border-strong bg-panel p-0.5 text-[12px]" role="radiogroup">
       {options.map((o) => (
         <button
           key={o.v}
@@ -464,8 +489,8 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
           aria-checked={value === o.v}
           onClick={() => onChange(o.v)}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition",
-            value === o.v ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+            "inline-flex h-full items-center gap-1.5 rounded px-2 font-[510] transition",
+            value === o.v ? "bg-elevated text-foreground shadow-[0_0_0_1px_var(--border-strong)]" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.icon}
@@ -489,22 +514,22 @@ function ExportMenu({ disabled, onMd, onCsv, onJson }: { disabled: boolean; onMd
       <button
         disabled={disabled}
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1 text-xs font-medium hover:border-foreground disabled:opacity-40"
+        className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-2.5 text-[12px] font-[510] text-secondary hover:bg-hover disabled:opacity-40"
       >
         <Download className="size-3.5" /> Export
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-md border border-rule bg-paper py-1 text-sm shadow-lg animate-fade">
+        <div className="absolute right-0 z-30 mt-1 w-60 overflow-hidden rounded-lg border border-border-strong bg-elevated p-1 shadow-[var(--shadow)] animate-fade">
           {[
-            ["Markdown report", "every claim with its source", onMd],
-            ["CSV", "for a spreadsheet or ATS", onCsv],
-            ["JSON", "raw shortlist", onJson],
+            ["Markdown report", "Every claim with its source", onMd],
+            ["CSV", "For a spreadsheet or ATS", onCsv],
+            ["JSON", "Raw shortlist", onJson],
           ].map(([l, d, fn]) => (
-            <button key={l as string} onClick={fn as () => void} className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-muted">
-              <FileText className="mt-0.5 size-3.5 shrink-0" />
+            <button key={l as string} onClick={fn as () => void} className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-hover">
+              <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
               <span>
-                <span className="block font-medium">{l as string}</span>
-                <span className="block text-xs text-muted-foreground">{d as string}</span>
+                <span className="block text-[13px] font-[510]">{l as string}</span>
+                <span className="block text-[11.5px] text-muted-foreground">{d as string}</span>
               </span>
             </button>
           ))}
@@ -515,24 +540,32 @@ function ExportMenu({ disabled, onMd, onCsv, onJson }: { disabled: boolean; onMd
 }
 
 function Empty({ running, done, filtered }: { running: boolean; done: boolean; filtered: boolean }) {
+  if (running)
+    return (
+      <div className="flex flex-col">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3 border-b border-border px-4 py-3.5">
+            <div className="size-8 animate-pulse rounded-full bg-elevated" style={{ animationDelay: `${i * 120}ms` }} />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-40 animate-pulse rounded bg-elevated" style={{ animationDelay: `${i * 120}ms` }} />
+              <div className="h-2.5 w-64 animate-pulse rounded bg-elevated/70" style={{ animationDelay: `${i * 120}ms` }} />
+            </div>
+          </div>
+        ))}
+        <p className="px-4 py-4 text-[12.5px] text-faint">Candidates show up here as soon as their claims have been checked.</p>
+      </div>
+    );
   return (
-    <div className="py-16 text-center">
-      {running ? (
-        <div className="mx-auto flex max-w-sm flex-col gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-md bg-muted" style={{ animationDelay: `${i * 150}ms` }} />
-          ))}
-          <p className="mt-2 text-sm text-muted-foreground">Candidates appear here as soon as their claims are checked.</p>
-        </div>
-      ) : filtered ? (
-        <p className="text-sm text-muted-foreground">Every candidate has a contradicted claim. Press <kbd>h</kbd> to show them.</p>
+    <div className="px-4 py-16 text-center">
+      {filtered ? (
+        <p className="text-[13px] text-muted-foreground">Every candidate has at least one contradicted claim. Press <kbd>H</kbd> to show them.</p>
       ) : done ? (
         <>
-          <p className="font-display text-2xl">No one matched.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Try fewer must-haves or a wider location.</p>
+          <p className="text-[15px] font-[590]">No one matched.</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Try fewer must-haves or a wider location.</p>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">No candidates yet.</p>
+        <p className="text-[13px] text-faint">No candidates yet.</p>
       )}
     </div>
   );
@@ -542,24 +575,24 @@ function Shortcuts({ onClose }: { onClose: () => void }) {
   const keys: [string, string][] = [
     ["⌘ ↵", "Run the brief"],
     ["/", "Edit the brief"],
-    ["j / ↓", "Next candidate"],
-    ["k / ↑", "Previous candidate"],
-    ["p", "Pin candidate to top"],
-    ["x", "Pass on candidate"],
-    ["c", "Copy outreach draft"],
-    ["v", "Switch dossiers / compare"],
-    ["h", "Hide contradicted"],
-    ["esc", "Close"],
+    ["J / ↓", "Next candidate"],
+    ["K / ↑", "Previous candidate"],
+    ["P", "Pin candidate to top"],
+    ["X", "Pass on candidate"],
+    ["C", "Copy outreach draft"],
+    ["V", "Switch list / compare"],
+    ["H", "Clean records only"],
+    ["Esc", "Close"],
   ];
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 animate-fade" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg border border-rule bg-paper p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-display text-2xl">Shortcuts</h3>
-        <dl className="mt-4 grid grid-cols-[80px_1fr] gap-y-2 text-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm animate-fade" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-xl border border-border-strong bg-elevated p-5 shadow-[var(--shadow)]" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-[15px] font-[590]">Keyboard shortcuts</h3>
+        <dl className="mt-4 grid grid-cols-[72px_1fr] gap-y-2 text-[13px]">
           {keys.map(([k, d]) => (
             <div key={k} className="contents">
               <dt><kbd>{k}</kbd></dt>
-              <dd>{d}</dd>
+              <dd className="text-secondary">{d}</dd>
             </div>
           ))}
         </dl>
