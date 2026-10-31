@@ -30,13 +30,16 @@ Rules:
 - must_haves: only requirements that are NOT already a skill and NOT about education; no filler words like
   "experience" or "knowledge of". nice_to_haves: softer asks. Split by how strongly the brief states them.
 - locations: where the candidate should be based (cities/countries, canonical spelling, "Bengaluru" -> "Bangalore").
-  Empty if remote/unspecified. A country that only describes a college ("college in India") is NOT a location.
+  Empty if remote/unspecified. A country that only describes a college ("college in India") is NOT a location
+  (the pipeline decides separately whether to search there).
 - company_preferences: e.g. "startup", "fintech", "FAANG", "prop trading firm", named companies.
 - education_note: the brief's education ask in its own words ("prestige college in India", "IIT grads", "MBA"), or null.
 - schools: when the brief asks for a school or a tier of schools, list the concrete institutions it means, using
-  what you know about that country and that role, up to 12. Give each by its common short name AND its full name as
-  separate entries (e.g. "IIT", "Indian Institute of Technology"). A tier phrase ("top college", "tier 1", "ivy league",
-  "prestige college in <country>") must be expanded into the real institutions it refers to. Empty if no education ask.
+  what you know about that country and that role (for a quant role in India that includes the IITs, ISI, BITS Pilani,
+  IISc, CMI; for an MBA role the IIMs, ISB), up to 10 institutions. Give each by its common short name AND its full
+  name as separate entries (e.g. "IIT", "Indian Institute of Technology"). A tier phrase ("top college", "tier 1",
+  "ivy league", "prestige college in <country>") must be expanded into the real institutions it refers to.
+  Every institution you mention anywhere (including assumptions) must be in this list. Empty if no education ask.
 - degrees: degrees asked for ("B.Tech", "MBA", "PhD"), with common spellings as separate entries. Empty if none.
 - raw_brief: copy the brief verbatim.
 - min_years: minimum years of experience asked for ("5+ yrs" -> 5), or null.
@@ -480,7 +483,7 @@ _EDU_TERM = re.compile(r"\b(college|universit|institute|school|alumni|degree|tie
 def tidy_education(c: Criteria) -> Criteria:
     """Schools/degrees live in their own fields: drop education asks that leaked into skills or must-haves (they
     would be checked as skills, never match, and cap the score), and de-duplicate."""
-    c.schools = list(dict.fromkeys(s.strip() for s in c.schools if s and s.strip()))[:14]
+    c.schools = list(dict.fromkeys(s.strip() for s in c.schools if s and s.strip()))[:20]
     c.degrees = list(dict.fromkeys(d.strip() for d in c.degrees if d and d.strip()))[:6]
     from .verify.profile import school_matches  # local import: verify imports schemas only, no cycle
     def is_edu(t: str) -> bool:
@@ -510,6 +513,27 @@ def merge_rules(c: Criteria, rules: Criteria, brief: str) -> tuple[Criteria, lis
     return c, notes
 
 
+def education_country(brief: str) -> str | None:
+    """"prestige college in india" -> "India": the country an education ask names, if any."""
+    for _, _, clause in education_clauses(brief):
+        for alias, country in _COUNTRY_ALIASES.items():
+            if re.search(rf"\b(?:in|from|of)\s+(?:the\s+)?{re.escape(alias)}\b", clause.lower()):
+                return country
+    return None
+
+
+def default_location_from_education(c: Criteria, brief: str) -> list[str]:
+    """No location given but the schools are "in India": search India first (the ladder drops it if that's too
+    thin). Said out loud in the assumptions, never silent."""
+    if c.locations:
+        return []
+    country = education_country(brief)
+    if not country:
+        return []
+    c.locations = [country]
+    return [f"No location given; searching {country} first because the brief asks for colleges in {country}"]
+
+
 def understood_notes(c: Criteria, via_llm: bool) -> list[str]:
     """Say what the education ask was read as, or that it couldn't be expanded."""
     out = []
@@ -531,9 +555,11 @@ async def analyze_brief(brief: str) -> BriefAnalysis:
     brief = (brief or "").strip()[:6000]  # a pasted 2-page JD is fine; a novel is not
     heuristic_hiring = looks_like_hiring(brief)
     fallback = tidy_education(heuristic_parse(brief))
+    loc_note = default_location_from_education(fallback, brief)
     if llm.is_mock():
         return BriefAnalysis(criteria=fallback, is_hiring=heuristic_hiring,
-                             assumptions=_role_notes(fallback) + understood_notes(fallback, False) + default_assumptions(fallback))
+                             assumptions=_role_notes(fallback) + understood_notes(fallback, False) + loc_note
+                             + default_assumptions(fallback))
     try:
         p = _PARSE_CACHE.get(brief)
         if p is None:
@@ -547,7 +573,7 @@ async def analyze_brief(brief: str) -> BriefAnalysis:
         log.warning("parse_brief LLM failed, using heuristic: %s", e)
         return BriefAnalysis(criteria=fallback, is_hiring=heuristic_hiring,
                              assumptions=["Brief parsed with keyword rules (AI parser unavailable)", *_role_notes(fallback),
-                                          *understood_notes(fallback, False), *default_assumptions(fallback)])
+                                          *understood_notes(fallback, False), *loc_note, *default_assumptions(fallback)])
     c = Criteria.model_validate(p.model_dump(include=set(Criteria.model_fields)))
     c.raw_brief = brief
     c, notes = merge_rules(c, fallback, brief)
@@ -557,8 +583,13 @@ async def analyze_brief(brief: str) -> BriefAnalysis:
     c.title_variants = c.title_variants[:6]
     # the LLM can say "not hiring"; a clear role keyword overrules it
     is_hiring = p.is_hiring_brief or heuristic_hiring and bool(p.role)
-    assumptions = list(dict.fromkeys([*notes, *_role_notes(c), *understood_notes(c, True), *default_assumptions(c),
-                                      *(a for a in p.assumptions if a)]))[:6]
+    notes += default_location_from_education(c, brief)
+    edu_notes = understood_notes(c, True)
+    # our own "read as" line is built from the schools actually searched; drop the model's own reading of the
+    # education ask so the two can't disagree (it once named ISI and BITS but left them out of schools)
+    llm_notes = [a for a in p.assumptions if a and not (edu_notes and (_EDU_TERM.search(a) or "read as" in a.lower()))]
+    llm_notes = [a for a in llm_notes if not (c.locations and re.search(r"\bno location\b", a, re.I))]
+    assumptions = list(dict.fromkeys([*notes, *_role_notes(c), *edu_notes, *default_assumptions(c), *llm_notes]))[:6]
     return BriefAnalysis(criteria=c, is_hiring=is_hiring, assumptions=assumptions)
 
 
