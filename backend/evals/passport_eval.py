@@ -69,9 +69,9 @@ BUCKETS: dict[str, tuple[list[str], list[str], list[str]]] = {
                     ["data.read"], ["payment.send", "contract.sign"]),
 }
 # Titles in a bucket that override the bucket's CANNOT list (e.g. an "Account Executive" can't hire, a "Sales Director" arguably can).
-SENIOR = re.compile(r"\b(head|director|vp|vice president|chief|(co-?)?founder|cofounder|cxo|cto|ceo|cfo|coo|president|partner|owner)\b", re.I)
+SENIOR = re.compile(r"\b(head|director|vp|svp|evp|avp|vice president|chief|(co-?)?founder|cofounder|cxo|cto|ceo|cfo|coo|president|partner|owner)\b", re.I)
 SUBORD = re.compile(r"\b(assistant|intern|trainee|former|ex|chief of staff|office of)\b|\bto (the )?\w", re.I)
-FINANCE = re.compile(r"cfo|chief financial|financ|controller|treasur|founder|ceo|owner|president|partner|managing director", re.I)
+FINANCE = re.compile(r"cfo|chief financial|\bfinance (director|manager|controller|head|lead)|(head|director|vp|svp|evp|manager) (of )?(corporate |fund )?financ|controller|treasur|controller|treasur|founder|ceo|owner|president|partner|managing director", re.I)
 
 
 @dataclass
