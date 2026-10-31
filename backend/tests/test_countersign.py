@@ -147,3 +147,15 @@ async def test_multiple_roles_at_one_company_and_loose_company_names():
     tata = Sponsor(name="Asha Rao", profile_url=url, company="Tata Motors", company_domain="tatamotors.com", title="Data Analyst")
     p, _ = issue_passport("X", "bot", tata, ["data.read"])
     assert (await verify_passport(p, graph=g, today=TODAY)).decision == "allow"
+
+
+def test_title_roles_dont_mix_round2():
+    from app.agents.passport import can_grant, title_matches
+    assert not title_matches("Chief Executive Officer", "COO and Account Executive")
+    assert not title_matches("CFO", "Head of Finance and COO")
+    assert not title_matches("CTO", "Chief Product and Technology Officer")
+    assert title_matches("COO", "COO, Account Executive")
+    assert title_matches("Co-Founder and Finance Controller", "Co-Founder & Finance Controller")
+    assert can_grant("Chief Product and Technology Officer", "outreach.hiring")
+    assert can_grant("Manager - IT - Engineering", "outreach.hiring")
+    assert not can_grant("Software Engineer", "outreach.hiring")

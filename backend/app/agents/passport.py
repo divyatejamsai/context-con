@@ -135,8 +135,8 @@ def signature_valid(p: Passport) -> bool:
 # Which current titles may delegate which scope. Matched on expanded title tokens / phrases.
 _FOUNDER = r"\b(founder|co ?founder|ceo|chief executive|owner|managing director|partner)\b"
 SCOPE_RULES: dict[str, tuple[str, str]] = {
-    "outreach.hiring": (_FOUNDER + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)|cto|chief technology"
-                        r"|vice president|director|head|engineering manager)\b",
+    "outreach.hiring": (_FOUNDER + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)|cto|chief"
+                        r"|vice president|director|head|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
                         "talent/HR, an engineering manager or above, or a founder"),
     "outreach.sales": (_FOUNDER + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager|partnerships|vertrieb|verkauf|vermittler|broker"
                        r"|vice president|director|head|chief)\b", "sales/BD/marketing, a director or above, or a founder"),
@@ -169,13 +169,27 @@ def _domains_match(a: str | None, b: str | None) -> bool:
 
 def _jobs_at(jobs: list[Job], sponsor: Sponsor) -> list[Job]:
     """Jobs at the sponsor's claimed company, best match first: name must match; then the claimed domain, then an exact name."""
-    hits = [j for j in jobs if same_company(j.company, sponsor.company)]
     key = company_key(sponsor.company)
+    hits = [j for j in jobs if same_company(j.company, sponsor.company) or _same_legal_name(j.company, sponsor.company)
+            or (sponsor.company_domain and _domains_match(j.domain, sponsor.company_domain) and _first_word(j.company) == _first_word(sponsor.company))]
 
     def rank(j: Job) -> tuple:
         return (bool(sponsor.company_domain and _domains_match(j.domain, sponsor.company_domain)),
                 company_key(j.company) == key, j.start or date.min)
     return sorted(hits, key=rank, reverse=True)
+
+
+_LEGAL = re.compile(r"\b(llp|llc|inc|ltd|limited|pvt|private|plc|gmbh|ag|sa|bv|nv|pte|pty|co|corp|corporation|company)\b")
+
+
+def _same_legal_name(a: str | None, b: str | None) -> bool:
+    ka, kb = (re.sub(r"\s+", " ", _LEGAL.sub(" ", norm(x))).strip() for x in (a, b))
+    return bool(ka) and ka == kb
+
+
+def _first_word(name: str | None) -> str:
+    w = company_key(name).split()
+    return w[0] if w else ""
 
 
 _STOP = {"of", "and", "the", "at", "for", "in", "a", "i", "ai", "an"}
@@ -201,11 +215,32 @@ def title_terms(title: str | None) -> set[str]:
     return {_stem(w) for w in expand_title(words).split() if w not in _STOP}
 
 
+_ROLE_SPLIT = re.compile(r"\s+(?:and|&)\s+|\s*[|/;+]\s*|\s+[-\u2013\u2014]\s+", re.I)
+_CHIEF = re.compile(r"\bchief\s+((?:[a-z]+\s+(?:and\s+|&\s+)?){1,3}?)officer\b")
+
+
+def _roles(title: str | None) -> list[set[str]]:
+    """'COO and Account Executive' -> two roles, compared one at a time so words can't mix across them.
+    'Chief X Officer' becomes one atomic term, so CEO never matches CTO or 'COO, Account Executive'."""
+    t = " ".join(_ROLE_ABBREV.get(w, w) for w in re.sub(r"[^a-z0-9&|/;+\-\u2013\u2014 ]+", " ", (title or "").lower()).split())
+    t = _CHIEF.sub(lambda m: "chief_" + "_".join(_stem(w) for w in re.findall(r"[a-z]+", m.group(1)) if w != "and") + "_officer", t)
+    out = []
+    for part in _ROLE_SPLIT.split(t):
+        words = {w if w.startswith("chief_") else _stem(w) for w in expand_title(part.replace("_", "QQ")).replace("qq", "_").split()
+                 if w not in _STOP}
+        if words:
+            out.append(words)
+    return out
+
+
 def title_matches(claimed: str | None, actual: str | None) -> bool:
-    """Every word of the claimed title must be in the real one. Understating ("Director" for "Senior Director")
-    passes; any extra or different word ("CEO" for "CTO", "Senior" for a mid-level role) fails."""
-    c, a = title_terms(claimed), title_terms(actual)
-    return bool(c and a) and c <= a
+    """Every role in the claimed title must fit inside one real role, word for word. Understating ("Director" for
+    "Senior Director") passes; any extra or different word ("CEO" for "CTO", or for "COO and Account Executive") fails.
+    A title identical to the real one always passes."""
+    if norm(claimed) and norm(claimed) == norm(actual):
+        return True
+    c, a = _roles(claimed), _roles(actual)
+    return bool(c and a) and all(any(cr <= ar for ar in a) for cr in c)
 
 
 def _src(endpoint: str, field: str | None, url: str | None = None) -> Source:

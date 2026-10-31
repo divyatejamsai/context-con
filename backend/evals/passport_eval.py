@@ -98,7 +98,7 @@ class Result:
 
 
 def strip_suffix(name: str) -> str:
-    return re.sub(r"[\s,]*(pvt\.?|private|ltd\.?|limited|inc\.?|llc|llp|corp\.?|corporation|technologies|technology|solutions|labs?)\b\.?",
+    return re.sub(r"[\s,]*(pvt\.?|private|ltd\.?|limited|inc\.?|llc|llp|corp\.?|corporation|gmbh|plc)\b\.?",
                   "", name, flags=re.I).strip(" ,.") or name
 
 
