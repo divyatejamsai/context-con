@@ -8,7 +8,9 @@
 
 The run is recorded on the hash-chained ledger: run.started, run.finished (with every candidate's claim sources)
 and one guard.verdict per draft. Drafts are never sent (event rule); "allow" means cleared to send.
-The agent must be onboarded first (console, POST /api/agents, or scripts/onboard_sourced.py).
+The agent must be onboarded first (console, POST /api/agents, scripts/onboard_sourced.py or scripts/run_fleet.py).
+agent_id "sourced" means the newest active agent named Sourced (else the newest Sourced, so a suspension still shows),
+so the UI can use NEXT_PUBLIC_AGENT_ID=sourced without copying ids around.
 """
 from __future__ import annotations
 
@@ -58,8 +60,18 @@ def _failures(v: Verdict) -> str:
     return "; ".join(bad) or "no checks ran"
 
 
+def resolve_agent_id(agent_id: str) -> str:
+    if agent_id.lower() != "sourced":
+        return agent_id
+    mine = [a for a in registry.list_agents() if a.get("name") == "Sourced" and a.get("status") != "offboarded"]
+    active = [a for a in mine if a.get("status") == "active"]
+    pick = (active or mine or [None])[-1]
+    return pick["agent_id"] if pick else agent_id
+
+
 async def run_as_agent(brief: str, agent_id: str, client: Any = None) -> AsyncIterator[dict]:
     """Yields event dicts. Never raises: problems come back as error events."""
+    agent_id = resolve_agent_id(agent_id)
     try:
         rec = registry.get_agent(agent_id)
     except Exception:  # noqa: BLE001 - RegistryError or a bad store
