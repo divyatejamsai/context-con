@@ -278,11 +278,39 @@ async def prefetch_companies(client, persons: list[dict], companies: dict) -> No
                 companies[i] = fut
 
 
+_DOMAIN_LIKE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|io|ai|in|co|tech|dev|app|org|net|xyz|so)$", re.I)
+
+
+def _norm_co(s: str | None) -> str:
+    s = re.sub(r"\.(com|io|ai|in|co|tech|dev|app|org|net|xyz|so)$", "", (s or "").lower())
+    s = re.sub(r"\b(inc|ltd|llc|limited|pvt|private|technologies|technology|labs|corp|corporation|gmbh|co)\b", " ", s)
+    return re.sub(r"[^a-z0-9]+", "", s)
+
+
+def same_employer(name: str | None, record: dict | None) -> bool:
+    """Guard for name-based Company Identify, which fuzzy-matches ("nvme-z.tech" came back as Tech Mahindra)."""
+    a = _norm_co(name)
+    if not a or not record:
+        return False
+    names = [people.first(record, "basic_info.name", "company_name", "name"),
+             people.first(record, "basic_info.primary_domain", "company_website_domain", "domain")]
+    for n in names:
+        b = _norm_co(n if isinstance(n, str) else None)
+        if b and (a == b or (min(len(a), len(b)) >= 4 and (a in b or b in a))):
+            return True
+    return False
+
+
 async def _lookup_company(client, cid, domain, cname) -> dict | None:
     if cid or domain:
         return await client.company_enrich(company_id=cid, domain=domain)
     if cname:
-        ident = await client.company_identify(name=cname)
+        # employer names that are domains ("nvme-z.tech") identify far better by domain
+        ident = await (client.company_identify(domain=cname.lower()) if _DOMAIN_LIKE.match(cname.strip())
+                       else client.company_identify(name=cname))
+        if ident and not same_employer(cname, ident):
+            log.info("identify for %r returned a different company; ignoring", cname)
+            return None
         if ident:
             return await client.company_enrich(
                 company_id=people.first(ident, "crustdata_company_id", "company_id", "id"),
