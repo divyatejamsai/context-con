@@ -133,37 +133,48 @@ def signature_valid(p: Passport) -> bool:
 # ----------------------------------------------------------------------------- authority rules
 
 # Which current titles may delegate which scope. Matched on expanded title tokens / phrases.
-_FOUNDER = (r"\b(founder|co ?founder|cofounder|ceo|chief executive|managing director|managing partner|general partner|founding partner"
-            r"|business owner|proprietor|proprietaire|fondateur|fundador|grunder|geschaftsfuhrer\w*|directeur general|prokurist)\b|^owner$")
-_CXO = (r"\bchief (executive|operating|financial|technology|technical|product|revenue|commercial|business|legal|people|human resources"
-        r"|marketing|information|strategy|growth|data|security|risk|compliance|investment|digital)( and \w+)? officer\b")
-_FINANCE_LEAD = (r"\b(cfo|chief financial|financial controller|finance controller|controller|treasurer|comptroller|directeur financier"
-                 r"|director financiero|diretor financeiro|finanzvorstand)\b"
-                 r"|\b(head|director|vice president|vp|svp|evp|manager|lead|officer|partner)\b( of)? (corporate )?financ\w*"
-                 r"|\bfinanc\w* (director|manager|controller|head|lead|officer)\b")
+_FOUNDER = (r"\b(founder|co ?founder|cofounder|fondat\w*|fundador\w*|grunder\w*|mitgrunder\w*|chief executive officer|managing director"
+            r"|managing partner|general partner|founding partner|business owner|proprietor|proprietaire|geschaftsfuhrer\w*|directeur general"
+            r"|president directeur general|pdg|amministratore delegato|prokurist)\b|^owner$|^owner founder$|^founder owner$")
+_CXO_FUNCS = ("executive|operating|financial|technology|technical|product|revenue|commercial|business|legal|people|human resources|marketing"
+              "|information|strategy|growth|data|security|risk|compliance|investment|digital|medical|scientific|science|accounting|procurement"
+              "|customer|sales|engineering|innovation|transformation|administrative|supply chain")
+_CXO = rf"\bchief (?:\w+ ){{0,2}}(?:{_CXO_FUNCS})(?: \w+){{0,2}} officer\b"
+_FINANCE_LEAD = (r"\b(chief financial officer|chief accounting officer|chief investment officer|financial controller|finance controller"
+                 r"|corporate controller|controller|treasurer|comptroller|directeur financier|directeur administratif et financier|daf"
+                 r"|director financiero|diretor financeiro|finanzvorstand|finanzleiter\w*|leiter finanzen|kaufmannische\w* leiter\w*)\b"
+                 r"|\b(head|director|vice president|manager|lead|officer)( of)? (corporate |fund |group )?(financ\w*|treasury|accounting)\b"
+                 r"|\b(financ\w*|treasury) (director|manager|controller|head|lead|officer)\b")
 SCOPE_RULES: dict[str, tuple[str, str]] = {
     "outreach.hiring": (_FOUNDER + "|" + _CXO + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)"
-                        r"|vice president|director|head of|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
+                        r"|ressources humaines|recrutement|recruteur|reclutador\w*|personalreferent\w*|vice president|director|head of"
+                        r"|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
                         "talent/HR, an engineering manager or above, or a founder"),
     "outreach.sales": (_FOUNDER + "|" + _CXO + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager"
-                       r"|partnerships|gtm|vertrieb|verkauf|vermittler|broker|vice president|director|head of)\b",
+                       r"|partnerships|gtm|sdr|bdr|customer success|vertrieb|verkauf|vermittler|broker|vice president|director|head of)\b",
                        "sales/BD/marketing, a director or above, or a founder"),
     "data.read": (r".", "any current employee"),
-    "contract.sign": (_FOUNDER + "|" + _CXO + r"|\b(vice president|director|head of|general counsel|legal counsel|head of legal)\b",
+    "contract.sign": (_FOUNDER + "|" + _CXO + r"|\b(vice president|director|head of|general counsel|legal counsel)\b",
                       "a founder, a CXO, a VP, a director/head or legal"),
     "payment.send": (_FOUNDER + "|" + _FINANCE_LEAD, "a founder, the CFO or a finance lead"),
 }
+MAX_TITLE = 200
 
-
-# Anywhere in a title, these mean the person works FOR the powerful one, is learning to be them, or used to be them:
-# "Executive Assistant to CEO & CFO", "Finance & Tax Intern", "Ex-CFO", "Aspiring CFO", "Founder (2015-2019)".
-# Such a title carries no authority beyond reading data, however the roles are joined.
-SUBORDINATE = re.compile(
-    r"\b(assistant|asst|assistente|asistente|assistante|secretary|secretaire|intern|internship|trainee|apprentice|stagiaire"
-    r"|praktikant\w*|werkstudent\w*|student|graduate program|former|ex|retired|exited|aspiring|future|in training|shadowing"
-    r"|mentee|supporting|working with|seeking|enthusiast|volunteer|chief of staff|office of|s office|office coordinator"
-    r"|s ea|to|non executive|board)\b|\b(officer|founder|director|president) office\b"
-    r"|\b(19|20)\d\d (19|20)\d\d\b|\b(19|20)\d\d present\b")
+# Someone ELSE's title inside this one: "to the CEO", "Office of the CFO", "CFO office", board seats.
+_OTHER = r"(?:chief (?:\w+ ){1,4}officer|co founder|founder|managing director|president|chairman|chairwoman|chair|md|vice president)"
+_THEIRS = re.compile(rf"\bto (?:the )?{_OTHER}(?: (?:and )?{_OTHER})*|\boffice of (?:the )?{_OTHER}|\b{_OTHER}(?: s)? office\b"
+                     r"|\bnon executive director\b|\bboard (?:member|director|advisor|observer|of directors)\b|\bmember (?:of )?(?:the )?board\b")
+# These anywhere mean the person works FOR the powerful one, is learning, or the title is a joke: no authority at all.
+_ASSISTANT = re.compile(
+    r"\b(assistant(?! professor)|asst|assist|assistent\w*|assistente|asistente|assistante|secretar\w*|sekretar\w*|right hand|gofer"
+    r"|chief of staff|shadowing|mentee|supporting|working with|seeking|looking for|enthusiast|volunteer|wannabe|in the making"
+    r"|intern(?! (?:recruit|hiring|talent|program))\w*|trainee|apprentice|stagiaire|praktikant\w*|werkstudent\w*|in training"
+    r"|student(?! (?:recruit|experience|success|affairs|hiring|talent))|graduate (?:\w+ ){0,4}program\w*|first impressions|everything officer"
+    r"|of my own life|me inc|society|club|pta)\b")
+_AUTH = r"(?:chief (?:\w+ ){1,4}officer|co founder|cofounder|founder|managing director|director|head|vice president|president|owner|partner|treasurer|controller|financ\w*)"
+_SUPPORT = re.compile(rf"\b(?:ea|pa|support|coordinator|liaison)\s+(?:(?:to|at|for)\s+)?(?:the\s+)?{_OTHER}|{_OTHER}(?: s)?\s+(?:ea|pa|support|coordinator|liaison)\b")
+_PAST = re.compile(rf"\b(?:ex|former|formerly|previously|past|prior|retd|retired|emeritus|honorary|aspiring|future|incoming|outgoing|designate)\s+{_AUTH}"
+                   rf"|{_AUTH}\s+(?:emeritus|designate|in training|on leave|acquired|exited)\b|\b(?:19|20)\d\d (?:19|20)\d\d\b")
 
 
 def clean_title(title: str | None) -> str:
@@ -172,25 +183,45 @@ def clean_title(title: str | None) -> str:
     t = unicodedata.normalize("NFKC", title or "")
     t = re.sub(r"[​-‏⁠﻿]", "", t)
     t = "".join(ch for ch in unicodedata.normalize("NFKD", t) if not unicodedata.combining(ch))
-    t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower())
+    t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower()).replace("@", " at ")
+    t = re.sub(r"\b((?:19|20)\d\d)\s*[-‐-―]\s*(present|now|today|current)\b", " ", t)  # open range = current
     t = re.sub(r"\bex[\s.\-‐-―]+(?=\w)", "ex ", t)
     return expand_title(" ".join(_ROLE_ABBREV.get(w, w) for w in norm(t).split()))
 
 
+def authority_text(title: str | None, company: str | None = None) -> str | None:
+    """The part of a title that speaks for THIS person at THIS company, or None if the title carries no authority."""
+    if not title or not title.strip() or len(title) > MAX_TITLE:
+        return None
+    if re.search(r"'\d\d\s*[-‐-―]\s*'\d\d", title):  # Founder '15-'19
+        return None
+    t = clean_title(title)
+    if _ASSISTANT.search(t) or _SUPPORT.search(t) or _PAST.search(t):
+        return None
+    t = _THEIRS.sub(" ", t)
+    # "ex google" after a real role is a past employer, not a past role: drop it
+    t = re.sub(r"\b(?:ex|former|formerly)\s+\w+", " ", t)
+    if company:  # "Founder at SideProject" / "CEO of Acme" names a different organisation
+        def other_org(m: re.Match) -> str:
+            org = m.group(2)
+            return m.group(0) if same_company(org, company) or company_key(company).startswith(company_key(org).split(" ")[0] or "~") else " "
+        t = re.sub(r"\b(co founder|cofounder|founder|chief executive officer|owner|president|managing director)\s+(?:of|at)\s+((?:\w+ ?){1,3})", other_org, t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t or None
+
+
 def is_subordinate(title: str | None) -> bool:
-    return bool(SUBORDINATE.search(clean_title(title)))
+    return bool(title and title.strip()) and authority_text(title) is None
 
 
-def can_grant(title: str | None, scope: str) -> bool:
-    """True if some role in the title carries the authority. A subordinate title ("assistant to the CFO",
-    "Finance & Tax Intern") never does, whatever it names, because the veto reads the whole title before any split."""
+def can_grant(title: str | None, scope: str, company: str | None = None) -> bool:
+    """True if this person's own role (not one their title merely names) carries the authority for scope."""
     if not title or not title.strip() or scope not in SCOPE_RULES:
         return False
     if scope == "data.read":
         return True
-    if is_subordinate(title):
-        return False
-    return re.search(SCOPE_RULES[scope][0], clean_title(title)) is not None
+    t = authority_text(title, company)
+    return t is not None and re.search(SCOPE_RULES[scope][0], t) is not None
 
 
 # ----------------------------------------------------------------------------- verify
@@ -289,7 +320,8 @@ def title_matches(claimed: str | None, actual: str | None) -> bool:
 
 _RANK_WORDS = {"vice", "associat", "assistant", "deputy", "former", "ex", "intern", "internship", "traine", "apprentice",
                "retired", "acting", "to", "offic", "junior", "interim", "fractional", "aspiring", "future", "student",
-               "exited", "shadowing", "mentee", "asst", "sub", "board", "non", "volunteer", "honorary", "advisor", "advisory"}
+               "exited", "shadowing", "mentee", "asst", "sub", "board", "non", "volunteer", "honorary", "advisor", "advisory",
+               "assoc", "asso", "co", "emeritus", "designate", "incoming", "outgoing", "previously", "past", "prior", "formerly", "retd"}
 _RANK_WORDS = {_stem(w) for w in _RANK_WORDS} | _RANK_WORDS
 
 
@@ -381,8 +413,8 @@ async def verify_passport(p: Passport, client: Any = None, scope: Scope | None =
                     _src(pr.endpoint, f"{job.path}.title", s.profile_url))
             for sc in ([scope] if scope else p.scopes):
                 # with no title claimed, any current role at the company that carries the authority counts
-                grant = job if s.title else next((j for j in at if can_grant(j.title, sc)), job)
-                ok = can_grant(grant.title, sc)
+                grant = job if s.title else next((j for j in at if can_grant(j.title, sc, s.company)), job)
+                ok = can_grant(grant.title, sc, s.company)
                 add("sponsor_can_grant_scope", "pass" if ok else "fail",
                     f"{grant.title} can delegate {sc}" if ok else f"{grant.title} cannot delegate {sc} (needs {SCOPE_RULES.get(sc, ('', 'a known scope'))[1]})",
                     _src(pr.endpoint, f"{grant.path}.title", s.profile_url))
