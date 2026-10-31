@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 import {
   ApiError, connectApi, type AgentTypeKey, type Budget, type Catalog, type CatalogScope, type ConnectRequest, type IssueResult,
-  type Me, type Person, type Risk, type Scenario, type Scope, type Sponsor, type SponsorMatch,
+  type Me, type OrgPerson, type Risk, type Scenario, type Scope, type Sponsor, type SponsorMatch,
 } from "./api";
 import { Button, VerdictList, ago, inputCls, until } from "./parts";
 
@@ -72,7 +72,7 @@ export function ConnectWizard({
   onOpen: (agentId: string) => void;
 }) {
   const [cat, setCat] = useState<Catalog>();
-  const [people, setPeople] = useState<Person[]>([]);
+  const [people, setPeople] = useState<OrgPerson[]>([]);
   const [step, setStep] = useState<StepKey>("agent");
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState<string | null>(null);

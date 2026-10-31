@@ -7,6 +7,7 @@ import { BRAND } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
 import { SourcedMark } from "@/components/sourced-mark";
 import { AccountMenu } from "@/components/account-menu";
+import { NotificationBell } from "@/components/notification-bell";
 
 /** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
@@ -105,6 +106,7 @@ export function AppHeader({ active, children }: { active: (typeof PRODUCT_TABS)[
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {children}
           <ConsoleLink />
+          <NotificationBell />
           <ThemeToggle />
           <AccountMenu />
         </div>

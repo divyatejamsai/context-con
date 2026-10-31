@@ -53,6 +53,11 @@ class Meter:
                "sends": pol["sends_per_day"]}[what]
         if used.get(what, 0) + n > cap:
             raise BudgetExceeded(f"daily {what} budget reached ({used.get(what, 0)}/{cap})")
+        from ..rules import engine as rules
+        hit = rules.cap_hit(self.agent_id, what, n)
+        if hit:
+            rules.enforced(hit, self.agent_id, what, "task stopped", task_id=self.task_id)
+            raise BudgetExceeded(rules.explain(hit))
         setattr(self, what, getattr(self, what) + n)
         store.add_usage(self.agent_id, **{what: n})
         store.task_mutate(self.task_id, lambda t: t["usage"].__setitem__(what, t["usage"].get(what, 0) + n))
@@ -197,14 +202,22 @@ class RuntimeCtx(Ctx):
             return {**v, "sent": False}
 
         pol = store.policy(self.agent_id)
-        if pol["require_approval"]:
+        from ..rules import engine as rules
+        holds = [h for h in rules.send_hits(self.agent, to, scope) if h["effect"] == "hold"]
+        if pol["require_approval"] or holds:
             a = store.add_approval(task_id=tid, agent_id=self.agent_id, agent_name=self.agent["name"], action="send",
                                    to=to, body=body, scope=scope, signature=sig, today=self._today().get("today"),
                                    preview={"decision": v["decision"], "checks": v.get("checks", []),
-                                            "ledger_entry": v.get("ledger_entry")})
-            self.log(f"  send      HOLD   {who}: Send Guard cleared it; waiting for your approval")
+                                            "ledger_entry": v.get("ledger_entry")},
+                                   rules=holds, approvals_needed=1, approvals=[])
+            if holds:
+                rules.enforced(holds[0], self.agent, "send", "held in the approval inbox", target=to,
+                               approval_id=a["approval_id"], task_id=tid)
+                self.log(f"  send      HOLD   {who}: {rules.explain(holds[0])}")
+            else:
+                self.log(f"  send      HOLD   {who}: Send Guard cleared it; waiting for your approval")
             self._verdict("send", {**v, "sent": False}, f"Cleared by Send Guard, waiting for approval: {who}", to)
-            rec.update(state="pending_approval", approval_id=a["approval_id"])
+            rec.update(state="pending_approval", approval_id=a["approval_id"], rules=holds)
             _add_send(tid, rec)
             if self.report is not None:
                 self.report.allowed += 1
@@ -241,6 +254,9 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
         from .kinds import is_external
         if cur and is_external(registry.get_agent(cur["agent_id"])):
             raise ValueError("an outside agent's draft can't be edited here: reject it and ask the agent for a new one")
+    met = _rules_before_send(approval_id, by, body.strip() if edited else None)
+    if met is not None:
+        return met  # recorded toward a quorum; still waiting for more people
     a = store.claim_approval(approval_id, by)
     if a is None:
         cur = store.get_approval(approval_id)
@@ -253,6 +269,11 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
         pol = store.policy(a["agent_id"])["budget"]
         if store.usage(a["agent_id"])["sends"] >= pol["sends_per_day"]:
             raise BudgetExceeded(f"daily sends budget reached ({pol['sends_per_day']})")
+        from ..rules import engine as rules
+        hit = rules.cap_hit(rec, "sends")
+        if hit:
+            rules.enforced(hit, rec, "send", "blocked at approval", target=a["to"], approval_id=approval_id)
+            raise BudgetExceeded(rules.explain(hit))
         if edited:
             from ..agents.models import Passport
             original = a["body"]
@@ -317,7 +338,10 @@ async def _sign_offer(a: dict, by: str, mcp: Any, edited: str | None) -> dict:
         (d / f"{a['approval_id']}.txt").write_text(sealed + f"\n\nApproved by {by}. sha256 {sha}\n")
         entry = ledger.append("offer.signed", {"agent_id": a["agent_id"], "task_id": a["task_id"], "to": a["to"],
                                                "sha256": sha, "agent_signature": sig, "approved_by": by,
-                                               "passport_check": v.get("ledger_entry"), "edited": bool(edited)})
+                                               "passport_check": v.get("ledger_entry"), "edited": bool(edited),
+                                               "approvers": [x.get("by") for x in a.get("approvals") or []] or [by],
+                                               "rules": [{k: h[k] for k in ("rule_id", "version", "sentence")}
+                                                         for h in a.get("rules") or []]})
         mail = await seal.email_copy(seal.get(seal_id), f"Offer letter from {p.sponsor.company}: {a['to'].get('name')}", a["to"])
         status, result = "signed", {"signed": True, "sha256": sha, "signature": sig, "ledger_entry": entry,
                                     "checks": v.get("checks", []), "seal_id": seal_id,
@@ -341,6 +365,56 @@ async def _sign_offer(a: dict, by: str, mcp: Any, edited: str | None) -> dict:
                                   + ("passport re-checked for contract.sign, document hash signed and on the ledger"
                                      if status == "signed" else result["error"]), "control")
     return store.get_approval(a["approval_id"])
+
+
+def _rules_before_send(approval_id: str, by: str, edited_body: str | None) -> dict | None:
+    """Company rules, checked when a person approves (rules apply at action time, so a rule added after the draft
+    still counts). A held send (quiet hours) raises: it stays pending and the 409 names the rule. An offer that needs
+    more approvers records this person's approval and returns the approval, still pending; None = go ahead."""
+    from ..rules import engine as rules
+    cur = store.get_approval(approval_id)
+    if not cur or cur["status"] != "pending":
+        return None  # claim_approval reports the real status
+    rec = registry.get_agent(cur["agent_id"])
+    if cur.get("action") == "sign_offer":
+        needed, hits = rules.offer_approvers(rec, (cur.get("terms") or {}).get("compensation"))
+        if needed <= 1:
+            store.update_approval(approval_id, approvals_needed=1, rules=[])
+            return None
+        if edited_body:
+            # earlier approvals were for different text: the count restarts with the editor
+            store.update_approval(approval_id, body=edited_body, edited_by=by, original_body=cur["body"],
+                                  approvals_needed=needed, rules=hits)
+            rules.reset_approvals(approval_id, by)
+            a, met = store.get_approval(approval_id), needed <= 1
+        else:
+            try:
+                a, met = rules.add_approver(approval_id, by, needed, hits)
+            except rules.RuleError as e:
+                raise ValueError(str(e))
+        if met:
+            return None
+        n = len(a.get("approvals") or [])
+        entry = ledger.append("runtime.approval", {"agent_id": cur["agent_id"], "approval_id": approval_id,
+                                                    "task_id": cur["task_id"], "decision": "approved", "by": by,
+                                                    "outcome": "needs_more_approvers", "approvals": n, "needed": needed,
+                                                    "edited": bool(edited_body), "to": cur["to"], "action": "sign_offer",
+                                                    "rules": [{k: h[k] for k in ("rule_id", "version", "sentence")} for h in hits]})
+        rules.enforced(hits[0], rec, "sign_offer", f"waiting for approver {n + 1} of {needed}", target=cur["to"],
+                       approval_id=approval_id, task_id=cur["task_id"], approvals=n, needed=needed)
+        store.task_step(cur["task_id"], f"{by} approved the offer ({n} of {needed}). {rules.explain(hits[0])}. "
+                                        "Waiting for another person.", "control")
+        store.task_mutate(cur["task_id"], lambda t: (t["output"].get("offer") or {}).update(
+            state=f"approved by {n} of {needed}: waiting for another approver", approvals=a.get("approvals"),
+            approvals_needed=needed))
+        return store.update_approval(approval_id, last_entry=entry)
+    holds = [h for h in rules.send_hits(rec, cur.get("to"), cur.get("scope")) if h["effect"] == "hold"]
+    if holds:
+        rules.enforced(holds[0], rec, "send", "approval refused for now; still pending", target=cur.get("to"),
+                       approval_id=approval_id)
+        store.update_approval(approval_id, rules=holds)
+        raise ValueError(f"{rules.explain(holds[0])}. It stays in your inbox: approve it after then.")
+    return None
 
 
 def reject_approval(approval_id: str, by: str, note: str | None = None) -> dict:

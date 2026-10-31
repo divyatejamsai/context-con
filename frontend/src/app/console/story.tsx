@@ -65,6 +65,12 @@ const KIND_LABEL: Record<string, string> = {
   "message.status": "Message status",
   "campaign.started": "Campaign started",
   "offer.signed": "Offer signed",
+  "rule.created": "Rule added",
+  "rule.updated": "Rule changed",
+  "rule.enabled": "Rule turned on",
+  "rule.disabled": "Rule turned off",
+  "rule.deleted": "Rule deleted",
+  "rule.enforced": "Rule enforced",
 };
 
 export const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work filed: ${k.slice(5).replace(/_/g, " ")}` : k);
@@ -91,6 +97,7 @@ export function category(kind: string): Category {
   if (kind === "agent.scopes_checked" || kind === "agent.checked" || kind === "runtime.payroll" || kind === "agent.scope_denied") return "trust";
   if (kind.startsWith("task.") || kind.startsWith("work.") || kind.startsWith("run.") || kind.startsWith("campaign.") || kind === "offer.signed" || kind === "resume.verified") return "work";
   if (kind === "ledger.exported") return "system";
+  if (kind === "rule.enforced") return "trust";
   return "access";
 }
 
@@ -172,7 +179,24 @@ export function describe(e: LedgerEntry, names: Map<string, string>): Line {
         cat, noise, tone: ((p.suspended as string[]) ?? []).length ? "bad" : "ok",
         text: <>Payroll re-checked {String(p.checked ?? "every")} sponsors: {String(p.allowed ?? 0)} still valid, {((p.suspended as string[]) ?? []).length} newly suspended{Number(p.checked) - Number(p.allowed) - ((p.suspended as string[]) ?? []).length > 0 ? `, ${Number(p.checked) - Number(p.allowed) - ((p.suspended as string[]) ?? []).length} already suspended` : ""}</>,
       };
+    case "rule.created":
+    case "rule.updated":
+    case "rule.enabled":
+    case "rule.disabled":
+    case "rule.deleted": {
+      const verb = { "rule.created": "added a rule", "rule.updated": "changed a rule", "rule.enabled": "turned on a rule", "rule.disabled": "turned off a rule", "rule.deleted": "deleted a rule" }[e.kind];
+      return { cat, noise, tone: e.kind === "rule.disabled" || e.kind === "rule.deleted" ? "warn" : "neutral",
+        text: <>{by ?? "Someone"} {verb}: “{String(p.sentence ?? "")}” (v{String(p.version ?? 1)})</>,
+        detail: e.kind === "rule.updated" && p.before ? `Was: “${String(p.before)}”` : p.note ? String(p.note) : undefined };
+    }
+    case "rule.enforced":
+      return { cat, noise, tone: p.effect === "block" ? "bad" : "warn",
+        text: <>Rule “{String(p.name ?? p.sentence ?? "")}” {p.effect === "block" ? "blocked" : p.effect === "approvers" ? "asked for more approvers on" : "held"} {who}&apos;s {p.action === "sign_offer" ? "offer" : p.action === "send" ? "message" : String(p.action ?? "action").replace(/_/g, " ")}{p.to ? ` to ${person(p.to)}` : ""}: {String(p.outcome ?? "")}</>,
+        detail: `${String(p.detail ?? "")} (rule v${String(p.version ?? 1)})` };
     case "runtime.approval":
+      if (p.outcome === "needs_more_approvers")
+        return { cat, noise, tone: "warn", text: <>{by ?? "Someone"} approved {who}&apos;s offer to {person(p.to)}: {String(p.approvals ?? 1)} of {String(p.needed ?? 2)} approvals, waiting for another person</>,
+          detail: ((p.rules as { sentence: string }[] | undefined) ?? []).map((r) => `Rule: ${r.sentence}`).join("; ") || undefined };
       return p.decision === "approved"
         ? { cat, noise, tone: p.outcome === "sent" ? "ok" : "bad", text: <>{by ?? "Someone"} approved {who}&apos;s message to {person(p.to)}{p.edited ? " after editing it" : ""}{p.outcome === "sent" ? ": sent to the outbox" : `: ${String(p.outcome ?? "not sent")}`}</> }
         : { cat, noise, tone: "warn", text: <>{by ?? "Someone"} rejected {who}&apos;s message to {person(p.to)}</>, detail: p.note ? String(p.note) : undefined };
@@ -195,6 +219,11 @@ export function describe(e: LedgerEntry, names: Map<string, string>): Line {
     case "campaign.started":
       return { cat, noise, tone: "neutral", text: <>{who} started a hiring campaign with {String(p.candidates ?? "")} candidates</>, detail: p.brief ? `“${String(p.brief).split("\n")[0]}”` : undefined };
     case "offer.signed":
+      if (p.approved_by) {
+        const ap = (p.approvers as string[] | undefined) ?? [String(p.approved_by)];
+        return { cat, noise, tone: "ok", text: <>{who} signed the offer to {person(p.to)} after {ap.length > 1 ? `${ap.length} people approved it (${ap.join(", ")})` : `${ap[0]} approved it`}</>,
+          detail: ((p.rules as { sentence: string }[] | undefined) ?? []).map((r) => `Rule: ${r.sentence}`).join("; ") || undefined };
+      }
       return { cat, noise, tone: "ok", text: <>{String(p.candidate ?? "The candidate")} signed {who}&apos;s offer{p.ctc_lpa ? ` at ${p.ctc_lpa} LPA` : ""}</> };
     case "resume.verified": {
       const bad = ((p.contradicted as string[]) ?? []).length;

@@ -369,7 +369,36 @@ export interface Approval {
   note?: string | null;
   result?: { sent?: boolean; signed?: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string;
     verify_url?: string | null; email?: { emailed: boolean; why?: string; delivered_to?: string } | null } | null;
+  /** Company rules (Rules view): how many different people must approve, who has, and the rules that apply. */
+  approvals_needed?: number;
+  approvals?: { by: string; at: string; edited?: boolean }[];
+  rules?: RuleHit[];
 }
+
+// ---- company rules (backend/app/rules) ----------------------------------------------------------------------------
+export type RuleType = "offer_approvers" | "quiet_hours" | "blocked_companies" | "daily_cap";
+export interface RuleHit { rule_id: string; version: number; name: string; sentence: string; type: RuleType; effect: "block" | "hold" | "approvers"; detail: string }
+export interface RuleField { name: string; label: string; type: "money" | "number" | "time" | "select" | "text" | "list"; placeholder?: string; min?: number; max?: number; options?: string[]; option_labels?: Record<string, string> }
+export interface RuleTemplate { type: RuleType; label: string; description: string; applies_to: string; fields: RuleField[]; example: Record<string, unknown>; example_sentence: string }
+export interface RuleVersion { version: number; params: Record<string, unknown>; agents: string[]; enabled: boolean; name: string | null; sentence: string; at: string; by: string; change: string; note?: string | null }
+export interface Rule {
+  rule_id: string; workspace_id: string | null; type: RuleType; type_label: string; applies_to?: string; params: Record<string, unknown>;
+  agents: string[]; agent_names: string[]; name: string | null; sentence: string; enabled: boolean; version: number;
+  created_at: string; created_by: string; updated_at: string; updated_by: string; editable: boolean; enforced_count?: number;
+  history?: RuleVersion[]; recent?: RuleEnforcement[];
+}
+export interface RuleEnforcement { ts: string; hash: string; seq: number; rule_id: string; version: number; name: string; sentence: string; effect: string; detail: string; action: string; outcome: string; agent_id?: string | null; agent_name?: string | null; to?: { name?: string; company?: string } }
+export interface RulesView { rules: Rule[]; templates: RuleTemplate[]; recent: RuleEnforcement[]; can_edit: boolean }
+export const rulesApi = {
+  list: () => req<RulesView>("/rules"),
+  get: (id: string) => req<Rule>(`/rules/${id}`),
+  preview: (b: { type: RuleType; params: Record<string, unknown>; agents?: string[] }) =>
+    post<{ ok: boolean; sentence?: string; error?: string }>("/rules/preview", b),
+  create: (b: { type: RuleType; params: Record<string, unknown>; agents?: string[]; name?: string; enabled?: boolean }) => post<Rule>("/rules", b),
+  update: (id: string, b: { params?: Record<string, unknown>; agents?: string[]; name?: string; enabled?: boolean; note?: string }) =>
+    post<Rule>(`/rules/${id}`, b, "PUT"),
+  remove: (id: string) => post<Rule>(`/rules/${id}`, {}, "DELETE"),
+};
 
 export interface FlowCheck { agent: string; scope: string; decision: "allow" | "deny"; why: string; ledger_entry?: string | null }
 export interface FlowStage { key: string; label: string; scope: Scope; status: string; task_id: string | null; agent: string | null; checks: FlowCheck[] }
@@ -511,7 +540,7 @@ export interface Catalog {
   budget_defaults: Budget;
   budget_limits: Budget;
 }
-export interface Person { user_id: string; name: string; email: string; job_role?: string | null; workspace_role: WorkspaceRole; can_own: boolean; why_not?: string | null }
+export interface OrgPerson { user_id: string; name: string; email: string; job_role?: string | null; workspace_role: WorkspaceRole; can_own: boolean; why_not?: string | null }
 export interface SponsorMatch {
   name: string | null;
   profile_url: string;
@@ -567,7 +596,7 @@ export interface IssueResult {
 
 export const connectApi = {
   catalog: () => req<Catalog>("/connect/catalog"),
-  people: () => req<{ members: Person[]; me: string | null; note?: string }>("/connect/people"),
+  people: () => req<{ members: OrgPerson[]; me: string | null; note?: string }>("/connect/people"),
   findSponsor: (b: { name: string; company: string; scopes?: Scope[] }) =>
     post<{ matches: SponsorMatch[]; error?: string | null; note?: string | null }>("/connect/sponsor/find", b),
   checkSponsor: (b: { profile_url: string; company: string; scopes?: Scope[] }) => post<SponsorMatch>("/connect/sponsor/check", b),
@@ -579,4 +608,77 @@ export const connectApi = {
   issue: (id: string) => post<IssueResult>(`/connect/requests/${id}/issue`),
   test: (id: string) => post<{ request: ConnectRequest; connected: boolean; waiting_for?: string; error?: string; first_seen_at?: string }>(`/connect/requests/${id}/test`),
   cancel: (id: string) => post<ConnectRequest>(`/connect/requests/${id}/cancel`),
+};
+
+// ---- emergency stop (backend/app/runtime/freeze.py) --------------------------------------------------
+
+export type FreezeScope = "agent" | "sponsor" | "all";
+export type FreezeOutcome = "restored" | "still_suspended" | "was_suspended_before" | "held_elsewhere" | "gone" | string | null;
+export interface Person { name?: string | null; company?: string | null; profile_url?: string | null; email?: string | null; events?: number; last?: string | null }
+export interface BlastAgent {
+  agent_id: string;
+  name: string;
+  status?: AgentStatus;
+  sponsor?: Sponsor;
+  messages_sent: { ts: string | null; to?: Person | null; what: string; how?: string; hash?: string | null }[];
+  people: Person[];
+  data: { crustdata_calls: number; llm_calls: number; records: number; reads: { ts: string; what: string; kind?: string; status?: string; crustdata?: number; sources?: number }[] };
+  approvals: { approval_id: string; action: string; status: string; to?: Person | null; created_at?: string; decided_at?: string | null; decided_by?: string | null }[];
+  guard: { checked: number; blocked: number };
+  rules_blocked: number;
+  spend: { crustdata_calls: number; llm_calls: number; sends: number; offers_signed: number; offer_ctc_lpa: number };
+  tasks: { total: number; [status: string]: number };
+  ledger: { entries: number; kinds: [string, number][]; first_seq: number | null; last_seq: number | null };
+}
+export interface Blast {
+  since: string;
+  until: string;
+  hours: number;
+  totals: {
+    agents: number; messages_sent: number; people: number; crustdata_calls: number; llm_calls: number; records: number;
+    approvals: number; pending_approvals: number; tasks: number; running: number; guard_blocked: number; rules_blocked: number;
+    offers_signed: number; ledger_entries: number;
+  };
+  agents: BlastAgent[];
+}
+export interface FreezeAgent { agent_id: string; name: string; prior_status: AgentStatus; sponsor: Sponsor; outcome: FreezeOutcome; still_reason?: string | null; held_by?: string }
+export interface Freeze {
+  freeze_id: string;
+  scope: FreezeScope;
+  target: string | null;
+  label: string;
+  reason: string;
+  by: string;
+  at: string;
+  status: "active" | "lifted";
+  agents: FreezeAgent[];
+  stopped_tasks: { task_id: string; agent_id: string; title: string; kind: string; was: "running" | "queued" }[];
+  pulled_approvals: { approval_id: string; agent_id: string; to?: Person | null; action: string }[];
+  schedules_off: string[];
+  blast: Blast;
+  ledger_entry: string;
+  restored_at: string | null;
+  restored_by: string | null;
+  restore_entry: string | null;
+  bring_back?: boolean;
+  requeued_tasks?: string[];
+  returned_approvals?: string[];
+}
+export interface SponsorGroup { key: string; name: string; title?: string | null; company?: string; profile_url?: string; agents: { agent_id: string; name: string; status: AgentStatus }[] }
+export interface FreezePreview {
+  scope: FreezeScope;
+  target: string | null;
+  label: string;
+  agents: { agent_id: string; name: string; status: AgentStatus; sponsor: Sponsor }[];
+  will: { suspend: string[]; already_suspended: string[]; running_tasks: number; queued_tasks: number; pending_approvals: number; schedules: number };
+  blast: Blast;
+}
+
+export const estop = {
+  overview: () => req<{ active: Freeze[]; history: Freeze[]; sponsors: SponsorGroup[] }>("/runtime/freeze"),
+  preview: (scope: FreezeScope, target?: string | null) => post<FreezePreview>("/runtime/freeze/preview", { scope, target: target ?? null }),
+  freeze: (scope: FreezeScope, target: string | null, reason: string) => post<Freeze>("/runtime/freeze", { scope, target, reason }),
+  restore: (id: string, bring_back: boolean) => post<Freeze>(`/runtime/freeze/${id}/restore`, { bring_back }),
+  blast: (agentIds: string[], hours = 24) =>
+    req<Blast>(`/runtime/freeze/blast?${new URLSearchParams([...agentIds.map((a) => ["agent_id", a]), ["hours", String(hours)]])}`),
 };

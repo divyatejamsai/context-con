@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { SourcedMark } from "@/components/sourced-mark";
 import { AgaxesCrumb, ConsoleLink, ProductNav } from "@/components/app-header";
 import { AccountMenu } from "@/components/account-menu";
+import { NotificationBell } from "@/components/notification-bell";
 import { BRAND } from "@/lib/brand";
 
 function useWide() {
@@ -495,6 +496,7 @@ function TopBar({
           <button onClick={onHelp} className="hidden size-7 place-items-center rounded-md text-muted-foreground hover:bg-hover hover:text-foreground sm:grid" aria-label="Keyboard shortcuts">
             <Keyboard className="size-4" />
           </button>
+          <NotificationBell />
           <ThemeToggle />
           <AccountMenu />
         </div>

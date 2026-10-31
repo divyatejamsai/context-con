@@ -45,6 +45,7 @@ class Envelope:
     reply_to: str | None = None
     in_reply_to: str | None = None     # Message-ID of the message this follows up
     references: list[str] = field(default_factory=list)
+    html: str | None = None            # optional HTML part (alerts: real buttons); the text part is always sent
 
 
 @dataclass
@@ -139,6 +140,8 @@ async def _send_resend(env: Envelope, to: str, text: str, msgid: str) -> Deliver
         headers["In-Reply-To"] = env.in_reply_to
         headers["References"] = " ".join(env.references or [env.in_reply_to])
     payload = {"from": sender, "to": [to], "subject": env.subject, "text": text, "headers": headers}
+    if env.html:
+        payload["html"] = env.html
     rt = env.reply_to or reply_to()
     if rt:
         payload["reply_to"] = rt
@@ -164,6 +167,8 @@ def _send_smtp(env: Envelope, to: str, text: str, msgid: str) -> Delivery:
         m["In-Reply-To"] = env.in_reply_to
         m["References"] = " ".join(env.references or [env.in_reply_to])
     m.set_content(text)
+    if env.html:
+        m.add_alternative(env.html, subtype="html")
     host, port = os.environ["SMTP_HOST"], int(os.getenv("SMTP_PORT", "465"))
     user, pw = os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD")
     ctx = ssl.create_default_context()
@@ -198,13 +203,14 @@ async def resend_status(provider_id: str) -> str | None:
     return (r.json() or {}).get("last_event")
 
 
-async def send_transactional(to: str, subject: str, body: str) -> Delivery:
+async def send_transactional(to: str, subject: str, body: str, *, html: str | None = None,
+                             from_name: str = "Sourced") -> Delivery:
     """Account email (password reset, sign-in links) to a user of this product, not outreach: no Send Guard and no
     test redirect, since it goes to the address the user signed up with. Raises SendRefused if no provider is set."""
     p = provider()
     if p == "none" or not from_addr():
         raise SendRefused("No email provider set up")
-    env = Envelope(intended_to=to, to_name=None, subject=subject, body=body, from_name="Sourced")
+    env = Envelope(intended_to=to, to_name=None, subject=subject, body=body, from_name=from_name, html=html)
     msgid = _msgid()
     if p == "resend":
         return await _send_resend(env, to, body, msgid)
