@@ -166,13 +166,16 @@ _THEIRS = re.compile(rf"\bto (?:the )?{_OTHER}(?: (?:and )?{_OTHER})*|\boffice o
                      r"|\bnon executive director\b|\bboard (?:member|director|advisor|observer|of directors)\b|\bmember (?:of )?(?:the )?board\b")
 # These anywhere mean the person works FOR the powerful one, is learning, or the title is a joke: no authority at all.
 _ASSISTANT = re.compile(
-    r"\b(assistant(?! professor)|asst|assist|assistent\w*|assistente|asistente|assistante|secretar\w*|sekretar\w*|right hand|gofer"
+    r"\b(assistant(?! (?:professor|manager|director|vice president|general manager|head))|asst|assist|assistent\w*|assistente|asistente|assistante|secretar\w*|sekretar\w*|right hand|gofer"
     r"|chief of staff|shadowing|mentee|supporting|working with|seeking|looking for|enthusiast|volunteer|wannabe|in the making"
-    r"|intern(?! (?:recruit|hiring|talent|program))\w*|trainee|apprentice|stagiaire|praktikant\w*|werkstudent\w*|in training"
+    r"|intern(?:s|ship|ships)?\b(?! (?:recruit|hiring|talent|program))|trainee|apprentice|stagiaire|praktikant\w*|werkstudent\w*|in training"
     r"|student(?! (?:recruit|experience|success|affairs|hiring|talent))|graduate (?:\w+ ){0,4}program\w*|first impressions|everything officer"
     r"|of my own life|me inc|society|club|pta)\b")
 _AUTH = r"(?:chief (?:\w+ ){1,4}officer|co founder|cofounder|founder|managing director|director|head|vice president|president|owner|partner|treasurer|controller|financ\w*)"
-_SUPPORT = re.compile(rf"\b(?:ea|pa|support|coordinator|liaison)\s+(?:(?:to|at|for)\s+)?(?:the\s+)?{_OTHER}|{_OTHER}(?: s)?\s+(?:ea|pa|support|coordinator|liaison)\b")
+_HELPER = r"(?:ea|pa|support|coordinator|liaison|cos|admin|execasst|executive admin|office manager|deputy|righthand)"
+_SUPPORT = re.compile(rf"\b{_HELPER}\s+(?:(?:to|at|for|of)\s+)?(?:the\s+)?{_OTHER}|{_OTHER}(?: s)?\s+{_HELPER}\b")
+# assistant/intern words in scripts that norm() would drop: CJK, Korean, Cyrillic, Spanish/Portuguese/Czech
+_RAW_ASSISTANT = re.compile(r"助理|秘書|秘书|비서|实习|實習|インターン|ассистент|помощник|секретар|стажер|becari[oa]|estagi[aá]ri[oa]|asistentk", re.I)
 _PAST = re.compile(rf"\b(?:ex|former|formerly|previously|past|prior|retd|retired|emeritus|honorary|aspiring|future|incoming|outgoing|designate)\s+{_AUTH}"
                    rf"|{_AUTH}\s+(?:emeritus|designate|in training|on leave|acquired|exited)\b|\b(?:19|20)\d\d (?:19|20)\d\d\b")
 
@@ -181,9 +184,10 @@ def clean_title(title: str | None) -> str:
     """NFKC (fullwidth/compat letters), drop zero-width chars and accents, lowercase, expand abbreviations."""
     import unicodedata
     t = unicodedata.normalize("NFKC", title or "")
-    t = re.sub(r"[​-‏⁠﻿]", "", t)
+    t = "".join(ch for ch in t if unicodedata.category(ch) not in ("Cc", "Cf"))  # zero-width joiners, RTL overrides, NULs
     t = "".join(ch for ch in unicodedata.normalize("NFKD", t) if not unicodedata.combining(ch))
-    t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower()).replace("@", " at ")
+    t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower()).replace("@", " at ").replace("fp&a", "fpa")
+    t = re.sub(r"\b([a-z])\.\s?([a-z])\.(?:\s?([a-z])\.)?", lambda m: "".join(g or "" for g in m.groups()), t)  # e.a. -> ea
     t = re.sub(r"\b((?:19|20)\d\d)\s*[-‐-―]\s*(present|now|today|current)\b", " ", t)  # open range = current
     t = re.sub(r"\bex[\s.\-‐-―]+(?=\w)", "ex ", t)
     return expand_title(" ".join(_ROLE_ABBREV.get(w, w) for w in norm(t).split()))
@@ -195,6 +199,8 @@ def authority_text(title: str | None, company: str | None = None) -> str | None:
         return None
     if re.search(r"'\d\d\s*[-‐-―]\s*'\d\d", title):  # Founder '15-'19
         return None
+    if _RAW_ASSISTANT.search(title):
+        return None
     t = clean_title(title)
     if _ASSISTANT.search(t) or _SUPPORT.search(t) or _PAST.search(t):
         return None
@@ -205,9 +211,59 @@ def authority_text(title: str | None, company: str | None = None) -> str | None:
         def other_org(m: re.Match) -> str:
             org = m.group(2)
             return m.group(0) if same_company(org, company) or company_key(company).startswith(company_key(org).split(" ")[0] or "~") else " "
-        t = re.sub(r"\b(co founder|cofounder|founder|chief executive officer|owner|president|managing director)\s+(?:of|at)\s+((?:\w+ ?){1,3})", other_org, t)
+        t = re.sub(r"\b(co founder|cofounder|founder|chief executive officer|owner)\s+(?:of|at)\s+((?:\w+ ?){1,3})", other_org, t)
     t = re.sub(r"\s+", " ", t).strip()
     return t or None
+
+
+# Signing contracts and moving money need the role to BE the authority, with nothing but rank/scope words around it.
+# "CFO", "Group CFO", "VP of Finance", "Co-Founder & CEO" pass; "CFO Recruiter", "Household CFO", "CFO (left)",
+# "CEO-elect", "Founder in Residence", "Freelance CFO" do not, whatever new adjective someone invents.
+_MOD = r"(?:(?:senior|group|global|regional|country|interim|acting|executive|joint|co|founding|managing|equity|general|corporate) )*"
+_FUNCTIONS = (r"(?:engineering|software|technology|tech|it|products?|design|data|analytics|sales|business|commercial|revenue|growth|marketing"
+              r"|partnerships|alliances|operations|ops|finance|financial|accounting|treasury|legal|compliance|risk|procurement|purchasing"
+              r"|supply chain|people|hr|human resources|talent|strategy|corporate development|customer|programs?|projects?|research|clinical"
+              r"|manufacturing|quality|security|infrastructure|platform|brand|communications|digital|innovation|investments?|administration)")
+_FUNC = rf"(?:(?: of)?(?: the)?(?: \w+){{0,2}} {_FUNCTIONS}(?: \w+){{0,3}})?"
+_FOUNDER_ROLE = r"(?:co founder|cofounder|founder|owner|business owner|proprietor|proprietaire|fondat\w*|fundador\w*|grunder\w*|mitgrunder\w*)"
+_PRIV = {
+    "payment.send": (rf"{_FOUNDER_ROLE}|chief_(?:financial|accounting|investment)_officer|(?:financial |finance |corporate )?controller|comptroller"
+                     rf"|treasurer|(?:finance|financial) director|director of (?:finance|financial planning|fpa|treasury)"
+                     rf"|(?:head|vice president|director|lead) (?:of )?(?:finance|treasury|accounts payable|payroll|fpa|financial planning(?: analysis)?|fund finance|accounting)(?: \w+){{0,2}}"
+                     rf"|(?:accounts payable|payroll|treasury|finance) manager|finance business partner|directeur financier|directeur administratif (?:et )?financier"
+                     rf"|daf|director financiero|diretor financeiro|finanzvorstand|finanzleiter\w*|leiter finanzen|kaufmannische\w* leiter\w*"),
+    "contract.sign": (rf"{_FOUNDER_ROLE}|chief_(?:[a-z]+_){{0,2}}(?:{_CXO_FUNCS.replace(' ', '_')})(?:_[a-z]+){{0,2}}_officer|president|chairman|chairperson|chairwoman|chair|general manager|country manager"
+                      rf"|managing director|partner|general counsel|legal counsel|head of legal|vice president{_FUNC}|director{_FUNC}|head of(?: the)?(?: \w+){{0,2}} {_FUNCTIONS}(?: \w+){{0,3}}"
+                      rf"|directeur general|directora general|directrice generale|pdg|president directeur general|geschaftsfuhrer\w*"
+                      rf"|amministratore delegato|prokurist"),
+}
+_PRIV_SPLIT = re.compile(r"\s*(?:\||;|/|,|&|\band\b|\s-\s|\s\u2013\s|\s\u2014\s)\s*")
+
+
+def _priv_ok(title: str, scope: str, company: str | None) -> bool:
+    t = authority_text(title, company)
+    if t is None:
+        return False
+    raw = clean_title(title).replace(" ", " ")
+    # rebuild from the raw title so separators survive; keep only segments whose words all survived authority_text
+    keep = set(t.split())
+    atom = lambda x: re.sub(r"\bchief ((?:\w+ ){1,4}?)officer\b", lambda m: "chief_" + "_".join(w for w in m.group(1).split() if w != "and") + "_officer", x)
+    segs = [atom(clean_title(seg)) for seg in _PRIV_SPLIT.split(re.sub(r"(?i)fp\s*&\s*a", "FPA", _join_chief(title)))]
+    co = set(company_key(company).split()) if company else set()
+    for seg in segs:
+        def survives(w: str) -> bool:  # authority_text dropped ex-employers and other people's titles; drop them here too
+            return all(x in keep for x in w.split("_")) if w.startswith("chief_") else w in keep
+        words = [w for w in seg.split() if w not in co and w not in ("at", "the") and survives(w)]
+        if not words:
+            continue
+        if re.fullmatch(rf"{_MOD}(?:{_PRIV[scope]})(?: interim)?", " ".join(words)):
+            return True
+    return False
+
+
+def _join_chief(title: str) -> str:
+    """Keep 'Chief Product and Technology Officer' in one piece before splitting on 'and'."""
+    return re.sub(r"(?i)\bchief ((?:[\w-]+ ){1,4}?)officer\b", lambda m: "Chief " + m.group(1).replace(" and ", " ").replace(" & ", " ") + "Officer", title)
 
 
 def is_subordinate(title: str | None) -> bool:
@@ -220,6 +276,8 @@ def can_grant(title: str | None, scope: str, company: str | None = None) -> bool
         return False
     if scope == "data.read":
         return True
+    if scope in _PRIV:
+        return _priv_ok(title, scope, company)
     t = authority_text(title, company)
     return t is not None and re.search(SCOPE_RULES[scope][0], t) is not None
 

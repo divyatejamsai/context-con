@@ -32,6 +32,16 @@ BAD = [  # (real title, scope, claimed company or None)
     ("Treasurer, PTA", "payment.send"), ("Director of First Impressions", "contract.sign"), ("Board Member", "contract.sign"),
     ("Non-Executive Director", "contract.sign"), ("CFO " * 60, "payment.send"),
 ]
+BAD += [  # round 6
+    ("E.A. - CFO", "payment.send"), ("CEO CoS", "contract.sign"), ("CoS - CEO", "contract.sign"), ("CFO Admin", "payment.send"),
+    ("CEO (ret.)", "contract.sign"), ("CFO (until 2023)", "payment.send"), ("CEO-elect", "contract.sign"), ("CFO nominee", "payment.send"),
+    ("CFO Recruiter", "payment.send"), ("CEO Coach", "contract.sign"), ("Freelance CFO", "payment.send"), ("CFO Consultant", "payment.send"),
+    ("Founder in Residence", "contract.sign"), ("CEO Fellow", "contract.sign"), ("Household CFO", "payment.send"), ("Ninja CEO", "contract.sign"),
+    ("CFO助理", "payment.send"), ("Ассистент CFO", "payment.send"), ("Assistant\u200dto CFO", "payment.send"), ("Junior CFO", "payment.send"),
+    ("Vice CFO", "payment.send"), ("CFO's deputy", "payment.send"), ("Head of Founder Relations", "contract.sign"), ("CFO #OpenToWork", "payment.send"),
+    ("Mock CEO", "contract.sign"), ("Head of Vibes", "contract.sign"), ("Director of Fun", "contract.sign"), ("Not the CEO", "contract.sign"),
+    ("CFO (left)", "payment.send"), ("Unemployed CFO", "payment.send"), ("Shadow CFO", "payment.send"), ("CFO Podcast Host", "payment.send"),
+]
 OTHER_ORG = [("Software Engineer | Founder @ SideProject", "contract.sign", "Acme"), ("Recruiter & Co-Founder of MyStartup", "contract.sign", "Acme"),
              ("Analyst; CEO of Widgets Ltd", "contract.sign", "Acme")]
 GOOD = [
@@ -56,12 +66,20 @@ GOOD = [
     ("Head of Sales & Member of the Board of Directors", "outreach.sales"), ("Head of Go-To-Market", "outreach.sales"), ("SDR", "outreach.sales"),
     ("Director, Back to School Campaigns", "outreach.sales"), ("Head of Customer Success & Student Experience", "outreach.sales"),
     ("Intern", "data.read"),
+    # round 6 (these broke when a company is passed, as verify_passport always does)
+    ("VP of Engineering", "outreach.hiring"), ("Vice President of Finance / Controller", "payment.send"),
+    ("Sr. Vice President of Finance & Corporate Controller - Komatsu Americas", "payment.send"), ("VP of Sales", "outreach.sales"),
+    ("Associate Director HR Business Partner International Operations", "outreach.hiring"), ("International Sales Director", "outreach.sales"),
+    ("Assistant Manager - HR", "outreach.hiring"), ("Assistant Vice President - Talent Acquisition", "outreach.hiring"), ("AVP Sales", "outreach.sales"),
+    ("President", "contract.sign"), ("Executive Chairman", "contract.sign"), ("General Manager", "contract.sign"), ("Equity Partner", "contract.sign"),
+    ("Head of FP&A", "payment.send"), ("Accounts Payable Manager", "payment.send"), ("Directora General", "contract.sign"),
 ]
 
 
 @pytest.mark.parametrize("title,scope", BAD)
 def test_bad_titles_never_grant(title, scope):
     assert not can_grant(title, scope), title
+    assert not can_grant(title, scope, "Acme"), title
 
 
 @pytest.mark.parametrize("title,scope,company", OTHER_ORG)
@@ -75,7 +93,7 @@ def test_authority_at_the_claimed_org_counts():
 
 @pytest.mark.parametrize("title,scope", GOOD)
 def test_good_titles_grant(title, scope):
-    assert can_grant(title, scope), title
+    assert can_grant(title, scope, "Acme"), title  # verify_passport always passes the claimed company
 
 
 @pytest.mark.parametrize("claimed,real", [
