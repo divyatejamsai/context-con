@@ -20,18 +20,20 @@ SCENARIOS = {s["id"]: s for s in json.loads((ROOT / "fixtures/countersign/sponso
 def test_run_fleet_end_to_end(tmp_path):
     env = {**os.environ, "CRUSTDATA_MODE": "replay", "LLM_MODE": "mock"}
     res = subprocess.run([sys.executable, str(BACKEND / "scripts/run_fleet.py"), "--store", str(tmp_path),
-                          "--skip", "sourced", "--today", "2026-10-31"],
+                          "--today", "2026-10-31"],
                          cwd=BACKEND, env=env, capture_output=True, text=True, timeout=300)
     out = res.stdout
     assert res.returncode == 0, out + res.stderr
-    assert "PASS" in out and "chain_ok=True" in out
+    assert "PASS" in out and "chain intact" in out
+    assert out.index("1. Onboard") < out.index("3. The sponsor left") < out.index("6. Tampering")
     agents = {a["name"]: a for a in json.loads((tmp_path / "agents.json").read_text()).values()}
     assert agents["Closer"]["status"] == "suspended" and "PulseTrader" in agents["Closer"]["reason"]
     assert all(agents[n]["status"] == "active" for n in ("Pipeline", "Diligence", "Reference", "Claude Code"))
     assert agents["Claude Code"]["runtime"] == "external" and agents["Pipeline"]["job"]
     outbox = [json.loads(line) for line in (tmp_path / "outbox.jsonl").read_text().splitlines()]
     sent_to = {m["to"]["name"] for m in outbox}
-    assert sent_to == {"Charish Anumukonda", "Vinayak Kalushe", "Vinod Sonagara"}  # stale CRM row and Closer blocked
+    assert sent_to == {"Charish Anumukonda", "Vinayak Kalushe", "Vinod Sonagara"}  # stale row, false tenure, Closer blocked
+    assert not any("5 years" in m["body"] for m in outbox)
     ledger = [json.loads(line) for line in (tmp_path / "ledger.jsonl").read_text().splitlines()]
     kinds = [e["kind"] for e in ledger]
     assert kinds.count("work.resume_check") == 5 and "work.vendor_brief" in kinds and "work.outreach_run" in kinds
@@ -86,3 +88,34 @@ async def test_record_work_needs_the_agents_signature_and_an_active_agent(store)
     registry.suspend(a["agent_id"], "test")
     res = await _record({**args, "signature": sign_message(p, key, work_body("vendor_brief", "Razorpay: proceed", {"n": 1}))})
     assert not res["recorded"] and any("suspended" in r for r in res["refused"])
+
+
+def test_demo_stream_over_http(tmp_path, monkeypatch):
+    """The console's Run demo page reads /api/demo/run: ordered beats, each verdict with its checks, all beats OK."""
+    for var, name in (("AGENTS_PATH", "agents.json"), ("LEDGER_PATH", "ledger.jsonl"), ("ISSUER_KEY_PATH", "issuer.key"),
+                      ("OUTBOX_PATH", "outbox.jsonl")):
+        monkeypatch.setenv(var, str(tmp_path / name))
+    monkeypatch.setenv("CRUSTDATA_MODE", "replay")
+    monkeypatch.setenv("LLM_MODE", "mock")
+    from fastapi.testclient import TestClient
+
+    import app.agents.api as agents_api
+    from app.main import app
+
+    monkeypatch.setattr(agents_api, "_client", None)
+    with TestClient(app) as c:
+        assert [b["id"] for b in c.get("/api/demo/beats").json()] == [
+            "onboard", "work", "sponsor_left", "scope", "stale", "tamper", "outside"]
+        with c.stream("GET", "/api/demo/run", params={"today": "2026-10-31"}) as r:
+            events = [json.loads(line[6:]) for line in r.iter_lines() if line.startswith("data: ")]
+    assert events[0]["type"] == "start" and events[-1]["type"] == "done" and events[-1]["ok"]
+    ns = [e["n"] for e in events if "n" in e]
+    assert ns == sorted(ns)  # nothing from a later beat shows up early
+    verdicts = [e for e in events if e["type"] == "verdict"]
+    assert all(v["checks"] and all("status" in k for k in v["checks"]) for v in verdicts)
+    by_beat = {e["id"]: e for e in events if e["type"] == "beat_done"}
+    assert all(b["ok"] for b in by_beat.values()), by_beat
+    payroll = {v["agent"]: v["decision"] for v in verdicts if v["action"] == "payroll"}
+    assert payroll["Closer"] == "block" and payroll["Pipeline"] == "allow"
+    assert any(v["action"] == "ledger_audit" and v["decision"] == "block" for v in verdicts)
+    assert any(e["type"] == "artifact" and "Razorpay" in e["content"] for e in events)

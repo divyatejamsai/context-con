@@ -41,6 +41,7 @@ class Report:
     refused_at_clock_in: bool = False
     ok: bool = True
     expected: str = ""
+    vendor: dict | None = None                           # Diligence: the vendor it researched
 
 
 @dataclass
@@ -53,6 +54,7 @@ class Ctx:
     today: date | None = None
     say: Callable[[str], None] = print
     report: Report | None = None
+    emit: Callable[[dict], None] | None = None   # structured events for the demo stream (verdict, filed)
 
     @property
     def agent_id(self) -> str:
@@ -71,6 +73,14 @@ class Ctx:
         if self.report is not None:
             self.report.lines.append(line)
 
+    def _emit(self, ev: dict) -> None:
+        if self.emit is not None:
+            self.emit({"agent": self.agent["name"], "agent_id": self.agent_id, **ev})
+
+    def _verdict(self, action: str, v: dict, headline: str, to: dict | None = None) -> None:
+        self._emit({"type": "verdict", "action": action, "decision": v.get("decision"), "headline": headline,
+                    "to": to, "sent": v.get("sent"), "checks": v.get("checks", []), "ledger_entry": v.get("ledger_entry")})
+
     def _today(self) -> dict:
         return {"today": self.today.isoformat()} if self.today else {}
 
@@ -79,23 +89,28 @@ class Ctx:
         if v["decision"] == "allow":
             s = self.passport.sponsor
             self.log(f"  clock-in  ALLOW  passport valid, acting for {s.name} ({s.title}, {s.company})")
+            self._verdict("clock_in", v, f"Passport valid: acting for {s.name} ({s.title}, {s.company})")
             return True
         self.log(f"  clock-in  BLOCK  {'; '.join(blocked_by(v))}")
+        self._verdict("clock_in", v, f"Refused to start work: {blocked_by(v)[0] if blocked_by(v) else 'blocked'}")
         if self.report is not None:
             self.report.refused_at_clock_in = True
         return False
 
     async def send(self, to: dict, body: str, scope: str) -> dict:
         sig = sign_message(self.passport, self.key, body)
+        self._emit({"type": "draft", "to": to, "scope": scope, "body": body})
         v = await self.mcp.tool("send_message", {"agent_id": self.agent_id, "signature": sig, "to": to, "body": body,
                                                  "scope": scope, **self._today()})
         who = f"{to.get('name')} ({to.get('company')})"
         if v.get("sent"):
             self.log(f"  send      ALLOW  {who}: cleared and written to the outbox (never emailed)")
+            self._verdict("send", v, f"Cleared to send to {who}", to)
             if self.report is not None:
                 self.report.allowed += 1
         else:
             self.log(f"  send      BLOCK  {who}: {'; '.join(blocked_by(v)) or v['decision']}")
+            self._verdict("send", v, f"Blocked message to {who}: {blocked_by(v)[0] if blocked_by(v) else 'blocked'}", to)
             if self.report is not None:
                 self.report.blocked += 1
         return v
@@ -110,6 +125,8 @@ class Ctx:
                                                   "summary": summary, "details": details, "sources": srcs})
         if res.get("recorded"):
             self.log(f"  file      OK     work.{kind} on the ledger ({res['sources']} sources): {summary}")
+            self._emit({"type": "filed", "kind": f"work.{kind}", "summary": summary, "ledger_entry": res["ledger_entry"],
+                        "sources": srcs})
             if self.report is not None:
                 self.report.filed.append(res["ledger_entry"])
         else:

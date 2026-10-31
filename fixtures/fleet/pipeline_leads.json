@@ -1,9 +1,9 @@
 {
-  "_note": "Pipeline's CRM lead list: real public profiles that have Crustdata Person Enrich fixtures. 'company' and 'title' are what the CRM has on file, which may be out of date; that is the point. Shivank's row was right in early 2026 and is stale now.",
+  "_note": "Pipeline's CRM lead list: real public profiles that have Crustdata Person Enrich fixtures. 'company' and 'title' are what the CRM has on file, which may be out of date; that is the point. Shivank's row was right in early 2026 and is stale now. 'stale_since' is demo metadata: the guided demo uses it to play that row in its own beat; the agent never reads it.",
   "leads": [
     {"name": "Charish Anumukonda", "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140", "company": "SpotDraft", "title": "Backend Engineer"},
     {"name": "Vinayak Kalushe", "profile_url": "https://www.linkedin.com/in/vinayakkalushe", "company": "KIoT", "title": "Backend & DevOps Engineer"},
     {"name": "Vinod Sonagara", "profile_url": "https://www.linkedin.com/in/vinod-sonagara", "company": "Fam", "title": "Backend Engineer"},
-    {"name": "Shivank Verma", "profile_url": "https://www.linkedin.com/in/shivankverma", "company": "PulseTrader", "title": "Co-Founder"}
+    {"name": "Shivank Verma", "profile_url": "https://www.linkedin.com/in/shivankverma", "company": "PulseTrader", "title": "Co-Founder", "stale_since": "2026-04-01"}
   ]
 }
