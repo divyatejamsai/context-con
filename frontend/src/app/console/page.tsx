@@ -84,7 +84,7 @@ export default function Console() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [chain, setChain] = useState<Chain>();
   const [selected, setSelected] = useState<string>();
-  const [tab, setTabState] = useState<Tab>("overview");
+  const [tab, setTabState] = useState<Tab>("work");
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
@@ -144,7 +144,7 @@ export default function Console() {
   }, [connect]);
 
   /** Opens an agent's page (or the list, with no id) and keeps it in the URL so it can be shared and reloaded. */
-  const openAgent = (id?: string, t: Tab = "overview") => {
+  const openAgent = (id?: string, t: Tab = "work") => {
     setSelected(id);
     setTabState(t);
     setViewState("employees");
@@ -152,7 +152,7 @@ export default function Console() {
     u.searchParams.delete("view");
     if (id) {
       u.searchParams.set("agent", id);
-      if (t !== "overview") u.searchParams.set("tab", t);
+      if (t !== "work" && t !== "overview") u.searchParams.set("tab", t);
       else u.searchParams.delete("tab");
     } else {
       u.searchParams.delete("agent");

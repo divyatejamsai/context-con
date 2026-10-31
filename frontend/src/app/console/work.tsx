@@ -11,9 +11,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useConfirm } from "@/components/ui/confirm";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, receiptUrl, runtime, type Approval, type Flow, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
+  ApiError, SCOPE_INFO, receiptUrl, runtime, type Approval, type Flow, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
 } from "./api";
-import { Button, EmptyState, Field, PageHead, ScopeChip, SectionHead, VerdictList, ago, cardCls, checkLabel, inputCls } from "./parts";
+import { Button, EmptyState, Field, PageHead, SectionHead, VerdictList, ago, cardCls, checkLabel, inputCls } from "./parts";
 
 const ACTIVITY: Record<string, { label: string; cls: string; dot: string }> = {
   working: { label: "Working", cls: "border-sky/40 bg-sky/10 text-foreground", dot: "bg-sky animate-pulse" },
@@ -122,57 +122,12 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
   }
 
   const live = st.agents.filter((a) => a.status !== "offboarded");
+  const me = agentId ? st.agents.find((a) => a.agent_id === agentId) : undefined;
+  const pause = (a: LiveAgent) => act(`ag:${a.agent_id}`, () => runtime.pause(a.agent_id, "paused from the Work view"), `${a.name} paused`);
+  const resume = (a: LiveAgent) => act(`ag:${a.agent_id}`, () => runtime.resume(a.agent_id), `${a.name} resumed`);
 
-  return (
-    <Wrap className={wrapCls}>
-      {confirmDialog}
-      <div className={cn("flex flex-wrap items-start justify-between gap-4", agentId && "hidden")}>
-        <PageHead title="Live work">
-          Your agents and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
-          them mid-task, and set their budgets. Every change is written to the ledger.
-        </PageHead>
-        <div className="flex items-center gap-2">
-          <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-[510]",
-            st.runtime.alive ? "border-verified/40 bg-verified/10" : "border-contradicted/40 bg-contradicted/10 text-contradicted")}>
-            <span className={cn("size-1.5 rounded-full", st.runtime.alive ? "bg-verified animate-pulse" : "bg-contradicted")} />
-            {st.runtime.alive ? `Runtime on · ${st.runtime.running}/${st.runtime.max_concurrent} running` : "Runtime off"}
-          </span>
-          <span className="hidden font-mono text-[11px] text-faint sm:inline">
-            crustdata {st.runtime.modes.crustdata} · llm {st.runtime.modes.llm}
-          </span>
-          <Button onClick={() => setAssignFor("")} variant="primary"><Plus className="size-3.5" /> Assign work</Button>
-        </div>
-      </div>
-
-      {st.runtime.provider?.out_of_credits && (
-        <div role="alert" className="mt-4 flex items-start gap-2 rounded-lg border border-contradicted/40 bg-contradicted/10 px-3 py-2 text-[12.5px] text-contradicted">
-          <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-          <span>
-            <b className="font-[590]">Data provider out of credits.</b> Crustdata is refusing lookups (402), so agents can&apos;t
-            check people or sponsors. Tasks that need it fail with this reason, and no passport is revoked for it. Top up the
-            Crustdata key and run them again; this clears on the next successful lookup.
-          </span>
-        </div>
-      )}
-
-      {toast && (
-        <div className={cn("mt-4 rounded-lg border px-3 py-2 text-[12.5px]",
-          toast.tone === "ok" ? "border-verified/40 bg-verified/10" : "border-contradicted/40 bg-contradicted/10 text-contradicted")}>
-          {toast.text}
-        </div>
-      )}
-
-      <section className={cn("mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-4 lg:grid-cols-7", agentId && "hidden")}>
-        <Kpi label="Working now" value={st.totals.working} />
-        <Kpi label="Queued" value={st.totals.queued} />
-        <Kpi label="Waiting on you" value={st.totals.pending_approvals} tone={st.totals.pending_approvals ? "warn" : undefined} />
-        <Kpi label="Done today" value={st.totals.done_today} />
-        <Kpi label="Failed / refused" value={st.totals.failed_today} tone={st.totals.failed_today ? "bad" : undefined} />
-        <Kpi label="Sent today" value={st.totals.sent_today} />
-        <Kpi label="Ledger" value={st.ledger.chain_ok ? "Intact" : `Broken #${st.ledger.first_bad_seq}`} tone={st.ledger.chain_ok ? "ok" : "bad"} />
-      </section>
-
-      <section className={agentId ? "" : "mt-7"}>
+  const waiting = (
+      <section className={agentId ? "mt-8" : "mt-7"}>
         <SectionHead title={`Waiting on you (${st.approvals.pending.length})`} aside={st.approvals.pending.length > 1 ? (
           <Button disabled={!!busy} onClick={() => ask({
             title: `Approve all ${st.approvals.pending.length} messages?`,
@@ -219,12 +174,83 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
           </p>
         )}
       </section>
+  );
+
+  return (
+    <Wrap className={wrapCls}>
+      {confirmDialog}
+      <div className={cn("flex flex-wrap items-start justify-between gap-4", agentId && "hidden")}>
+        <PageHead title="Live work">
+          Your agents and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
+          them mid-task, and set their budgets. Every change is written to the ledger.
+        </PageHead>
+        <div className="flex items-center gap-2">
+          <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-[510]",
+            st.runtime.alive ? "border-verified/40 bg-verified/10" : "border-contradicted/40 bg-contradicted/10 text-contradicted")}>
+            <span className={cn("size-1.5 rounded-full", st.runtime.alive ? "bg-verified animate-pulse" : "bg-contradicted")} />
+            {st.runtime.alive ? `Runtime on · ${st.runtime.running}/${st.runtime.max_concurrent} running` : "Runtime off"}
+          </span>
+          <span className="hidden font-mono text-[11px] text-faint sm:inline">
+            crustdata {st.runtime.modes.crustdata} · llm {st.runtime.modes.llm}
+          </span>
+          <Button onClick={() => setAssignFor("")} variant="primary"><Plus className="size-3.5" /> Assign work</Button>
+        </div>
+      </div>
+
+      {st.runtime.provider?.out_of_credits && (
+        <div role="alert" className="mt-4 flex items-start gap-2 rounded-lg border border-contradicted/40 bg-contradicted/10 px-3 py-2 text-[12.5px] text-contradicted">
+          <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <b className="font-[590]">Data provider out of credits.</b> Crustdata is refusing lookups (402), so agents can&apos;t
+            check people or sponsors. Tasks that need it fail with this reason, and no passport is revoked for it. Top up the
+            Crustdata key and run them again; this clears on the next successful lookup.
+          </span>
+        </div>
+      )}
+
+      {toast && (
+        <div className={cn("mt-4 rounded-lg border px-3 py-2 text-[12.5px]",
+          toast.tone === "ok" ? "border-verified/40 bg-verified/10" : "border-contradicted/40 bg-contradicted/10 text-contradicted")}>
+          {toast.text}
+        </div>
+      )}
+
+      {agentId && (me ? (
+        <>
+          <AgentStats a={me} pending={st.approvals.pending.length} />
+          <NowCard a={me} busy={busy} kinds={kinds} onAssign={() => setAssignFor(me.agent_id)} onOpen={setOpenTask}
+            onPause={() => pause(me)} onResume={() => resume(me)} onSettings={() => setSettingsFor(me.agent_id)} />
+          {waiting}
+          <AgentTasks tasks={st.tasks} onOpen={setOpenTask} />
+          <section className={cn("mt-8 grid grid-cols-1 gap-6", st.approvals.decided.length > 0 && "lg:grid-cols-2")}>
+            <SchedulesCard schedules={st.schedules} kinds={kinds} busy={busy}
+              onToggle={(id) => act(`sch:${id}`, () => runtime.toggleSchedule(id))}
+              onDelete={(id) => act(`sch:${id}`, () => runtime.deleteSchedule(id), "Schedule deleted")} />
+            <DecidedCard decided={st.approvals.decided} />
+          </section>
+        </>
+      ) : (
+        <EmptyState title="Not in the runtime">This agent isn&apos;t running any work. Offboarded agents keep their history but take no new tasks.</EmptyState>
+      ))}
+
+      {!agentId && <>
+      <section className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-4 lg:grid-cols-7">
+        <Kpi label="Working now" value={st.totals.working} />
+        <Kpi label="Queued" value={st.totals.queued} />
+        <Kpi label="Waiting on you" value={st.totals.pending_approvals} tone={st.totals.pending_approvals ? "warn" : undefined} />
+        <Kpi label="Done today" value={st.totals.done_today} />
+        <Kpi label="Failed / refused" value={st.totals.failed_today} tone={st.totals.failed_today ? "bad" : undefined} />
+        <Kpi label="Sent today" value={st.totals.sent_today} />
+        <Kpi label="Ledger" value={st.ledger.chain_ok ? "Intact" : `Broken #${st.ledger.first_bad_seq}`} tone={st.ledger.chain_ok ? "ok" : "bad"} />
+      </section>
+
+      {!agentId && waiting}
 
       {!agentId && <FlowsSection flows={st.flows ?? []} busy={busy} onOpen={(id) => setOpenTask(id)}
         onStart={(b) => act("flow", () => runtime.startFlow(b), "Hiring flow started: Agaxes is routing the first stage")} />}
 
-      <section className={cn("mt-8", agentId && "max-w-[460px]")}>
-        <SectionHead title={agentId ? "Right now" : "Agents"} aside={agentId ? undefined : (
+      <section className="mt-8">
+        <SectionHead title="Agents" aside={(
           <div className="flex gap-1.5">
             {templates.filter((t) => !t.hired).map((t) => (
               <Button key={t.key} disabled={!!busy} title={t.job}
@@ -239,14 +265,14 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
           </div>
         )}>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
         {live.length ? (
-          <div className={cn("mt-3 grid grid-cols-1 gap-3", !agentId && "md:grid-cols-2 xl:grid-cols-3")}>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {live.map((a) => (
               <AgentCard key={a.agent_id} a={a} busy={busy} kinds={kinds}
                 onAssign={() => setAssignFor(a.agent_id)}
                 onOpen={(id) => setOpenTask(id)}
                 onSettings={() => setSettingsFor(a.agent_id)}
-                onPause={() => act(`ag:${a.agent_id}`, () => runtime.pause(a.agent_id, "paused from the Work view"), `${a.name} paused`)}
-                onResume={() => act(`ag:${a.agent_id}`, () => runtime.resume(a.agent_id), `${a.name} resumed`)}
+                onPause={() => pause(a)}
+                onResume={() => resume(a)}
                 onSuspend={() => ask({
                   title: `Suspend ${a.name}?`,
                   body: "Its running task stops now and its passport is revoked until you reinstate it. The reason goes on the ledger.",
@@ -266,34 +292,22 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
         <div className="min-w-0">
           <SectionHead title="Tasks">Newest first. Open one to see every step, its output, and a receipt for each ledger entry.</SectionHead>
           <div className={cn(cardCls, "mt-3 divide-y divide-border overflow-hidden")}>
-            {st.tasks.length ? st.tasks.slice(0, 40).map((t) => (
-              <button key={t.task_id} onClick={() => setOpenTask(t.task_id)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-hover">
-                <span className={cn("w-[74px] shrink-0 text-[11.5px] font-[590] capitalize", TASK_STATUS[t.status])}>
-                  {t.status === "running" && <Loader2 className="mr-1 inline size-3 animate-spin" />}{t.status}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-[510]">{t.title}</span>
-                  <span className="block truncate text-[11.5px] text-muted-foreground">
-                    {t.agent_name} · {t.result || t.error || t.waiting_on || t.last_step || ""}
-                  </span>
-                </span>
-                {t.schedule_id && <Repeat className="size-3.5 shrink-0 text-faint" aria-label="from a schedule" />}
-                <span className="shrink-0 text-[11px] tabular-nums text-faint">{ago(t.finished_at || t.started_at || t.created_at)}</span>
-              </button>
-            )) : <p className="px-4 py-6 text-center text-[12.5px] text-muted-foreground">No tasks yet. Use Assign work to give an agent its first job.</p>}
+            {st.tasks.length ? st.tasks.slice(0, 40).map((t) => <TaskRow key={t.task_id} t={t} onOpen={setOpenTask} />)
+              : <p className="px-4 py-6 text-center text-[12.5px] text-muted-foreground">No tasks yet. Use Assign work to give an agent its first job.</p>}
           </div>
         </div>
         <div className="space-y-6">
-          {!agentId && <PayrollCard p={st.payroll} busy={busy}
+          <PayrollCard p={st.payroll} busy={busy}
             onRun={() => act("payroll", () => runtime.runPayroll(), "Payroll run finished")}
             onToggle={() => act("payroll", () => runtime.setPayroll({ enabled: !st.payroll.enabled }))}
-            onEvery={(m) => act("payroll", () => runtime.setPayroll({ every_minutes: m }), `Payroll every ${m} min`)} />}
+            onEvery={(m) => act("payroll", () => runtime.setPayroll({ every_minutes: m }), `Payroll every ${m} min`)} />
           <SchedulesCard schedules={st.schedules} kinds={kinds} busy={busy}
             onToggle={(id) => act(`sch:${id}`, () => runtime.toggleSchedule(id))}
             onDelete={(id) => act(`sch:${id}`, () => runtime.deleteSchedule(id), "Schedule deleted")} />
           <DecidedCard decided={st.approvals.decided} />
         </div>
       </section>
+      </>}
 
       <AssignSheet open={assignFor !== null} initialAgent={assignFor || undefined} prefill={prefill} agents={live} kinds={kinds} busy={busy}
         onClose={() => { setAssignFor(null); setPrefill(null); }}
@@ -320,12 +334,146 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "ok" | "bad" | "warn" }) {
+function TaskRow({ t, onOpen, hideAgent }: { t: Task; onOpen: (id: string) => void; hideAgent?: boolean }) {
+  const what = t.result || t.error || t.waiting_on || t.last_step || "";
+  return (
+    <button onClick={() => onOpen(t.task_id)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-hover">
+      <span className={cn("w-[74px] shrink-0 text-[11.5px] font-[590] capitalize", TASK_STATUS[t.status])}>
+        {t.status === "running" && <Loader2 className="mr-1 inline size-3 animate-spin" />}{t.status}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-[510]">{t.title}</span>
+        <span className="block truncate text-[11.5px] text-muted-foreground">{[hideAgent ? null : t.agent_name, brandText(what)].filter(Boolean).join(" · ")}</span>
+      </span>
+      {t.schedule_id && <Repeat className="size-3.5 shrink-0 text-faint" aria-label="from a schedule" />}
+      {hideAgent && t.seconds != null && <span className="hidden shrink-0 text-[11px] tabular-nums text-faint sm:inline">{secs(t.seconds)}</span>}
+      <span className="shrink-0 text-[11px] tabular-nums text-faint">{ago(t.finished_at || t.started_at || t.created_at)}</span>
+    </button>
+  );
+}
+
+/** Agent page, top of Work: what it's doing this second, and the controls for it. */
+function NowCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSettings }: {
+  a: LiveAgent; busy: string | null; kinds: TaskKind[]; onAssign: () => void; onOpen: (id: string) => void;
+  onPause: () => void; onResume: () => void; onSettings: () => void;
+}) {
+  const s = ACTIVITY[a.activity] ?? ACTIVITY.idle;
+  const cur = a.current;
+  const b = busy === `ag:${a.agent_id}`;
+  const canWork = a.status === "active" && a.kinds.length > 0;
+  return (
+    <section className={cn(cardCls, "mt-3 flex flex-col gap-4 p-4 sm:flex-row sm:items-center")}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[11px] font-[510]", s.cls)}>
+            <span className={cn("size-1.5 rounded-full", s.dot)} />{s.label}
+          </span>
+          <span className="text-[11.5px] text-faint">{a.metrics.last_active ? `last active ${ago(a.metrics.last_active)}` : "no tasks yet"}{a.queued ? ` · ${a.queued} queued` : ""}</span>
+        </div>
+        {cur ? (
+          <button onClick={() => onOpen(cur.task_id)} className="mt-2 block w-full max-w-[560px] text-left">
+            <p className="truncate text-[14px] font-[590]">{cur.title}</p>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-elevated">
+              <div className="h-full rounded-full bg-sky transition-all" style={{ width: cur.progress.total ? `${(100 * cur.progress.done) / cur.progress.total}%` : "30%" }} />
+            </div>
+            <p className="mt-1 truncate text-[12px] text-muted-foreground">{brandText(cur.last_step?.trim() || cur.progress.label)}</p>
+          </button>
+        ) : (
+          <p className={cn("mt-2 text-[13px]", a.status !== "active" ? "text-contradicted" : "text-secondary")}>
+            {a.status !== "active"
+              ? (a.reason || a.status).replace(/^([a-z_]+):\s*/, (_, k: string) => `${checkLabel(k)}: `)
+              : a.policy.paused ? `Paused: ${a.policy.paused_reason ?? "by you"}.` : "Nothing running right now."}
+            {a.status === "active" && !a.policy.paused && a.job && <span className="text-muted-foreground"> {brandText(a.job)}</span>}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <Button variant="primary" onClick={onAssign} disabled={!canWork}
+          title={canWork ? `Jobs: ${a.kinds.map((k) => kinds.find((x) => x.kind === k)?.label ?? k).join(", ")}` : "Not active, or no job fits its passport"}>
+          <Plus className="size-3.5" /> Assign work
+        </Button>
+        {a.policy.paused ? (
+          <Button onClick={onResume} disabled={!!busy}>{b ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />} Resume</Button>
+        ) : (
+          <Button onClick={onPause} disabled={!!busy || a.status !== "active"} title="Stops the running task now and holds the queue">
+            {b ? <Loader2 className="size-3.5 animate-spin" /> : <Pause className="size-3.5" />} Pause
+          </Button>
+        )}
+        <Button variant="ghost" onClick={onSettings} title="Approvals and budgets"><Settings2 className="size-3.5" /> Settings</Button>
+      </div>
+    </section>
+  );
+}
+
+/** Agent page: its record so far and today's budget, in one strip. */
+function AgentStats({ a, pending }: { a: LiveAgent; pending: number }) {
+  const m = a.metrics;
+  const finished = m.done + m.failed + m.refused;
+  const bud = a.policy.budget;
+  return (
+    <section className="space-y-3">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-strong bg-border sm:grid-cols-4">
+        <Kpi label="Tasks done" value={m.done} sub={finished ? `of ${finished} finished` : "none finished yet"} />
+        <Kpi label="Success rate" value={pct(m.success_rate)} sub={m.failed + m.refused ? `${m.failed} failed · ${m.refused} refused` : "no failures"}
+          tone={m.success_rate != null && m.success_rate < 0.8 ? "warn" : undefined} />
+        <Kpi label="Waiting on you" value={pending} sub={pending ? "approve or reject below" : "nothing to approve"} tone={pending ? "warn" : undefined} />
+        <Kpi label="Avg task time" value={secs(m.avg_seconds)} sub={`${m.tasks_total} tasks in total`} />
+        <Kpi label="Sent" value={m.sent} sub={`of ${m.drafts} drafts`} />
+        <Kpi label="Blocked by Send Guard" value={m.guard_blocked} sub={m.blocked_at_send ? `${m.blocked_at_send} more at send time` : "drafts stopped before sending"} tone={m.guard_blocked ? "bad" : undefined} />
+        <Kpi label="You approved" value={pct(m.approval_rate)} sub={m.rejected ? `${m.rejected} rejected` : "of the drafts you decided"} />
+        <Kpi label={m.false_claims ? "Lies caught" : "Findings"} value={m.false_claims || m.findings} sub={m.false_claims ? "false claims in resumes" : "facts it filed"} />
+      </div>
+      <div className={cn(cardCls, "px-4 py-3")}>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-[12px] font-[590]">Budget today</p>
+          <p className="text-[11.5px] text-faint">{a.policy.require_approval ? "Every send needs your approval" : "Sends go out once Send Guard clears them"}</p>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+          <Bar label="Tasks" used={a.usage_today.tasks} cap={bud.tasks_per_day} />
+          <Bar label="Sends" used={a.usage_today.sends} cap={bud.sends_per_day} />
+          <Bar label="Crustdata calls" used={a.usage_today.crustdata} cap={bud.crustdata_calls_per_day} />
+          <Bar label="LLM calls" used={a.usage_today.llm} cap={bud.llm_calls_per_day} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Agent page: what's in flight, then what it finished, newest first. */
+function AgentTasks({ tasks, onOpen }: { tasks: Task[]; onOpen: (id: string) => void }) {
+  const [all, setAll] = useState(false);
+  const active = tasks.filter((t) => t.status === "running" || t.status === "queued");
+  const done = tasks.filter((t) => t.status !== "running" && t.status !== "queued");
+  const shown = all ? done : done.slice(0, 10);
+  return (
+    <>
+      {active.length > 0 && (
+        <section className="mt-8">
+          <SectionHead title={`In progress (${active.length})`}>Running now or queued behind it.</SectionHead>
+          <div className={cn(cardCls, "mt-3 divide-y divide-border overflow-hidden")}>{active.map((t) => <TaskRow key={t.task_id} t={t} onOpen={onOpen} hideAgent />)}</div>
+        </section>
+      )}
+      <section className="mt-8">
+        <SectionHead title={`Completed tasks (${done.length})`}>Newest first. Open one for every step, its output, and a receipt for each ledger entry.</SectionHead>
+        <div className={cn(cardCls, "mt-3 divide-y divide-border overflow-hidden")}>
+          {shown.length ? shown.map((t) => <TaskRow key={t.task_id} t={t} onOpen={onOpen} hideAgent />)
+            : <p className="px-4 py-6 text-center text-[12.5px] text-muted-foreground">Nothing finished yet. Use Assign work to give it its first job.</p>}
+        </div>
+        {done.length > shown.length && (
+          <button onClick={() => setAll(true)} className="mt-2 text-[12.5px] font-[510] text-primary hover:underline">Show all {done.length}</button>
+        )}
+      </section>
+    </>
+  );
+}
+
+function Kpi({ label, value, tone, sub }: { label: string; value: React.ReactNode; tone?: "ok" | "bad" | "warn"; sub?: string }) {
   return (
     <div className="bg-panel px-3.5 py-3">
       <p className="text-[11px] font-[510] text-muted-foreground">{label}</p>
       <p className={cn("mt-0.5 text-[20px] font-[620] tabular-nums tracking-[-0.02em]",
         tone === "bad" && "text-contradicted", tone === "ok" && "text-verified", tone === "warn" && "text-flag")}>{value}</p>
+      {sub && <p className="mt-0.5 truncate text-[11px] text-faint">{sub}</p>}
     </div>
   );
 }
@@ -345,7 +493,7 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
         <span className="text-faint">{a.action === "sign_offer" ? "wants to sign an offer to" : "wants to message"}</span>
         <span className="font-[590]">{a.to.name}</span>
         <span className="text-muted-foreground">at {a.to.company}</span>
-        <span className="ml-auto"><ScopeChip scope={a.scope} muted /></span>
+        <span className="ml-auto shrink-0 rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground" title={SCOPE_INFO[a.scope]?.detail}>{SCOPE_INFO[a.scope]?.label ?? a.scope}</span>
       </div>
       {editing ? (
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Edit the message"
@@ -362,7 +510,7 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
       </button>
       )}
       {why && <VerdictList verdict={{ subject: a.approval_id, decision: a.preview.decision, checks: a.preview.checks }} className="mt-2" />}
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2 [&_button]:whitespace-nowrap">
         <Button variant="primary" onClick={() => onApprove(editing && draft.trim() !== a.body.trim() ? draft : undefined)} disabled={!!busy || (editing && !draft.trim())}>
           {b ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} {a.action === "sign_offer" ? (editing ? "Sign edited" : "Approve and sign") : editing ? "Send edited" : "Approve and send"}
         </Button>
@@ -370,7 +518,7 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
           <Button variant="ghost" onClick={() => { setEditing(!editing); setDraft(a.body); }} disabled={!!busy}>{editing ? "Cancel edit" : "Edit"}</Button>
         )}
         <Button variant="secondary" onClick={onReject} disabled={!!busy}><X className="size-3.5" /> Reject</Button>
-        <span className="ml-auto text-[11px] text-faint">{ago(a.created_at)}</span>
+        <span className="ml-auto whitespace-nowrap text-[11px] text-faint">{ago(a.created_at)}</span>
       </div>
     </div>
   );
@@ -889,7 +1037,7 @@ function FlowsSection({ flows, busy, onStart, onOpen }: {
               <li key={s.key} className={cn("rounded-lg border p-2.5", FLOW_TONE[s.status] ?? "border-border")}>
                 <div className="flex items-center gap-1.5 text-[12px] font-[590] text-foreground">
                   <span className="text-faint">{i + 1}</span> {s.label}
-                  <span className="ml-auto"><ScopeChip scope={s.scope} muted /></span>
+                  <span className="ml-auto shrink-0 rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground" title={SCOPE_INFO[s.scope]?.detail}>{SCOPE_INFO[s.scope]?.label ?? s.scope}</span>
                 </div>
                 <div className="mt-1 text-[11.5px] capitalize">{s.agent ? `${s.agent} · ` : ""}{s.status}</div>
                 <ul className="mt-1.5 space-y-0.5">
