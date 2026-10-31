@@ -6,7 +6,7 @@ import { ArrowRight, Check, ChevronDown, FileText, Loader2, Play, RotateCcw, Squ
 import { API_URL } from "@/lib/stream";
 import type { Source } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import type { AgentStatus, Check as CheckT, Scope, Scorecard, Sponsor } from "./api";
+import { getAdminToken, type AgentStatus, type Check as CheckT, type Scope, type Scorecard, type Sponsor } from "./api";
 import { Button, CheckRow, DecisionBadge, RuntimeBadge, ScopeChip, SourceChip, StatusPill, cardCls, checkLabel } from "./parts";
 
 // ---- stream types (mirror the docstring of backend/app/fleet/demo.py) ----------------------------
@@ -117,7 +117,9 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
     setFinale(false);
     setPhase("running");
     let got = false;
-    const src = new EventSource(`${API_URL}/api/demo/run?claude_code=${claudeCode}`);
+    // EventSource can't send headers, so the admin token (if set) rides as a query param.
+    const token = getAdminToken();
+    const src = new EventSource(`${API_URL}/api/demo/run?claude_code=${claudeCode}${token ? `&token=${encodeURIComponent(token)}` : ""}`);
     es.current = src;
     src.onmessage = (m) => {
       got = true;
