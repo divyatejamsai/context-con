@@ -29,6 +29,7 @@ MUST_HAVE_CAP = 60  # a candidate missing evidence for a must-have can't outrank
 CONTRADICTION_PENALTY = 12
 MAX_PENALTY = 36
 CREDIT = {"verified": 1.0, "unverifiable": 0.5, "contradicted": 0.0}
+STEP_DOWN_CREDIT = float(os.getenv("RANK_STEP_DOWN_CREDIT", "0.85"))  # title one level below the brief (was 0.6)
 
 _STARTUP_WORDS = {"startup", "start up", "early stage", "early-stage", "seed", "series a", "series b", "ex startup", "ex-startup"}
 _STAGE_PREF = {
@@ -112,7 +113,8 @@ def _role_fit(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor:
     if criteria.seniority:
         want, have = seniority_rank(criteria.seniority + " x"), seniority_rank(title)
         gap = have - want
-        sim_credit *= {0: 1.0, 1: 0.95, 2: 0.85}.get(gap, 0.75) if gap >= 0 else {-1: 0.6}.get(gap, 0.35)
+        # one level below is the commonest real hire (people step up when they move), so it costs little
+        sim_credit *= {0: 1.0, 1: 0.95, 2: 0.85}.get(gap, 0.75) if gap >= 0 else {-1: STEP_DOWN_CREDIT}.get(gap, 0.35)
         junior_for_brief = gap < 0
     credit = sim_credit * CREDIT[c.status]
     if junior_for_brief and best >= 0.34 and c.status != "contradicted":

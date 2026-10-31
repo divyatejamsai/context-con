@@ -120,7 +120,8 @@ _STOP = {"of", "and", "the", "for", "in", "at", "to", "a", "an", "with", "on", "
 _FUNCTION = {"engineer", "developer", "designer", "manager", "analyst", "scientist", "architect", "consultant",
              "executive", "specialist", "recruiter", "accountant", "marketer", "writer", "officer", "administrator",
              "associate", "representative", "coordinator", "lead", "director", "intern", "tester", "programmer",
-             "researcher", "strategist", "partner", "advisor", "editor", "operator", "technician", "sales"}
+             "researcher", "strategist", "partner", "advisor", "editor", "operator", "technician", "sales", "design",
+             "ux", "administrator", "support", "head", "officer"}
 
 
 _SAME_FUNCTION = {"developer": "engineer", "programmer": "engineer", "dev": "engineer", "engg": "engineer",
@@ -129,10 +130,7 @@ _JOIN = [(r"\bback\s*end\b", "backend"), (r"\bfront\s*end\b", "frontend"), (r"\b
          (r"\bdev\s*ops\b", "devops"), (r"\bquality assurance\b", "qa"), (r"\bbusiness intelligence\b", "bi"), (r"\bsoftware development engineer\b", "software engineer")]
 
 
-def core_tokens(title: str | None) -> set[str]:
-    t = re.sub(r"\([^)]*\)|\[[^\]]*\]", " ", title or "")   # "(Node.js/TypeScript)" is a stack, not the role
-    # "Backend Engineer - Payments | Bangalore", "Full Stack Engineer with AWS LEX", "QA Engineer for Fintech"
-    t = re.split(r"\s[-|–—@/]\s|,|\s(?:with|for|at|in)\s", t, flags=re.I)[0]
+def _core_of(t: str) -> set[str]:
     t = norm(expand_title(t))
     for pat, rep in _JOIN:
         t = re.sub(pat, rep, t)
@@ -140,23 +138,43 @@ def core_tokens(title: str | None) -> set[str]:
     return {x for x in toks if len(x) > 1 and x not in _SENIORITY and x not in _STOP}
 
 
+def core_tokens(title: str | None) -> set[str]:
+    t = re.sub(r"\([^)]*\)|\[[^\]]*\]", " ", title or "")   # "(Node.js/TypeScript)" is a stack, not the role
+    # "Backend Engineer - Payments | Bangalore", "Full Stack Engineer with AWS LEX", "QA Engineer for Fintech"
+    parts = [x for x in re.split(r"\s[-|–—@/]\s|,|\s(?:with|for|at|in)\s", t, flags=re.I) if x.strip()]
+    if not parts:
+        return set()
+    core = _core_of(parts[0])
+    # "Manager, Software Engineering" / "Big Data - Senior Engineer": the head alone is not the role
+    if len(parts) > 1 and (not (core - _FUNCTION) or not (core & _FUNCTION)):
+        core |= _core_of(parts[1])
+    return core
+
+
+_JUNIOR_HIRE = re.compile(r"\b(intern|internship|trainee|apprentice)\b", re.I)
+
+
 def role_match(posting_title: str | None, person_title: str | None) -> bool:
     """Is a joiner's title the role that was posted? Both must share the job function word plus the specialisation
-    when the posting has one ("Backend Engineer" ~ "Software Engineer - Backend", not ~ "Sales Manager")."""
+    when the posting has one ("Backend Engineer" ~ "Software Engineer - Backend", not ~ "Sales Manager", and not
+    a bare "Principal Engineer" or "Senior Developer", which says nothing about the specialisation)."""
+    if _JUNIOR_HIRE.search(person_title or "") and not _JUNIOR_HIRE.search(posting_title or ""):
+        return False  # an intern joining is not the hire for a regular opening
     a, b = core_tokens(posting_title), core_tokens(person_title)
     if not a or not b:
         return False
+    sa, sb = a - _FUNCTION, b - _FUNCTION
+    fa, fb = a & _FUNCTION, b & _FUNCTION
+    # "Java Full Stack" names no function word: any function on the joiner's side is fine
+    same_function = bool(fa & fb) or not fa or not fb
+    if not same_function or not (sa & sb):
+        return False  # the specialisation must match, not just "engineer"
     if a <= b or b <= a:
         return True
     shared = a & b
     jacc = len(shared) / len(a | b)
-    fa, fb = a & _FUNCTION, b & _FUNCTION
-    # "Java Full Stack" names no function word: any matching function on the joiner's side is fine
-    same_function = bool(fa & fb) or not fa or not fb
-    specific = shared - _FUNCTION  # the specialisation must match, not just "engineer"
-    sa, sb = a - _FUNCTION, b - _FUNCTION
-    nested = bool(sa and sb) and (sa <= sb or sb <= sa)  # "Java Full Stack" ~ "Full Stack Developer"
-    return same_function and bool(specific) and (jacc >= 0.5 or len(shared) >= 2 or nested)
+    nested = sa <= sb or sb <= sa  # "Java Full Stack" ~ "Full Stack Developer"
+    return jacc >= 0.5 or len(shared) >= 2 or nested
 
 
 # =============================================================================================== point in time
@@ -225,9 +243,10 @@ def as_of(person: dict | None, cutoff: date, hiring_company_id: Any = None, hiri
 
     if bp is not None:
         bp["current_title"] = current[0].get("title") if current else None
+        # today's headline/summary can't be dated (they leak later employers, often obliquely: "AI Engineer at
+        # Crowe" for "Crowe Capabilities Center"), so as-of records have none, for hires and everyone else alike
         for k in ("headline", "summary"):
-            if leaks(bp.get(k)):
-                bp[k] = None
+            bp[k] = None
     for k in ("headline", "summary", "title", "current_title"):
         if k in p and (leaks(p.get(k)) or k in ("title", "current_title")):
             p[k] = None
@@ -306,6 +325,7 @@ class AsOfClient:
         self.cid, self.cname = hiring_company_id, hiring_company
         self.search_widen = search_widen
         self.stats = {"search_rows": 0, "kept": 0, "dropped_after_cutoff": 0}
+        self.out_of_credits = False  # the pipeline swallows search errors; the backtest must not
 
     def _t(self, p):
         return as_of(p, self.cutoff, self.cid, self.cname)
@@ -313,11 +333,14 @@ class AsOfClient:
     async def person_search(self, filters: dict, limit: int = 25, **extra) -> list[dict]:
         fields = list(dict.fromkeys([*(extra.pop("fields", None) or orchestrator.PERSON_SEARCH_FIELDS), "skills"]))
         try:
-            rows = await self.inner.person_search(widen_to_past(filters), limit=limit * self.search_widen,
+            rows = await self.inner.person_search(widen_to_past(filters), limit=min(100, limit * self.search_widen),
                                                   fields=fields, **extra)
         except Exception as e:  # server refused the widened filter: fall back to today's filter, still re-checked
+            if _out_of_credits(e):
+                self.out_of_credits = True
+                raise
             log.warning("widened search refused (%s); using the original filter", e)
-            rows = await self.inner.person_search(filters, limit=limit * self.search_widen, fields=fields, **extra)
+            rows = await self.inner.person_search(filters, limit=min(100, limit * self.search_widen), fields=fields, **extra)
         out = []
         for r in rows:
             self.stats["search_rows"] += 1
@@ -333,19 +356,32 @@ class AsOfClient:
         return self._t(await self.inner.person_enrich(url, *a, **kw))
 
     async def person_enrich_many(self, urls: list[str], *a, **kw):
-        res = await self.inner.person_enrich_many(urls, *a, **kw)
+        try:
+            res = await self.inner.person_enrich_many(urls, *a, **kw)
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                self.out_of_credits = True
+            raise
         return {u: self._t(p) for u, p in res.items()}
 
     async def request(self, name: str, payload: dict):
         if name.startswith("person/") or name.startswith("web/") or name.startswith("job/"):
             return None  # the pipeline only uses request() for company/enrich batches
-        return await self.inner.request(name, payload)
+        return await self._watch(self.inner.request(name, payload))
+
+    async def _watch(self, coro):
+        try:
+            return await coro
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                self.out_of_credits = True
+            raise
 
     async def company_enrich(self, *a, **kw):
-        return await self.inner.company_enrich(*a, **kw)
+        return await self._watch(self.inner.company_enrich(*a, **kw))
 
     async def company_identify(self, *a, **kw):
-        return await self.inner.company_identify(*a, **kw)
+        return await self._watch(self.inner.company_identify(*a, **kw))
 
     async def company_search(self, *a, **kw):
         return await self.inner.company_search(*a, **kw)
@@ -429,6 +465,14 @@ def _and(*conds):
     return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
 
 
+class OutOfCredits(SystemExit):
+    pass
+
+
+def _out_of_credits(e: BaseException) -> bool:
+    return getattr(e, "status", None) == 402 or "insufficient_credits" in str(e) or " 402" in str(e)
+
+
 async def _first_ok(label: str, attempts: list[tuple[str, Any]]):
     """Run (name, coroutine factory) in order; return (name, rows) of the first one the API accepts."""
     last = None
@@ -438,6 +482,9 @@ async def _first_ok(label: str, attempts: list[tuple[str, Any]]):
             log.info("%s: %s -> %d rows", label, name, len(rows))
             return name, rows
         except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402) at {label}; stopping. "
+                                   "Rerun after a top-up: cached calls and finished openings are reused.") from e
             last = e
             log.info("%s: %s refused (%s)", label, name, str(e)[:200])
     raise RuntimeError(f"{label}: every filter shape was refused; last error: {last}")
@@ -475,6 +522,10 @@ async def fetch_jobs(client, start: str, end: str, country: str | None, categori
         except RuntimeError as e:
             log.warning("%s", e)
             continue
+        except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopping. {e}")
+            raise
         rows += got
     if shape is None:
         raise RuntimeError("job_search: every month's query was refused")
@@ -560,6 +611,8 @@ async def build_openings(client, args) -> list[Opening]:
         try:
             hires, info = await find_hires(client, op)
         except Exception as e:  # noqa: BLE001
+            if _out_of_credits(e):
+                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopping after {i - 1} postings. {e}")
             why["error"] += 1
             log.warning("hire lookup failed for %s: %s", op.company, e)
             continue
@@ -580,7 +633,8 @@ async def build_openings(client, args) -> list[Opening]:
 
 # =============================================================================================== run
 
-async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose: bool = False) -> dict:
+async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose: bool = False,
+                      talent_flow: bool = True) -> dict:
     """Sourced on one posting, as of the posting date. Returns a private result row (has names)."""
     from app.brief import analyze_brief
     from app.fallbacks import basic_rank, basic_verify
@@ -598,10 +652,15 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
 
     analysis = await analyze_brief(op.brief())
     crit = analysis.criteria
+    crit.hiring_company = op.company if talent_flow else None
     out["criteria"] = {"role": crit.role, "title_variants": crit.title_variants, "locations": crit.locations,
                        "skills": crit.skills[:8]}
     pool = await orchestrator.search_pool(asof, crit, emit)
+    if asof.out_of_credits:
+        raise OutOfCredits("Crustdata says the key is out of credits (402) during search; stopping.")
     out["pool"] = len(pool)
+    out["feeder_rows"] = sum(1 for p in pool if p.get("_feeder"))
+    out["hire_via_feeder"] = any(p.get("_feeder") and keys_of(p) & hire_keys for p in pool)
     out["asof_search"] = dict(asof.stats)
     in_pool = [p for p in pool if keys_of(p) & hire_keys]
     out["hire_in_pool"] = bool(in_pool)
@@ -662,6 +721,8 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
 
     with frozen_today(cutoff):
         await asyncio.gather(*(one(k, p) for k, p in persons.items()))
+    if asof.out_of_credits:
+        raise OutOfCredits("Crustdata says the key is out of credits (402) during enrich; stopping.")
 
     def order(keys: list[str]) -> list[str]:
         return sorted(keys, key=lambda k: (scored[k]["score"], scored[k]["verified"], -scored[k]["contradicted"],
@@ -910,6 +971,52 @@ def tune_section(t: dict) -> str:
     ])
 
 
+# =============================================================================================== diagnose
+
+def diagnose(rows: list[dict]) -> str:
+    """Why do real hires rank where they do? Prints titles and score parts only, never names."""
+    from statistics import median
+    out, agg = [], {"hires": 0, "no_title": 0, "title_matches_posting": 0, "title_matches_variant": 0,
+                    "gapped": 0, "contradicted": 0, "below_median": 0, "injected": 0}
+    sig_h, sig_o = {}, {}
+    for r in rows:
+        if r.get("error") or not r.get("slate"):
+            continue
+        slate = r["slate"]
+        others = [c for c in slate if not c["hire"]]
+        med = median([c["score"] for c in others]) if others else 0
+        variants = (r.get("criteria") or {}).get("title_variants") or []
+        out.append(f"\n## {r['company']} | {r['title']} | posted {r['posted']} | pool {r.get('pool')} | "
+                   f"variants {variants} | locs {(r.get('criteria') or {}).get('locations')}")
+        out.append(f"   others: median score {med}, top titles {[c.get('title') for c in sorted(others, key=lambda c: -c['score'])[:3]]}")
+        for h in r.get("hires") or []:
+            out.append(f"   joined as: {h.get('title')} on {h.get('start')}")
+        for c in slate:
+            if not c["hire"]:
+                continue
+            agg["hires"] += 1
+            t = c.get("title")
+            agg["no_title"] += not t
+            agg["title_matches_posting"] += bool(t and role_match(r["title"], t))
+            agg["title_matches_variant"] += bool(t and any(_fuzzy(t, v) for v in variants))
+            agg["gapped"] += bool(c.get("gapped"))
+            agg["contradicted"] += bool(c.get("contradicted"))
+            agg["below_median"] += c["score"] < med
+            for k, v in (c.get("signals") or {}).items():
+                sig_h[k] = sig_h.get(k, 0) + v
+            on = [k for k, v in (c.get("signals") or {}).items() if v]
+            out.append(f"   HIRE as-of title={t!r} score={c['score']} raw={c.get('raw')} gapped={c.get('gapped')} "
+                       f"verified={c['verified']} contradicted={c['contradicted']} prescore={c['prescore']} signals={on}")
+        for c in others:
+            for k, v in (c.get("signals") or {}).items():
+                sig_o[k] = sig_o.get(k, 0) + v
+    n_o = sum(len([c for c in r.get("slate") or [] if not c["hire"]]) for r in rows if not r.get("error")) or 1
+    head = [f"# Backtest diagnosis ({agg['hires']} real hires on slates)", "", json.dumps(agg),
+            "signal rate, hires vs others: " + json.dumps({k: (round(sig_h.get(k, 0) / max(1, agg['hires']), 2),
+                                                                round(sig_o.get(k, 0) / n_o, 2)) for k in sig_o})]
+    return "\n".join(head + out) + "\n"
+
+
 # =============================================================================================== cli
 
 def _save_openings(ops: list[Opening], meta: dict):
@@ -949,6 +1056,9 @@ async def cmd_probe(client, args):
 
 
 async def main_async(args) -> int:
+    global DATA_DIR
+    if args.tag:
+        DATA_DIR = DATA_DIR / args.tag
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     client, note = orchestrator.make_client()
     if note:
@@ -958,10 +1068,18 @@ async def main_async(args) -> int:
         if args.cmd == "probe":
             await cmd_probe(client, args)
             return 0
-        if args.cmd in ("openings", "all"):
+        if args.cmd == "diagnose":
+            rows = [json.loads(x) for x in (DATA_DIR / "results.jsonl").read_text().splitlines() if x.strip()]
+            print(diagnose(rows))
+            return 0
+        if args.cmd == "openings" or (args.cmd == "all" and not args.openings_from):
             ops = await build_openings(client, args)
             _save_openings(ops, meta)
             print(f"saved {DATA_DIR / 'openings.json'}")
+        if args.cmd in ("run", "all") and args.openings_from and not (DATA_DIR / "openings.json").exists():
+            src = DATA_DIR.parent / args.openings_from / "openings.json"
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            (DATA_DIR / "openings.json").write_text(src.read_text())
         if args.cmd in ("run", "all"):
             ops, meta = _load_openings()
             if args.limit:
@@ -978,8 +1096,12 @@ async def main_async(args) -> int:
                     r = done.get(op.job_id)
                     if r is None:
                         try:
-                            r = await run_opening(client, op, slate=args.slate, verbose=args.verbose)
+                            r = await run_opening(client, op, slate=args.slate, verbose=args.verbose,
+                                                  talent_flow=not args.no_talent_flow)
                         except Exception as e:  # noqa: BLE001
+                            if _out_of_credits(e):
+                                raise OutOfCredits(f"Crustdata says the key is out of credits (402); stopped at "
+                                                   f"opening {i}. Finished ones are saved in {res_path}. {e}")
                             log.exception("run failed")
                             r = {"job_id": op.job_id, "company": op.company, "title": op.title, "posted": op.posted,
                                  "n_hires": len(op.hires), "error": f"{type(e).__name__}: {e}"}
@@ -1013,7 +1135,7 @@ async def main_async(args) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "tune", "all"])
+    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "tune", "diagnose", "all"])
     ap.add_argument("--start", default=WINDOW_START)
     ap.add_argument("--end", default=WINDOW_END)
     ap.add_argument("--country", default="India")
@@ -1025,7 +1147,10 @@ def main(argv=None) -> int:
     ap.add_argument("--slate", type=int, default=DISTRACTORS)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--fresh", action="store_true", help="ignore earlier results.jsonl")
+    ap.add_argument("--no-talent-flow", action="store_true", help="Sourced without the talent-flow search (ablation)")
     ap.add_argument("--out", default="")
+    ap.add_argument("--tag", default="", help="keep this run's files in backend/data/backtest/<tag>/ (e.g. dev, test-before)")
+    ap.add_argument("--openings-from", default="", help="reuse openings.json from another tag (same openings, other config)")
     ap.add_argument("-v", "--verbose", action="store_true")
     return asyncio.run(main_async(ap.parse_args(argv)))
 
