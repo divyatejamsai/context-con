@@ -185,7 +185,9 @@ async def test_real_person_shape_details():
     assert_contract(claims, reasons)
     t = {c.claim: c for c in claims}
     assert t["Skill: Go"].status == "verified" and "Go (Programming Language)" in t["Skill: Go"].evidence
-    assert "Payments" in [s.strip() for s in t["Skills not evidenced: Payments"].claim.split(":")[1].split(",")]
+    pay = t["Skill: Payments"]  # a domain, evidenced by the employer's industry
+    assert pay.status == "verified" and "Financial Services" in pay.evidence
+    assert pay.source.field == "experience.employment_details.current[0].company_professional_network_industry"
     assert t["Title: Backend Engineer (Senior)"].status == "verified"
     co = [c for c in claims if c.claim.startswith("Acme Pay:")][0]
     assert "~120 employees" in co.claim and co.source.field.endswith("company_headcount_latest")
@@ -199,3 +201,18 @@ async def test_raw_cached_response_is_unwrapped():
     raw = {"endpoint": "person/enrich", "response": [{"matched_on": "x", "matches": [{"confidence_score": 1, "person_data": PEOPLE["live_job_facts"]}]}]}
     claims, _ = await verify_candidate(raw, None, CRIT, FakeClient(), today=TODAY)
     assert claims[0].claim == "Works at Acme Pay"
+
+
+@pytest.mark.asyncio
+async def test_domain_skill_not_invented_and_concurrent_roles_deduped():
+    p = json.loads(json.dumps(PEOPLE["live_job_facts"]))
+    cur = p["experience"]["employment_details"]["current"]
+    cur[0].update(name="Wipro", company_professional_network_industry="IT Services and IT Consulting", company_description="IT services")
+    cur.append(dict(cur[0], title="Tech Lead"))
+    claims, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
+    assert not any("concurrent" in f for f in flags)
+    assert any(c.claim.startswith("Skills not evidenced") and "Payments" in c.claim for c in claims)
+    cur.append(dict(cur[0], name="Razorpay", crustdata_company_id=1, company_professional_network_industry="Financial Services"))
+    claims, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
+    assert any(f.startswith("Holds 2 concurrent roles: Wipro, Razorpay") for f in flags)
+    assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "current employer Razorpay is in Financial Services"

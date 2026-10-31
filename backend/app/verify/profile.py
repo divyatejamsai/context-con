@@ -137,6 +137,7 @@ class Job:
     company_headcount: int | None = None  # job-level company facts that Person Enrich carries
     company_headcount_range: str | None = None
     company_industry: str | None = None
+    company_description: str | None = None
 
 
 @dataclass
@@ -179,10 +180,11 @@ def _jobs(person: dict, paths: tuple[str, ...]) -> list[Job]:
         hc, _ = first(e, "company_headcount_latest")
         hc_range, _ = first(e, "company_headcount_range")
         ind, _ = first(e, "company_professional_network_industry", "company_industries[0]")
+        desc, _ = first(e, "company_description")
         out.append(Job(company if isinstance(company, str) else None, title, parse_date(start), parse_date(end), cid, dom,
                        f"{p}[{i}]", level if isinstance(level, str) else None,
                        hc if isinstance(hc, int) else None, hc_range if isinstance(hc_range, str) else None,
-                       ind if isinstance(ind, str) else None))
+                       ind if isinstance(ind, str) else None, desc if isinstance(desc, str) else None))
     return out
 
 
@@ -333,3 +335,29 @@ def skill_matches(wanted: str, have: str) -> bool:
     if not w or not h:
         return False
     return w == h or w.replace(" ", "") == h.replace(" ", "") or bool(re.search(rf"\b{re.escape(w)}\b", h))
+
+
+# Brief "skills" that are really domains. Evidence can come from employer industry, name or description.
+DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "payments": ("payment", "payments", "fintech", "financial services", "banking", "bank", "upi", "cards", "wallet", "lending", "remittance"),
+    "fintech": ("fintech", "financial services", "payment", "payments", "banking", "lending", "insurance", "wealth", "trading"),
+    "financial services": ("financial services", "banking", "bank", "investment", "capital markets", "fintech"),
+    "banking": ("banking", "bank", "financial services"),
+    "trading": ("trading", "capital markets", "investment management", "hedge fund", "brokerage", "exchange"),
+    "crypto": ("crypto", "blockchain", "web3", "digital assets", "defi"),
+    "ecommerce": ("e commerce", "ecommerce", "retail", "marketplace", "online shopping"),
+    "e commerce": ("e commerce", "ecommerce", "retail", "marketplace"),
+    "healthcare": ("healthcare", "health", "hospital", "medical", "pharma", "biotech"),
+    "healthtech": ("healthcare", "health", "medical", "hospital"),
+    "edtech": ("education", "e learning", "edtech", "learning"),
+    "logistics": ("logistics", "supply chain", "transportation", "delivery", "freight"),
+    "gaming": ("gaming", "games", "computer games", "esports"),
+    "saas": ("saas", "software development", "software as a service", "b2b software"),
+    "adtech": ("advertising", "adtech", "marketing technology"),
+    "insurance": ("insurance", "insurtech"),
+}
+
+
+def domain_terms(skill: str) -> tuple[str, ...]:
+    k = norm(skill)
+    return DOMAIN_KEYWORDS.get(k) or DOMAIN_KEYWORDS.get(k.rstrip("s")) or ()

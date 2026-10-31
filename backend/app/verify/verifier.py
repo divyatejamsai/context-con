@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from ..schemas import Claim, Criteria, Source
 
 from .profile import (
-    CompanyFacts, Job, Profile, company_key, load_company, load_person, norm, parse_date,
+    CompanyFacts, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
     same_company, seniority_rank, skill_matches, stage_bucket, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
@@ -118,6 +118,37 @@ def _result_url(r: dict | None) -> str | None:
     if not r:
         return None
     return unwrap_url(r.get("url") or r.get("link") or r.get("source_url"))
+
+
+def _has(text: str | None, term: str) -> bool:
+    return bool(text) and bool(re.search(rf"\b{re.escape(norm(term))}\b", norm(text)))
+
+
+def _text_evidence(pr: Profile, k: str) -> tuple[str, str] | None:
+    """(evidence, field) when the term appears in the headline or a job title."""
+    if _has(pr.headline, k):
+        return "named in profile headline", pr.headline_field or "headline"
+    for j in pr.current + pr.past:
+        if _has(j.title, k):
+            return f"in job title '{j.title}' at {j.company}", f"{j.path}.title"
+    return None
+
+
+def _domain_evidence(pr: Profile, cf: CompanyFacts | None, skill: str) -> tuple[str, str, str] | None:
+    """(evidence, field, endpoint) when a domain-type skill (e.g. payments) is backed by employer industry or name."""
+    terms = domain_terms(skill) or (norm(skill),)
+    if cf and cf.industry and any(_has(cf.industry, t) for t in terms):
+        return f"employer {cf.name} is in {cf.industry}", "taxonomy.professional_network_industry", cf.endpoint
+    for j in pr.current + pr.past:
+        when = "current" if j in pr.current else "past"
+        if j.company_industry and any(_has(j.company_industry, t) for t in terms):
+            return f"{when} employer {j.company} is in {j.company_industry}", f"{j.path}.company_professional_network_industry", pr.endpoint
+        if any(_has(j.company, t) for t in terms):
+            return f"{when} employer name {j.company}", f"{j.path}.name", pr.endpoint
+    for j in pr.current + pr.past:
+        if j.company_description and any(_has(j.company_description, t) for t in terms):
+            return f"{j.company} describes itself as {j.company_description[:80].strip()}...", f"{j.path}.company_description", pr.endpoint
+    return None
 
 
 async def verify_candidate(
@@ -282,7 +313,6 @@ async def verify_candidate(
         out.add(f"{cur.company} stage/size", "unverifiable", "company record not found", "company/enrich")
 
     # 7. Skills the brief asks for
-    graph_text = norm(" ".join(pr.skills + [pr.headline or ""] + [j.title or "" for j in pr.current + pr.past]))
     short_must = [m for m in criteria.must_haves if isinstance(m, str) and len(m.split()) <= 3]
     wanted = list(dict.fromkeys(criteria.skills + short_must + [s for s in (claimed.get("skills") or []) if isinstance(s, str)]))
     missing = []
@@ -294,13 +324,15 @@ async def verify_candidate(
         if listed:
             ev = "listed in profile skills" + (f" as '{listed}'" if norm(listed) != k else "")
             out.add(f"Skill: {skill}", "verified", ev, ep, pr.skills_field)
-        elif re.search(rf"\b{re.escape(k)}\b", graph_text):
-            out.add(f"Skill: {skill}", "verified", "named in profile headline or job titles", ep, pr.headline_field or "current_employers")
+        elif hit := _text_evidence(pr, k):
+            out.add(f"Skill: {skill}", "verified", hit[0], ep, hit[1])
+        elif hit := _domain_evidence(pr, cf, skill):
+            out.add(f"Skill: {skill}", "verified", hit[0], hit[2], hit[1])
         else:
             missing.append(skill)
     if missing:
         out.add(f"Skills not evidenced: {', '.join(missing)}", "unverifiable",
-                "not found in profile skills, headline or titles", ep, pr.skills_field or "skills")
+                "not found in profile skills, headline, titles or employer industries", ep, pr.skills_field or "skills")
 
     # Flags: freshness is Crustdata's edge, so surface recent moves loudly.
     if cur and cur.start and 0 <= (today - cur.start).days <= RECENT_CHANGE_DAYS:
@@ -311,8 +343,12 @@ async def verify_candidate(
         flags.append(f"Left {j.company} {_months_ago(j.end, today)}")
     if not pr.current and pr.past:
         flags.append("No current role in the graph (may be between jobs)")
-    if len(pr.current) > 1:
-        flags.append(f"Holds {len(pr.current)} concurrent roles: {', '.join(j.company for j in pr.current[:3])}")
+    distinct: list[Job] = []
+    for j in pr.current:  # the same employer often appears twice (two titles at Wipro)
+        if not any((j.company_id and j.company_id == d.company_id) or same_company(j.company, d.company) for d in distinct):
+            distinct.append(j)
+    if len(distinct) > 1:
+        flags.append(f"Holds {len(distinct)} concurrent roles: {', '.join(j.company for j in distinct[:3])}")
     for c in out.items:
         if c.status == "contradicted" and c.id not in flagged:
             flags.append(f"Contradicted: {c.claim}")
