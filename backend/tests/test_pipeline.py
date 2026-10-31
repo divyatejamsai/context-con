@@ -105,3 +105,75 @@ def test_run_fixture_matches_schemas():
     lines = (Path(__file__).parents[2] / "fixtures" / "run.jsonl").read_text().splitlines()
     for l in lines:
         ta.validate_json(l)
+
+
+def test_to_crustdata_filters_matches_real_grammar():
+    from app.orchestrator import to_crustdata_filters
+    f = to_crustdata_filters({"titles": ["Senior Backend Engineer"], "locations": ["Bangalore", "India"], "seniority": None})
+    assert f["op"] == "and"
+    title, loc = f["conditions"]
+    assert title == {"field": "experience.employment_details.current.title", "type": "(.)", "value": "senior backend engineer"}
+    vals = {(c["field"], c["value"]) for c in loc["conditions"]}
+    assert ("basic_profile.location.city", "bengaluru") in vals and ("basic_profile.location.country", "India") in vals
+
+
+class RealShaped:
+    """Mimics WS1's CrustdataClient with records in the real 2025-11-01 shape."""
+
+    def __init__(self):
+        self.calls = {"search": [], "enrich_many": 0, "enrich": 0}
+        self.rec = {
+            "crustdata_person_id": 1,
+            "basic_profile": {"name": "Test Person", "headline": "Backend @ Razorpay", "current_title": "Senior Backend Engineer",
+                              "location": {"city": "Bengaluru", "country": "India"}},
+            "experience": {"employment_details": {"current": [{"title": "Senior Backend Engineer", "name": "Razorpay",
+                                                               "crustdata_company_id": 42, "start_date": "2021-03-01"}], "past": []}},
+            "social_handles": {"professional_network_identifier": {"profile_url": "https://www.linkedin.com/in/test-person"}},
+            "skills": {"professional_network_skills": ["Payments", "Python"]},
+            "_source": {"endpoint": "person/search", "request_hash": "x", "fetched_at": "2026-10-31T00:00:00Z"},
+        }
+
+    async def person_search(self, filters, limit=25, **extra):
+        self.calls["search"].append((filters, extra))
+        return [dict(self.rec)]
+
+    async def person_enrich_many(self, urls, fields=None):
+        self.calls["enrich_many"] += 1
+        return {u: dict(self.rec, _source={"endpoint": "person/enrich", "request_hash": "y", "fetched_at": "2026-10-31T00:00:00Z"}) for u in urls}
+
+    async def person_enrich(self, url, fields=None):
+        self.calls["enrich"] += 1
+        return None
+
+    async def company_enrich(self, company_id=None, domain=None, fields=None):
+        return {"crustdata_company_id": 42, "basic_info": {"name": "Razorpay"}, "headcount": {"total": 3000},
+                "_source": {"endpoint": "company/enrich", "request_hash": "z", "fetched_at": "2026-10-31T00:00:00Z"}}
+
+    async def company_identify(self, name=None, domain=None):
+        return None
+
+    async def company_search(self, filters, limit=25, **extra):
+        return []
+
+    async def job_search(self, filters, limit=25, **extra):
+        return []
+
+    async def web_search(self, query, **extra):
+        return []
+
+    async def web_fetch(self, url):
+        return None
+
+
+def test_real_shaped_client_end_to_end():
+    client = RealShaped()
+    evs = collect("senior backend engineer bangalore payments", client=client)
+    filters, extra = client.calls["search"][0]
+    assert "op" in filters or "field" in filters  # real grammar, not the simple shape
+    assert extra.get("fields")
+    assert client.calls["enrich_many"] == 1 and client.calls["enrich"] == 0
+    cands = [e.candidate for e in evs if e.type == "candidate"]
+    assert len(cands) == 1
+    c = cands[0]
+    assert c.name == "Test Person" and c.company == "Razorpay" and c.profile_url.endswith("test-person")
+    assert c.claims and evs[-1].type == "done"

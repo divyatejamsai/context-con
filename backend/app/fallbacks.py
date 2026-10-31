@@ -121,7 +121,7 @@ async def basic_verify(person: dict, company: dict | None, criteria: Criteria, c
             claims.append(Claim(id="k4", claim=f"{co or 'Employer'} has ~{hc} employees", status="verified",
                                 evidence=f"headcount={hc}",
                                 source=Source(endpoint=people.source_endpoint(company, "company/enrich"), field="headcount")))
-    skills = [s.lower() for s in (people.first(person, "skills") or []) if isinstance(s, str)]
+    skills = [s.lower() for s in people.skills(person)]
     for i, s in enumerate(criteria.must_haves[:3]):
         hit = any(s.lower() in sk or sk in s.lower() for sk in skills)
         claims.append(Claim(id=f"m{i + 1}", claim=f"Has {s} experience",

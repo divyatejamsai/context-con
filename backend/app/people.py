@@ -29,8 +29,8 @@ def first(d: dict | None, *keys: str) -> Any:
 
 
 def profile_url(p: dict) -> str | None:
-    return first(p, "linkedin_profile_url", "profile_url", "linkedin_url", "flagship_profile_url",
-                 "basic_profile.linkedin_profile_url", "url")
+    return first(p, "social_handles.professional_network_identifier.profile_url", "linkedin_profile_url",
+                 "profile_url", "linkedin_url", "flagship_profile_url", "basic_profile.linkedin_profile_url", "url")
 
 
 def name(p: dict) -> str:
@@ -41,13 +41,14 @@ def name(p: dict) -> str:
 
 
 def current_employer(p: dict) -> dict:
-    emp = first(p, "current_employers.0", "employment_details.current.0", "experience.current.0", "current_employer")
+    emp = first(p, "experience.employment_details.current.0", "current_employers.0", "employment_details.current.0",
+                "experience.current.0", "current_employer")
     return emp if isinstance(emp, dict) else {}
 
 
 def title(p: dict) -> str | None:
-    return first(p, "title", "current_title", "job_title") or first(
-        current_employer(p), "employee_title", "title", "position") or first(p, "headline")
+    return first(p, "basic_profile.current_title", "title", "current_title", "job_title") or first(
+        current_employer(p), "employee_title", "title", "position") or first(p, "basic_profile.headline", "headline")
 
 
 def company(p: dict) -> str | None:
@@ -56,19 +57,19 @@ def company(p: dict) -> str | None:
 
 
 def company_domain(p: dict) -> str | None:
-    return first(current_employer(p), "employer_company_website_domain", "company_website_domain",
-                 "company_domain", "domain", "employer_company_website_domain.0")
+    return first(current_employer(p), "employer_company_website_domain.0", "employer_company_website_domain",
+                 "company_website_domain", "company_domain", "domain")
 
 
 def company_id(p: dict) -> str | None:
-    v = first(current_employer(p), "employer_company_id", "company_id", "crustdata_company_id")
+    v = first(current_employer(p), "crustdata_company_id", "employer_company_id", "company_id")
     if isinstance(v, list):
         v = v[0] if v else None
     return str(v) if v is not None else None
 
 
 def location(p: dict) -> str | None:
-    loc = first(p, "location", "region", "location_details.raw", "basic_profile.location")
+    loc = first(p, "basic_profile.location", "location", "region", "location_details.raw")
     if isinstance(loc, dict):
         loc = ", ".join(str(v) for v in (loc.get("city"), loc.get("state"), loc.get("country")) if v)
     return loc or None
@@ -76,3 +77,8 @@ def location(p: dict) -> str | None:
 
 def source_endpoint(d: dict | None, default: str) -> str:
     return first(d, "_source.endpoint") or default
+
+
+def skills(p: dict) -> list[str]:
+    v = first(p, "skills.professional_network_skills", "skills")
+    return [s for s in v if isinstance(s, str)] if isinstance(v, list) else []

@@ -10,7 +10,7 @@ uvicorn app.main:app --reload --port 8000
 | Env | Values | Notes |
 |---|---|---|
 | `LLM_MODE` | `live` / `mock` | `mock` needs no Vertex credentials (heuristic brief parsing, template outreach) |
-| `CRUSTDATA_MODE` | `live` / `cache` / `replay` / `dev` | `dev` = synthetic people, no network. If `app/crustdata/` isn't present yet, `dev` is used automatically |
+| `CRUSTDATA_MODE` | `cache` (default) / `live` / `replay` / `dev` | `dev` = synthetic people, no network. `replay` needs person-level responses in `cache/` (they are not committed) |
 | `MAX_ENRICH` | default 10 | candidates that get full enrich/verify/rank/outreach |
 | `MIN_POOL` | default 3 | search auto-broadens while fewer profiles than this |
 
@@ -27,5 +27,7 @@ per candidate, concurrently: Person + Company Enrich -> WS3 `verify_candidate` -
 (never sent). If WS3's verifier/ranker is missing or throws, a basic one in `fallbacks.py` keeps the run going.
 Claim ids are namespaced per candidate (`c3-k1`) and reasons citing unknown claim ids are dropped.
 
-Filters passed to `CrustdataClient.person_search` (WS1 maps these to the real API):
+Person search: the orchestrator builds simple filters and `to_crustdata_filters()` turns them into the real grammar
+(title `(.)` on `experience.employment_details.current.title`, city spellings OR-ed, country `=`). Person Enrich is one
+batched `person_enrich_many` call per run (the endpoint allows 15 req/min). Simple filter shape:
 `{"titles": [one title], "locations": [...], "skills": [...], "seniority": str | None}`
