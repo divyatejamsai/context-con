@@ -20,7 +20,7 @@ from ..schemas import Claim, Criteria, Source
 
 from .profile import (
     CompanyFacts, Job, Profile, company_key, domain_terms, load_company, load_person, norm, parse_date,
-    same_company, seniority_rank, skill_matches, stage_bucket, title_similarity, tokens, unwrap_record, unwrap_url,
+    same_company, seniority_rank, skill_matches, stage_bucket, funding_stage_known, title_similarity, tokens, unwrap_record, unwrap_url,
 )
 
 if TYPE_CHECKING:  # avoid a hard dependency on WS1's module at import time
@@ -134,6 +134,37 @@ def _text_evidence(pr: Profile, k: str) -> tuple[str, str] | None:
     return None
 
 
+_STAGE_ORDER = {"seed": 0, "early": 1, "growth": 2, "late": 3, "public": 3, "enterprise": 3}
+
+
+def _claimed_bucket(claimed: str) -> str | None:
+    c = norm(claimed)
+    if "seed" in c or "pre series" in c or "angel" in c:
+        return "seed"
+    return stage_bucket(CompanyFacts(stage=claimed)) or ("early" if "startup" in c else None)
+
+
+def _stage_conflict(claimed: str | None, bucket: str | None, headcount: int | None, by_size: bool, stage: str | None) -> str | None:
+    """Reason text when a claimed company stage clashes with the record, else None.
+    Against a real funding round any different bucket is a clash; against size alone only a clear one is."""
+    if not claimed or not bucket:
+        return None
+    cb = _claimed_bucket(claimed)
+    if cb is None:
+        return None
+    if not by_size:
+        if norm(claimed) == norm(stage) or cb == bucket or (bucket in ("seed", "early") and "startup" in norm(claimed)):
+            return None
+        return f"latest priced round is {stage}"
+    if headcount is None:
+        return None
+    if _STAGE_ORDER[cb] >= 2 and headcount < 300:
+        return f"a {claimed} company with only ~{headcount:,} employees is implausible"
+    if cb == "seed" and headcount >= 1000:
+        return f"~{headcount:,} employees is far beyond seed stage"
+    return None
+
+
 def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[str, str, str]]:
     """Every (evidence, field, endpoint) backing a domain-type skill (e.g. payments), at most one per employer.
     Current employer first, so the ranker can tell a current domain role from a past one."""
@@ -142,7 +173,7 @@ def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[
     seen: set[str] = set()
     cur_key = company_key(pr.current[0].company) if pr.current else None
     if cf and cf.industry and any(_has(cf.industry, t) for t in terms):
-        hits.append((f"current employer {cf.name} is in {cf.industry}", "taxonomy.professional_network_industry", cf.endpoint))
+        hits.append((f"likely, from industry: current employer {cf.name} is in {cf.industry}", "taxonomy.professional_network_industry", cf.endpoint))
         seen.add(company_key(cf.name) if cf.name else cur_key or "")
     for j in pr.current + pr.past:
         key = company_key(j.company)
@@ -150,11 +181,11 @@ def domain_hits(pr: Profile, cf: CompanyFacts | None, skill: str) -> list[tuple[
             continue
         when = "current" if j in pr.current else "past"
         if j.company_industry and any(_has(j.company_industry, t) for t in terms):
-            hits.append((f"{when} employer {j.company} is in {j.company_industry}", f"{j.path}.company_professional_network_industry", pr.endpoint))
+            hits.append((f"likely, from industry: {when} employer {j.company} is in {j.company_industry}", f"{j.path}.company_professional_network_industry", pr.endpoint))
         elif any(_has(j.company, t) for t in terms):
-            hits.append((f"{when} employer name {j.company}", f"{j.path}.name", pr.endpoint))
+            hits.append((f"likely, from employer name: {when} employer {j.company}", f"{j.path}.name", pr.endpoint))
         elif j.company_description and any(_has(j.company_description, t) for t in terms):
-            hits.append((f"{when} employer {j.company} describes itself as '{j.company_description[:60].strip()}...'",
+            hits.append((f"likely, from company description: {when} employer {j.company} describes itself as '{j.company_description[:60].strip()}...'",
                          f"{j.path}.company_description", pr.endpoint))
         else:
             continue
@@ -293,33 +324,37 @@ async def verify_candidate(
     else:
         out.add(f"Based in {stated_loc}" if stated_loc else "Location", "unverifiable", "no location in the graph", ep, "location")
 
-    # 6. Company stage / size
+    # 6. Company stage / size. A funding round is evidence of stage; headcount alone is only a size-based guess.
+    claimed_stage = claimed.get("company_stage")
     if cf:
         bucket = stage_bucket(cf)
+        by_size = bucket is not None and not funding_stage_known(cf)
         bits = [b for b in (
-            cf.stage, f"~{cf.headcount:,} employees" if cf.headcount else None,
+            cf.stage if not by_size else None, f"~{cf.headcount:,} employees" if cf.headcount else None,
             f"founded {cf.founded}" if cf.founded else None, cf.industry,
         ) if b]
-        claimed_stage = claimed.get("company_stage")
         name = cf.name or (cur.company if cur else "Company")
-        if claimed_stage and bucket and norm(claimed_stage) not in (norm(cf.stage), bucket) and not (
-            bucket in ("seed", "early") and "startup" in norm(claimed_stage)
-        ):
-            out.add(f"{name} is {claimed_stage}", "contradicted", f"company record: {', '.join(bits)}",
-                    cf.endpoint, cf.stage_field or cf.headcount_field)
+        fld = cf.stage_field if not by_size else cf.headcount_field
+        conflict = _stage_conflict(claimed_stage, bucket, cf.headcount, by_size, cf.stage)
+        if conflict:
+            out.add(f"{name} is {claimed_stage}", "contradicted", f"company record: {', '.join(bits)}; {conflict}", cf.endpoint, fld)
         elif bits:
-            label = f" ({bucket} stage)" if bucket else ""
-            out.add(f"{name}: {', '.join(bits)}{label}", "verified", "company record", cf.endpoint,
-                    cf.stage_field or cf.headcount_field)
+            label = (f" ({bucket} by size)" if by_size else f" ({bucket} stage)") if bucket else ""
+            out.add(f"{name}: {', '.join(bits)}{label}", "verified", "company record" + (" (no funding round; stage guessed from size)" if by_size else ""),
+                    cf.endpoint, fld)
         else:
             out.add(f"{name} stage/size", "unverifiable", "company record has no funding or headcount", cf.endpoint)
     elif cur and (cur.company_headcount or cur.company_headcount_range):
         hc = cur.company_headcount
         bucket = stage_bucket(CompanyFacts(headcount=hc)) if hc else None
         bits = [b for b in (f"~{hc:,} employees" if hc else f"{cur.company_headcount_range} employees", cur.company_industry) if b]
-        label = f" ({bucket} stage)" if bucket else ""
-        out.add(f"{cur.company}: {', '.join(bits)}{label}", "verified", "company size on the employment record (no company record)",
-                ep, f"{cur.path}.company_headcount_latest" if hc else f"{cur.path}.company_headcount_range")
+        fld = f"{cur.path}.company_headcount_latest" if hc else f"{cur.path}.company_headcount_range"
+        conflict = _stage_conflict(claimed_stage, bucket, hc, True, None)
+        if conflict:
+            out.add(f"{cur.company} is {claimed_stage}", "contradicted", f"employment record: {', '.join(bits)}; {conflict}", ep, fld)
+        else:
+            label = f" ({bucket} by size)" if bucket else ""
+            out.add(f"{cur.company}: {', '.join(bits)}{label}", "verified", "company size on the employment record (no company record)", ep, fld)
     elif cur:
         out.add(f"{cur.company} stage/size", "unverifiable", "company record not found", "company/enrich")
 

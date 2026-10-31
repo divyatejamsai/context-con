@@ -195,13 +195,24 @@ def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Fa
             if any(same_company(named, n) for n in names if n) and emp:
                 f.add(0.8, f"Previously worked at {named.title()}", emp[:1])
         for c in comp:
-            m = re.search(r"\((\w+) stage\)", c.claim)
+            m = re.search(r"\((\w+) (stage|by size)\)", c.claim)
             bucket = m.group(1) if m else None
+            by_size = bool(m and m.group(2) == "by size")
+            fy = re.search(r"founded (\d{4})", c.claim)
+            age = date.today().year - int(fy.group(1)) if fy else None
             text = norm(c.claim)
-            if any(w in pn for w in _STARTUP_WORDS) and bucket in ("seed", "early", "growth"):
-                f.add(CREDIT[c.status], f"Current company is a startup ({bucket} stage), matching '{p}'", [c])
+            if any(w in pn for w in _STARTUP_WORDS):
+                if by_size and age is not None:
+                    # Size alone can't tell a startup from a 20-year-old fund: use the founding year.
+                    if age <= 12 and bucket != "public":
+                        f.add(CREDIT[c.status], f"Current company is a young company (founded {fy.group(1)}), matching '{p}'", [c])
+                elif bucket in ("seed", "early", "growth"):
+                    if by_size:
+                        f.add(0.5 * CREDIT[c.status], f"Current company may be a startup ({bucket} by headcount, no funding data)", [c])
+                    else:
+                        f.add(CREDIT[c.status], f"Current company is a startup ({bucket} stage), matching '{p}'", [c])
             elif bucket and any(key in pn and bucket in ok for key, ok in _STAGE_PREF.items()):
-                f.add(CREDIT[c.status], f"Company stage ({bucket}) fits '{p}'", [c])
+                f.add((0.6 if by_size else 1.0) * CREDIT[c.status], f"Company {'size' if by_size else 'stage'} ({bucket}) fits '{p}'", [c])
             elif named and named in text:
                 f.add(CREDIT[c.status], f"Company matches '{p}'", [c])
     if not f.reasons and comp:
@@ -209,8 +220,21 @@ def _company(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> _Fa
     return f
 
 
+_YEARS_RE = re.compile(r"(\d{1,2})\s*\+?\s*(?:-\s*\d{1,2}\s*)?(?:yrs|years|yoe|yr)\b", re.I)
+
+
+def required_years(criteria: Criteria) -> int | None:
+    """Years asked for in the brief, e.g. '5+ yrs' in must-haves or the raw text."""
+    for text in [*criteria.must_haves, *criteria.nice_to_haves, criteria.raw_brief, criteria.seniority or ""]:
+        m = _YEARS_RE.search(text or "")
+        if m:
+            return int(m.group(1))
+    return None
+
+
 def _experience(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None:
-    if not criteria.seniority:
+    asked = required_years(criteria)
+    if not criteria.seniority and asked is None:
         return None
     f = _Factor("experience", 15)
     ex = k.get("experience", [])
@@ -223,14 +247,23 @@ def _experience(k: dict[str, list[Claim]], criteria: Criteria) -> _Factor | None
         return f
     if yrs is None:
         return f
-    s = norm(criteria.seniority)
-    need = 8 if any(w in s for w in ("staff", "principal", "lead", "head", "director")) else 5 if "senior" in s else 0 if any(
+    s = norm(criteria.seniority or "")
+    need = asked if asked is not None else 8 if any(w in s for w in ("staff", "principal", "lead", "head", "director")) else 5 if "senior" in s else 0 if any(
         w in s for w in ("junior", "entry", "intern", "fresher")) else 2
-    if "junior" in s or "entry" in s or "fresher" in s:
+    if asked is None and ("junior" in s or "entry" in s or "fresher" in s):
         credit = 1.0 if yrs <= 3 else max(0.3, 1 - (yrs - 3) * 0.15)
     else:
         credit = min(1.0, 0.1 + 0.9 * yrs / need) if need else 1.0
-    f.add(credit * CREDIT[c.status], f"{_fmt(yrs)} of experience for a {criteria.seniority} role", [c])
+    if asked is not None and yrs < asked:
+        credit = min(credit, 0.4)
+        text = f"{_fmt(yrs)} of experience, below the {asked}+ yrs asked"
+    elif asked is not None:
+        text = f"{_fmt(yrs)} of experience, meets the {asked}+ yrs asked"
+    elif need and yrs < need:
+        text = f"{_fmt(yrs)} of experience, light for a {criteria.seniority} role"
+    else:
+        text = f"{_fmt(yrs)} of experience for a {criteria.seniority} role"
+    f.add(credit * CREDIT[c.status], text, [c])
     return f
 
 
@@ -245,7 +278,7 @@ def evidence_strength(c: Claim) -> float:
         base = 1.0
     elif fld.endswith(".title") or "headline" in fld:
         base = 0.9
-    elif "taxonomy" in fld or (".current[" in fld) or ev.startswith("current employer"):
+    elif "taxonomy" in fld or (".current[" in fld) or "current employer" in ev:
         base = 0.85
     elif fld.endswith(".name"):
         base = 0.7
@@ -284,8 +317,8 @@ def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> lis
     # Domain depth and recency, from verified domain-type skill claims.
     for c in k.get("skill", []):
         name = c.claim.removeprefix("Skill:").strip()
-        if c.status != "verified" or not domain_terms(name):
-            continue
+        if c.status != "verified" or not domain_terms(name) or "employer" not in c.evidence:
+            continue  # the bonus is for domain work at an employer, not a listed skill
         sources = 1 + c.evidence.count("; ") if "; also:" in c.evidence else 1
         current = "current employer" in c.evidence or ".current[" in (c.source.field or "")
         pts = (2.0 if current else 0.5) + min(2.0, sources - 1)
@@ -366,13 +399,15 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     if claims:
         ver = [c.id for c in claims if c.status == "verified"]
         if ver:
-            scored.append((-0.1, Reason(text=f"{n_ver} of {len(claims)} claims verified against Crustdata", claim_ids=ver)))
+            scored.append((0.01, Reason(text=f"{n_ver} of {len(claims)} claims verified against Crustdata", claim_ids=ver)))
 
     # Red flags first, then strongest positives, then weaknesses.
     reds = [r for i, r in scored if i == -2.0]
-    rest = sorted([(i, r) for i, r in scored if i != -2.0], key=lambda x: -x[0])
-    reasons = reds + [r for _, r in rest]
-    reasons = [r for r in reasons if r.claim_ids][:8]
+    rest = [(i, r) for i, r in scored if i != -2.0 and r.claim_ids]
+    pos = sorted([x for x in rest if x[0] > 0], key=lambda x: -x[0])
+    neg = sorted([x for x in rest if x[0] <= 0], key=lambda x: x[0])  # biggest gaps first, so they survive the cut
+    reasons = reds[:3] + [r for _, r in pos[:5]] + [r for _, r in neg[:3]]
+    reasons = reasons[:9]
 
     if os.getenv("RANK_USE_LLM") == "1" and reasons:
         reasons = await _llm_polish(reasons, claims, criteria)
