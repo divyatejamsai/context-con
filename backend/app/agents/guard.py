@@ -320,7 +320,7 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
     pr = load_person(rec)
     who = pr.name or name
     checks: list[Check] = []
-    cur = next((j for j in pr.current if same_company(company, j.company)), None)
+    cur = next((j for j in pr.current if _co_match(company, j.company)), None)
     if not company:
         checks.append(Check(id=cid, name=cname, status="unverifiable", detail="no recipient company given", source=_src(rec, None, url)))
     elif cur:
@@ -329,7 +329,7 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
                             detail=f"{who} is currently {cur.title or 'employed'} at {cur.company}{since}",
                             source=_src(rec, cur.path, url)))
     else:
-        left = next((j for j in pr.past if same_company(company, j.company)), None)
+        left = next((j for j in pr.past if _co_match(company, j.company)), None)
         now = pr.current[0] if pr.current else None
         if left:
             detail = f"{who} left {left.company}" + (f" on {left.end.isoformat()}" if left.end else "")
