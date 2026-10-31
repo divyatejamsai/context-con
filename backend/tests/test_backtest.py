@@ -168,3 +168,40 @@ def test_random_baseline_and_summary():
     md = bt.scorecard([{**r, "company": "Acmepay", "title": "Backend Engineer", "posted": "2025-10-20", "n_hires": 1}
                        for r in rows], {"start": "2025-06-01", "end": "2025-12-31"})
     assert "Hire Person" not in md and "hit@1" in md
+
+
+# ---- likelihood to move + tuning ---------------------------------------------------------------------------
+
+def test_move_signals_read_history_as_of_the_cutoff():
+    from app.schemas import Criteria
+    from app.verify import ranker
+    crit = Criteria(role="Backend Engineer", title_variants=["Backend Engineer"], seniority=None)
+    cut = date(2024, 9, 15)  # Co-Founder at Newtral since 2023-01 (1.7 yrs); past stints 0.75-1.25 yrs
+    p = bt.as_of(VINOD, cut)
+    with bt.frozen_today(cut):
+        s = ranker.move_signals(p, crit)
+    assert s["sweet_spot"] == 1 and s["due"] == 1 and s["just_moved"] == 0
+    assert s["overqualified"] == 1  # a founder title is well above a plain backend role
+    cut = date(2022, 11, 15)  # 10 months into Trinkerr, shorter than his usual 1.25 yr stint
+    with bt.frozen_today(cut):
+        s = ranker.move_signals(bt.as_of(VINOD, cut), crit)
+    assert s["due"] == 0 and s["sweet_spot"] == 0 and s["overqualified"] == 0
+
+
+def _slate_row(job, hire_raw, hire_sig, others=8):
+    slate = [{"raw": hire_raw, "gapped": False, "verified": 5, "contradicted": 0, "prescore": 3, "hire": True,
+              "in_a": True, "signals": hire_sig}]
+    for i in range(others):
+        slate.append({"raw": 60 + i, "gapped": False, "verified": 5, "contradicted": 0, "prescore": 3, "hire": False,
+                      "in_a": i < 5, "signals": {"due": 0.0, "just_moved": 1.0 if i % 2 else 0.0}})
+    return {"job_id": job, "slate": slate, "a_rank": None}
+
+
+def test_tune_finds_a_signal_that_separates_real_hires_and_reports_heldout():
+    rows = [_slate_row(f"j{i}", 63, {"due": 1.0, "just_moved": 0.0}) for i in range(20)]
+    t = bt.tune(rows)
+    assert t["heldout_before"]["b"]["hit@1"] == 0
+    assert t["heldout_after"]["b"]["hit@1"] == 1.0
+    assert t["weights"]["due"] > 0 or t["weights"]["just_moved"] < 0
+    md = bt.tune_section(t)
+    assert "cross-validated on 20 openings" in md

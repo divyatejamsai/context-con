@@ -8,6 +8,7 @@ were actually hired". Everything here runs on live Crustdata data; nothing is sy
     python -m evals.backtest openings --max-jobs 120    # real postings + the people who actually joined
     python -m evals.backtest run                        # Sourced on each posting, knowledge cut off at the posting date
     python -m evals.backtest score --out ../docs/BACKTEST.md   # redacted scorecard (no person names)
+    python -m evals.backtest tune --out ../docs/BACKTEST.md    # fit likelihood-to-move weights, 5-fold CV, offline
     python -m evals.backtest all --max-jobs 120 --out ../docs/BACKTEST.md
 
 Method (see docs/BACKTEST.md for the write-up)
@@ -585,6 +586,7 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
     await orchestrator.prefetch_companies(asof, list(persons.values()), companies)
 
     verify, rank = orchestrator._load_verifier(), orchestrator._load_ranker()
+    a_set = {person_key(p) for p in sourced_pick}
     scored: dict[str, dict] = {}
     sem = asyncio.Semaphore(orchestrator.CONCURRENCY)
 
@@ -601,9 +603,16 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
                 score, _ = await rank(person, claims, crit)
             except Exception:  # noqa: BLE001
                 score, _ = await basic_rank(person, claims, crit)
+            try:  # parts for offline re-ranking with other move weights (evals.backtest tune)
+                from app.verify import ranker as _r
+                raw, gapped = _r.rank_parts(person, claims, crit)
+                signals = _r.move_signals(person, crit)
+            except Exception:  # noqa: BLE001
+                raw, gapped, signals = float(score), False, {}
             scored[k] = {"score": int(score), "verified": sum(c.status == "verified" for c in claims),
                          "contradicted": sum(c.status == "contradicted" for c in claims),
                          "prescore": orchestrator.prescore(p, crit), "hire": bool(keys_of(p) & hire_keys),
+                         "in_a": k in a_set, "raw": round(raw, 3), "gapped": gapped, "signals": signals,
                          "name": people.name(person), "title": people.title(person)}
 
     with frozen_today(cutoff):
@@ -742,6 +751,119 @@ def scorecard(rows: list[dict], meta: dict) -> str:
     return "\n".join(out) + "\n"
 
 
+# =============================================================================================== tune
+
+TUNE_GRID = {"sweet_spot": (0, 2, 4, 6), "due": (0, 2, 4, 6), "between_jobs": (0, 2, 4, 6), "step_up": (0, 2, 4),
+             "adjacent_title": (0, 2, 4), "just_moved": (0, -2, -4, -6), "overqualified": (0, -2, -4, -6)}
+FOLDS = 5
+
+
+def _fold(job_id: str) -> int:
+    import hashlib
+    return int(hashlib.sha1(str(job_id).encode()).hexdigest(), 16) % FOLDS
+
+
+def rerank(row: dict, w: dict[str, float]) -> tuple[int | None, int | None]:
+    """(A rank, B rank) of the best real hire when the slate is re-scored with move weights `w`."""
+    from app.verify.ranker import final_score, move_bonus
+
+    def key(c):
+        f = final_score(c["raw"], c["gapped"], move_bonus(c.get("signals") or {}, w)[0])
+        return (f, c["verified"], -c["contradicted"], c["prescore"])
+
+    def best(cands):
+        ranked = sorted(cands, key=key, reverse=True)
+        return next((i + 1 for i, c in enumerate(ranked) if c["hire"]), None)
+
+    slate = row.get("slate") or []
+    b = best(slate)
+    a = best([c for c in slate if c.get("in_a")])  # Sourced's own top MAX_ENRICH are all on the slate
+    return a, b
+
+
+def _metrics(ranks: list[int | None]) -> dict:
+    n = len(ranks) or 1
+    return {**{f"hit@{k}": sum(1 for r in ranks if r and r <= k) / n for k in KS},
+            "mrr": sum(1 / r for r in ranks if r) / n}
+
+
+def _objective(rows: list[dict], w: dict) -> tuple[float, float]:
+    ranks = [rerank(r, w)[1] for r in rows]
+    m = _metrics(ranks)
+    return m["mrr"], m["hit@5"]
+
+
+def fit_weights(rows: list[dict]) -> dict[str, float]:
+    """Coordinate ascent over TUNE_GRID on task-B MRR (hit@5 breaks ties). Starts at zero and only moves a weight
+    on a strict improvement, so signals that don't help stay off."""
+    w = {k: 0.0 for k in TUNE_GRID}
+    best = _objective(rows, w)
+    for _ in range(3):
+        moved = False
+        for sig, vals in TUNE_GRID.items():
+            for v in vals:
+                if v == w[sig]:
+                    continue
+                cand = {**w, sig: float(v)}
+                obj = _objective(rows, cand)
+                if obj > best:
+                    best, w, moved = obj, cand, True
+        if not moved:
+            break
+    return w
+
+
+def tune(rows: list[dict]) -> dict:
+    rows = [r for r in rows if not r.get("error") and r.get("slate") and "raw" in r["slate"][0]]
+    if len(rows) < FOLDS:
+        raise SystemExit(f"need at least {FOLDS} scored openings with saved slates to tune, have {len(rows)}")
+    zero = {k: 0.0 for k in TUNE_GRID}
+    before_a, before_b, after_a, after_b, fold_w = [], [], [], [], []
+    for f in range(FOLDS):
+        train = [r for r in rows if _fold(r["job_id"]) != f]
+        test = [r for r in rows if _fold(r["job_id"]) == f]
+        if not test:
+            continue
+        w = fit_weights(train)
+        fold_w.append(w)
+        for r in test:
+            a0, b0 = rerank(r, zero)
+            a1, b1 = rerank(r, w)
+            before_a.append(a0); before_b.append(b0); after_a.append(a1); after_b.append(b1)
+    final = fit_weights(rows)
+    return {"openings": len(rows), "folds": FOLDS,
+            "heldout_before": {"a": _metrics(before_a), "b": _metrics(before_b)},
+            "heldout_after": {"a": _metrics(after_a), "b": _metrics(after_b)},
+            "fold_weights": fold_w, "weights": {k: v for k, v in final.items()},
+            "in_sample_after": {"b": _metrics([rerank(r, final)[1] for r in rows])}}
+
+
+def tune_section(t: dict) -> str:
+    pct = lambda x: f"{100 * x:.0f}%"  # noqa: E731
+    row = lambda name, d: f"| {name} | " + " | ".join(pct(d[f'hit@{k}']) for k in KS) + f" | {d['mrr']:.3f} |"  # noqa: E731
+    on = {k: v for k, v in t["weights"].items() if v}
+    return "\n".join([
+        "## Tuning: who is ready to move",
+        "",
+        "Fit alone doesn't say who takes the job. Sourced's ranker now adds a capped likelihood-to-move bonus read from "
+        "employment history alone: 1.5-4 years into the current role, at or past their usual tenure, between jobs, a "
+        "one-level step up, the same work under a different title, and negatives for a very recent move or being "
+        f"overqualified. Weights were fitted by coordinate ascent on task-B MRR. The numbers below are **{t['folds']}-fold "
+        f"cross-validated on {t['openings']} openings**: every opening is scored with weights fitted only on the other folds.",
+        "",
+        "| Held-out openings | " + " | ".join(f"hit@{k}" for k in KS) + " | MRR |",
+        "|---|" + "---|" * (len(KS) + 1),
+        row("A before (fit only)", t["heldout_before"]["a"]),
+        row("A after (fit + move)", t["heldout_after"]["a"]),
+        row("B before (fit only)", t["heldout_before"]["b"]),
+        row("B after (fit + move)", t["heldout_after"]["b"]),
+        "",
+        f"Weights fitted on all openings (shipped as `MOVE_WEIGHTS`): `{json.dumps(on) if on else 'all zero: no signal helped'}`. "
+        "Per-fold weights: " + "; ".join(f"`{json.dumps({k: v for k, v in w.items() if v})}`" for w in t["fold_weights"]) + ".",
+        "",
+    ])
+
+
 # =============================================================================================== cli
 
 def _save_openings(ops: list[Opening], meta: dict):
@@ -820,11 +942,19 @@ async def main_async(args) -> int:
                     print(f"  [{i}/{len(ops)}] {op.company[:28]:28} {op.title[:36]:36} pool={r.get('pool')} "
                           f"in_pool={r.get('hire_in_pool')} A={r.get('a_rank')} B={r.get('b_rank')}/{r.get('b_n')} "
                           f"{r.get('error') or ''}")
-        if args.cmd in ("score", "run", "all"):
+        if args.cmd in ("score", "run", "tune", "all"):
             rows = [json.loads(x) for x in (DATA_DIR / "results.jsonl").read_text().splitlines() if x.strip()]
             if not meta.get("start") and (DATA_DIR / "openings.json").exists():
                 meta = _load_openings()[1]
             md = scorecard(rows, meta)
+            tpath = DATA_DIR / "tune.json"
+            if args.cmd in ("tune", "all"):
+                t = tune(rows)
+                tpath.write_text(json.dumps(t, indent=1))
+                print("tuned weights:", json.dumps(t["weights"]))
+                print(f"set them with RANK_MOVE_WEIGHTS='{json.dumps({k: v for k, v in t['weights'].items() if v})}'")
+            if tpath.exists():
+                md += "\n" + tune_section(json.loads(tpath.read_text()))
             print(md)
             if args.out:
                 Path(args.out).write_text(md)
@@ -837,7 +967,7 @@ async def main_async(args) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "all"])
+    ap.add_argument("cmd", choices=["probe", "openings", "run", "score", "tune", "all"])
     ap.add_argument("--start", default=WINDOW_START)
     ap.add_argument("--end", default=WINDOW_END)
     ap.add_argument("--country", default="India")
