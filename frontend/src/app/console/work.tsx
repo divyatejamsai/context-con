@@ -9,7 +9,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, receiptUrl, runtime, type Approval, type LiveAgent, type RuntimeState, type Task, type TaskKind,
+  ApiError, receiptUrl, runtime, type Approval, type Template, type LiveAgent, type RuntimeState, type Task, type TaskKind,
 } from "./api";
 import { Button, EmptyState, Field, PageHead, ScopeChip, SectionHead, VerdictList, ago, cardCls, checkLabel, inputCls } from "./parts";
 
@@ -47,6 +47,8 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [assignFor, setAssignFor] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState<{ kind: string; input: Record<string, string> } | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [openTask, setOpenTask] = useState<string | null>(null);
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
   const [allPending, setAllPending] = useState(false);
@@ -63,6 +65,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
   useEffect(() => {
     load();
     runtime.kinds().then(setKinds).catch(() => {});
+    runtime.templates().then(setTemplates).catch(() => {});
     const t = setInterval(load, 1500);
     return () => clearInterval(t);
   }, [load]);
@@ -168,7 +171,20 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
       </section>
 
       <section className="mt-8">
-        <SectionHead title="AI employees">Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
+        <SectionHead title="AI employees" aside={
+          <div className="flex gap-1.5">
+            {templates.filter((t) => !t.hired).map((t) => (
+              <Button key={t.key} disabled={!!busy} title={t.job}
+                onClick={() => act(`hire:${t.key}`, async () => {
+                  const r = await runtime.hire(t.key);
+                  setTemplates(await runtime.templates());
+                  if (r.decision !== "allow") throw new Error(`${t.name} was onboarded but its sponsor check failed: ${r.failed[0]?.detail ?? "blocked"}`);
+                }, `${t.name} hired: passport issued and sponsor checked live`)}>
+                {busy === `hire:${t.key}` ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />} Hire {t.name}
+              </Button>
+            ))}
+          </div>
+        }>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
         {live.length ? (
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {live.map((a) => (
@@ -222,16 +238,25 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
         </div>
       </section>
 
-      <AssignSheet open={assignFor !== null} initialAgent={assignFor || undefined} agents={live} kinds={kinds} busy={busy}
-        onClose={() => setAssignFor(null)}
+      <AssignSheet open={assignFor !== null} initialAgent={assignFor || undefined} prefill={prefill} agents={live} kinds={kinds} busy={busy}
+        onClose={() => { setAssignFor(null); setPrefill(null); }}
         onAssign={async (b, every) => {
           const ok = await act("assign", () => (every ? runtime.schedule({ ...b, every_minutes: every }) : runtime.assign(b)),
             every ? `Scheduled every ${every} min` : "Task assigned: it starts as soon as the agent is free");
-          if (ok) setAssignFor(null);
+          if (ok) { setAssignFor(null); setPrefill(null); }
         }} />
       <TaskSheet id={openTask} version={st.version} busy={busy} onClose={() => setOpenTask(null)}
         onCancel={(id) => act(`task:${id}`, () => runtime.cancel(id), "Task stopped")}
-        onRetry={(id) => act(`task:${id}`, () => runtime.retry(id), "Queued again")} />
+        onRetry={(id) => act(`task:${id}`, () => runtime.retry(id), "Queued again")}
+        onSchedule={(t) => {
+          const who = (t.output?.shortlist ?? []).filter((c) => c.profile_url && c.guard !== "block")
+            .map((c) => `${c.name} | ${c.profile_url} | ${c.company ?? ""}`).join("\n");
+          const sched = live.find((a) => a.kinds.includes("interview_scheduling") && a.name === "Scheduler")
+            ?? live.find((a) => a.kinds.includes("interview_scheduling"));
+          setOpenTask(null);
+          setPrefill({ kind: "interview_scheduling", input: { candidates: who, role: (t.input?.brief ?? "").split(",")[0] } });
+          setAssignFor(sched?.agent_id ?? "");
+        }} />
       <PolicySheet agent={st.agents.find((a) => a.agent_id === settingsFor) ?? null} busy={busy} onClose={() => setSettingsFor(null)}
         onSave={(b) => act("policy", () => runtime.policy(settingsFor!, b), "Saved").then((ok) => ok && setSettingsFor(null))} />
     </main>
@@ -458,8 +483,8 @@ function DecidedCard({ decided }: { decided: Approval[] }) {
   );
 }
 
-function AssignSheet({ open, initialAgent, agents, kinds, busy, onClose, onAssign }: {
-  open: boolean; initialAgent?: string; agents: LiveAgent[]; kinds: TaskKind[]; busy: string | null; onClose: () => void;
+function AssignSheet({ open, initialAgent, prefill, agents, kinds, busy, onClose, onAssign }: {
+  open: boolean; initialAgent?: string; prefill?: { kind: string; input: Record<string, string> } | null; agents: LiveAgent[]; kinds: TaskKind[]; busy: string | null; onClose: () => void;
   onAssign: (b: { agent_id: string; kind: string; input: Record<string, string> }, every?: number) => void;
 }) {
   const able = agents.filter((a) => a.status === "active" && a.kinds.length);
@@ -476,8 +501,8 @@ function AssignSheet({ open, initialAgent, agents, kinds, busy, onClose, onAssig
     const a = able.find((x) => x.agent_id === initialAgent) ?? able[0];
     setAgentId(a?.agent_id ?? "");
     const hinted = kinds.find((k) => k.agent_hint === a?.name && a?.kinds.includes(k.kind));
-    setKind(hinted?.kind ?? a?.kinds[0] ?? "");
-    setInput({});
+    setKind(prefill && a?.kinds.includes(prefill.kind) ? prefill.kind : hinted?.kind ?? a?.kinds[0] ?? "");
+    setInput(prefill?.input ?? {});
     setRepeat(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialAgent]);
@@ -542,8 +567,9 @@ function AssignSheet({ open, initialAgent, agents, kinds, busy, onClose, onAssig
   );
 }
 
-function TaskSheet({ id, version, busy, onClose, onCancel, onRetry }: {
+function TaskSheet({ id, version, busy, onClose, onCancel, onRetry, onSchedule }: {
   id: string | null; version: number; busy: string | null; onClose: () => void; onCancel: (id: string) => void; onRetry: (id: string) => void;
+  onSchedule: (t: Task) => void;
 }) {
   const [t, setT] = useState<Task | null>(null);
   useEffect(() => {
@@ -591,6 +617,19 @@ function TaskSheet({ id, version, busy, onClose, onCancel, onRetry }: {
                       <span className="min-w-0 flex-1 truncate">
                         {c.profile_url ? <a href={c.profile_url} target="_blank" rel="noreferrer" className="font-[560] hover:underline">{c.name}</a> : c.name}
                         <span className="text-muted-foreground"> · {c.title} at {c.company}</span>
+                      </span>
+                    </div>
+                  ))}
+                </Block>
+              ) : null}
+              {out.schedule?.length ? (
+                <Block title={`Interview plan (${out.schedule.length})`}>
+                  {out.schedule.map((p, i) => (
+                    <div key={i} className="flex flex-wrap items-baseline gap-x-2 py-1 text-[12.5px]">
+                      <span className="font-[560]">{p.candidate}</span>
+                      <span className="text-muted-foreground">{p.slots.join(" or ")} · {p.minutes} min with {p.interviewer}</span>
+                      <span className={cn("ml-auto text-[11.5px] font-[560]", p.invite === "blocked" ? "text-contradicted" : p.invite === "sent" ? "text-verified" : "text-flag")}>
+                        invite {p.invite}
                       </span>
                     </div>
                   ))}
@@ -654,6 +693,9 @@ function TaskSheet({ id, version, busy, onClose, onCancel, onRetry }: {
           <div className="flex items-center gap-2 border-t border-border p-4">
             {(t.status === "running" || t.status === "queued") && (
               <Button variant="danger" onClick={() => onCancel(t.task_id)} disabled={!!busy}><X className="size-3.5" /> Stop task</Button>
+            )}
+            {t.kind === "sourcing" && t.status === "done" && (out.shortlist?.length ?? 0) > 0 && (
+              <Button variant="primary" onClick={() => onSchedule(t)} disabled={!!busy}><Clock className="size-3.5" /> Schedule interviews</Button>
             )}
             {["failed", "cancelled", "refused", "done"].includes(t.status) && (
               <Button onClick={() => onRetry(t.task_id)} disabled={!!busy}><RefreshCw className="size-3.5" /> Run again</Button>

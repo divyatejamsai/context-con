@@ -255,6 +255,7 @@ export interface Task {
     findings?: { candidate: string; profile_url?: string; verified: number; total: number; contradicted: { claim: string; evidence: string; source?: Source | null }[] }[];
     artifacts?: { kind: string; title: string; path?: string; content?: string }[];
     filed?: { kind: string; summary: string; ledger_entry: string }[];
+    schedule?: { candidate: string; company: string; slots: string[]; interviewer: string; minutes: number; invite: string; drafted_by: string }[];
   };
   approvals?: Approval[];
 }
@@ -365,7 +366,11 @@ export interface RuntimeState {
 
 export const receiptUrl = (hash: string) => `${API_URL}/api/runtime/receipts/${hash}`;
 
+export interface Template { key: string; name: string; role: string; scopes: Scope[]; job: string; hired: boolean; jobs: string[] }
+
 export const runtime = {
+  templates: () => req<Template[]>("/runtime/templates"),
+  hire: (key: string) => post<{ agent: Agent; decision: "allow" | "block"; failed: Check[] }>("/runtime/hire", { key }),
   state: () => req<RuntimeState>("/runtime/state"),
   kinds: () => req<TaskKind[]>("/runtime/kinds"),
   task: (id: string) => req<Task>(`/runtime/tasks/${id}`),

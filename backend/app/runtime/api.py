@@ -297,3 +297,45 @@ async def agent_send(s: AgentSend):
         raise HTTPException(401, f"unknown agent {s.agent_id}")
     # authentication here is the message signature itself: Send Guard's message_signature_valid check fails on a forgery
     return await send(rt(), rec, s.task_id, s.to, s.body, s.scope, s.signature)
+
+
+# ---- hiring more AI employees from templates ---------------------------------------------------
+
+@router.get("/templates")
+async def templates():
+    from ..agents import registry
+    from .kinds import KINDS, TEMPLATES
+    names = {a["name"] for a in registry.list_agents() if a["status"] != "offboarded"}
+    return [{**t, "hired": t["name"] in names,
+             "jobs": [KINDS[k]["label"] for k in KINDS if KINDS[k].get("agent_hint") == t["name"]]} for t in TEMPLATES]
+
+
+class HireRequest(BaseModel):
+    key: str
+    by: str = "employer"
+
+
+@router.post("/hire", dependencies=admin)
+async def hire(req: HireRequest):
+    from ..agents import registry
+    from ..agents.api import crustdata
+    from ..agents.models import Sponsor
+    from .kinds import TEMPLATES
+    t = next((x for x in TEMPLATES if x["key"] == req.key), None)
+    if not t:
+        raise HTTPException(404, "no such template")
+    if any(a["name"] == t["name"] and a["status"] != "offboarded" for a in registry.list_agents()):
+        raise HTTPException(409, f"{t['name']} is already on the payroll")
+    peer = next((a for a in registry.list_agents() if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
+    if peer:
+        sponsor = Sponsor.model_validate(peer["passport"]["sponsor"])
+    else:
+        from ..fleet.roster import PANKAJ as sponsor
+    try:
+        rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house")
+        v = await registry.recheck(rec["agent_id"], crustdata())  # live sponsor check right away
+    except RegistryError as e:
+        raise HTTPException(400, str(e))
+    rt().wake()
+    return {"agent": registry.get_agent(rec["agent_id"]) | {"private_key": None}, "decision": v.decision,
+            "failed": [c.model_dump() for c in v.checks if c.status != "pass"]}
