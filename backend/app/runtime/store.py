@@ -25,6 +25,7 @@ DEFAULT_POLICY = {"paused": False, "paused_reason": None, "require_approval": Tr
 DEFAULT_PAYROLL = {"enabled": True, "every_minutes": 30, "last_run_at": None, "next_run_at": None, "last_result": None}
 
 _lock = threading.RLock()
+APPROVAL_LISTENERS: list = []  # fn(approval) after a new approval is saved (app/alerts registers here)
 _state: dict | None = None
 _state_path: Path | None = None
 
@@ -173,7 +174,18 @@ def add_approval(**fields: Any) -> dict:
     with _lock:
         _load()["approvals"][a["approval_id"]] = a
         _save()
+    _tell(APPROVAL_LISTENERS, a)
     return copy.deepcopy(a)
+
+
+def _tell(listeners: list, item: dict) -> None:
+    """Listeners never break the write that triggered them."""
+    for fn in list(listeners):
+        try:
+            fn(copy.deepcopy(item))
+        except Exception:  # noqa: BLE001
+            import logging
+            logging.getLogger(__name__).exception("approval listener failed")
 
 
 def get_approval(approval_id: str) -> dict | None:

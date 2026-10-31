@@ -14,6 +14,7 @@ GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event
 /api/staffing/*                             -> staff 1000 shifts from applications seeded with fakes (app/talent/api.py)
 POST /api/agents/{agent_id}/email            -> find the email on Crustdata, Send Guard, send for real (app/outbound/)
 GET  /api/messages, POST /api/messages/refresh -> sent emails with delivery status and replies
+/api/alerts/*                               -> bell, alert preferences, public one-click approve/reject links (app/alerts/)
 """
 from __future__ import annotations
 
@@ -46,6 +47,7 @@ from .accounts.api import router as auth_router  # noqa: E402  (company sign-up,
 from .accounts.members_api import platform as platform_router  # noqa: E402  (operator: every company)
 from .accounts.members_api import router as members_router  # noqa: E402  (workspace roles: app/accounts/authz.py)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
+from .alerts.api import router as alerts_router  # noqa: E402  (email/Slack/bell alerts, one-click approve links)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -60,6 +62,7 @@ app.include_router(auth_router)
 app.include_router(members_router)
 app.include_router(platform_router)
 app.include_router(talent_router)
+app.include_router(alerts_router)
 
 
 @app.exception_handler(OutOfCredits)
@@ -71,6 +74,8 @@ async def _out_of_credits(_request, exc: OutOfCredits):
 @app.on_event("startup")
 async def start_runtime():
     """The agent runtime runs inside the API server (RUNTIME_ENABLED=0 turns it off)."""
+    from .alerts import core as alerts
+    alerts.install()  # approvals, blocks and stops alert the responsible person (ALERTS_ENABLED=0 turns it off)
     if os.getenv("RUNTIME_ENABLED", "1") == "0":
         return
     from .agents.api import crustdata

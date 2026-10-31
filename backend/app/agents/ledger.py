@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import threading
 from contextlib import contextmanager
@@ -26,6 +27,7 @@ except ImportError:  # Windows: in-process lock only
 REPO_ROOT = Path(__file__).resolve().parents[3]
 GENESIS = "0" * 64
 _lock = threading.Lock()
+LISTENERS: list = []  # fn(entry) after each append in this process (app/alerts registers here)
 
 
 def path() -> Path:
@@ -133,6 +135,11 @@ def append(kind: str, payload: dict, sources: list[Source] | list[dict] | None =
         entry["hash"] = entry_hash(entry)
         with p.open("a") as f:
             f.write(canonical(entry) + "\n")
+    for fn in list(LISTENERS):  # after the lock: a listener may append too
+        try:
+            fn(entry)
+        except Exception:  # noqa: BLE001 - a listener never fails the write
+            logging.getLogger(__name__).exception("ledger listener failed")
     return entry["hash"]
 
 

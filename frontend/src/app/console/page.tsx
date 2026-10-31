@@ -26,6 +26,7 @@ import { MembersView } from "./members";
 import { CompaniesView } from "./companies";
 import { DashboardView } from "./dashboard";
 import { AccountMenu } from "@/components/account-menu";
+import { NotificationBell } from "@/components/notification-bell";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND, brandText } from "@/lib/brand";
 import { AGENT_APPS, appFor } from "@/lib/apps";
@@ -408,6 +409,7 @@ function Sidebar({
         </span>
         <div className="flex items-center gap-1 lg:hidden">
           <AdminToken />
+          <NotificationBell />
           <ThemeToggle />
           <AccountMenu />
         </div>
@@ -492,6 +494,7 @@ function Sidebar({
           <BackendDot mode={mode} />
           <div className="flex items-center gap-0.5">
             <AdminToken up />
+            <NotificationBell up />
             <ThemeToggle />
             <AccountMenu up />
           </div>
