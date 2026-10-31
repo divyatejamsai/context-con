@@ -120,7 +120,8 @@ _STOP = {"of", "and", "the", "for", "in", "at", "to", "a", "an", "with", "on", "
 _FUNCTION = {"engineer", "developer", "designer", "manager", "analyst", "scientist", "architect", "consultant",
              "executive", "specialist", "recruiter", "accountant", "marketer", "writer", "officer", "administrator",
              "associate", "representative", "coordinator", "lead", "director", "intern", "tester", "programmer",
-             "researcher", "strategist", "partner", "advisor", "editor", "operator", "technician", "sales"}
+             "researcher", "strategist", "partner", "advisor", "editor", "operator", "technician", "sales", "design",
+             "ux", "administrator", "support", "head", "officer"}
 
 
 _SAME_FUNCTION = {"developer": "engineer", "programmer": "engineer", "dev": "engineer", "engg": "engineer",
@@ -129,10 +130,7 @@ _JOIN = [(r"\bback\s*end\b", "backend"), (r"\bfront\s*end\b", "frontend"), (r"\b
          (r"\bdev\s*ops\b", "devops"), (r"\bquality assurance\b", "qa"), (r"\bbusiness intelligence\b", "bi"), (r"\bsoftware development engineer\b", "software engineer")]
 
 
-def core_tokens(title: str | None) -> set[str]:
-    t = re.sub(r"\([^)]*\)|\[[^\]]*\]", " ", title or "")   # "(Node.js/TypeScript)" is a stack, not the role
-    # "Backend Engineer - Payments | Bangalore", "Full Stack Engineer with AWS LEX", "QA Engineer for Fintech"
-    t = re.split(r"\s[-|–—@/]\s|,|\s(?:with|for|at|in)\s", t, flags=re.I)[0]
+def _core_of(t: str) -> set[str]:
     t = norm(expand_title(t))
     for pat, rep in _JOIN:
         t = re.sub(pat, rep, t)
@@ -140,23 +138,43 @@ def core_tokens(title: str | None) -> set[str]:
     return {x for x in toks if len(x) > 1 and x not in _SENIORITY and x not in _STOP}
 
 
+def core_tokens(title: str | None) -> set[str]:
+    t = re.sub(r"\([^)]*\)|\[[^\]]*\]", " ", title or "")   # "(Node.js/TypeScript)" is a stack, not the role
+    # "Backend Engineer - Payments | Bangalore", "Full Stack Engineer with AWS LEX", "QA Engineer for Fintech"
+    parts = [x for x in re.split(r"\s[-|–—@/]\s|,|\s(?:with|for|at|in)\s", t, flags=re.I) if x.strip()]
+    if not parts:
+        return set()
+    core = _core_of(parts[0])
+    # "Manager, Software Engineering" / "Big Data - Senior Engineer": the head alone is not the role
+    if len(parts) > 1 and (not (core - _FUNCTION) or not (core & _FUNCTION)):
+        core |= _core_of(parts[1])
+    return core
+
+
+_JUNIOR_HIRE = re.compile(r"\b(intern|internship|trainee|apprentice)\b", re.I)
+
+
 def role_match(posting_title: str | None, person_title: str | None) -> bool:
     """Is a joiner's title the role that was posted? Both must share the job function word plus the specialisation
-    when the posting has one ("Backend Engineer" ~ "Software Engineer - Backend", not ~ "Sales Manager")."""
+    when the posting has one ("Backend Engineer" ~ "Software Engineer - Backend", not ~ "Sales Manager", and not
+    a bare "Principal Engineer" or "Senior Developer", which says nothing about the specialisation)."""
+    if _JUNIOR_HIRE.search(person_title or "") and not _JUNIOR_HIRE.search(posting_title or ""):
+        return False  # an intern joining is not the hire for a regular opening
     a, b = core_tokens(posting_title), core_tokens(person_title)
     if not a or not b:
         return False
+    sa, sb = a - _FUNCTION, b - _FUNCTION
+    fa, fb = a & _FUNCTION, b & _FUNCTION
+    # "Java Full Stack" names no function word: any function on the joiner's side is fine
+    same_function = bool(fa & fb) or not fa or not fb
+    if not same_function or not (sa & sb):
+        return False  # the specialisation must match, not just "engineer"
     if a <= b or b <= a:
         return True
     shared = a & b
     jacc = len(shared) / len(a | b)
-    fa, fb = a & _FUNCTION, b & _FUNCTION
-    # "Java Full Stack" names no function word: any matching function on the joiner's side is fine
-    same_function = bool(fa & fb) or not fa or not fb
-    specific = shared - _FUNCTION  # the specialisation must match, not just "engineer"
-    sa, sb = a - _FUNCTION, b - _FUNCTION
-    nested = bool(sa and sb) and (sa <= sb or sb <= sa)  # "Java Full Stack" ~ "Full Stack Developer"
-    return same_function and bool(specific) and (jacc >= 0.5 or len(shared) >= 2 or nested)
+    nested = sa <= sb or sb <= sa  # "Java Full Stack" ~ "Full Stack Developer"
+    return jacc >= 0.5 or len(shared) >= 2 or nested
 
 
 # =============================================================================================== point in time
@@ -225,9 +243,10 @@ def as_of(person: dict | None, cutoff: date, hiring_company_id: Any = None, hiri
 
     if bp is not None:
         bp["current_title"] = current[0].get("title") if current else None
+        # today's headline/summary can't be dated (they leak later employers, often obliquely: "AI Engineer at
+        # Crowe" for "Crowe Capabilities Center"), so as-of records have none, for hires and everyone else alike
         for k in ("headline", "summary"):
-            if leaks(bp.get(k)):
-                bp[k] = None
+            bp[k] = None
     for k in ("headline", "summary", "title", "current_title"):
         if k in p and (leaks(p.get(k)) or k in ("title", "current_title")):
             p[k] = None
@@ -999,6 +1018,9 @@ async def cmd_probe(client, args):
 
 
 async def main_async(args) -> int:
+    global DATA_DIR
+    if args.tag:
+        DATA_DIR = DATA_DIR / args.tag
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     client, note = orchestrator.make_client()
     if note:
@@ -1012,10 +1034,14 @@ async def main_async(args) -> int:
             rows = [json.loads(x) for x in (DATA_DIR / "results.jsonl").read_text().splitlines() if x.strip()]
             print(diagnose(rows))
             return 0
-        if args.cmd in ("openings", "all"):
+        if args.cmd == "openings" or (args.cmd == "all" and not args.openings_from):
             ops = await build_openings(client, args)
             _save_openings(ops, meta)
             print(f"saved {DATA_DIR / 'openings.json'}")
+        if args.cmd in ("run", "all") and args.openings_from and not (DATA_DIR / "openings.json").exists():
+            src = DATA_DIR.parent / args.openings_from / "openings.json"
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            (DATA_DIR / "openings.json").write_text(src.read_text())
         if args.cmd in ("run", "all"):
             ops, meta = _load_openings()
             if args.limit:
@@ -1082,6 +1108,8 @@ def main(argv=None) -> int:
     ap.add_argument("--fresh", action="store_true", help="ignore earlier results.jsonl")
     ap.add_argument("--no-talent-flow", action="store_true", help="Sourced without the talent-flow search (ablation)")
     ap.add_argument("--out", default="")
+    ap.add_argument("--tag", default="", help="keep this run's files in backend/data/backtest/<tag>/ (e.g. dev, test-before)")
+    ap.add_argument("--openings-from", default="", help="reuse openings.json from another tag (same openings, other config)")
     ap.add_argument("-v", "--verbose", action="store_true")
     return asyncio.run(main_async(ap.parse_args(argv)))
 

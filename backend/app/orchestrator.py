@@ -191,6 +191,13 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
     for level, (desc, filters) in enumerate(broaden_ladder(criteria)):
         titles = filters.get("titles") or []
         queries = [dict(filters, titles=[t]) for t in titles] or [filters]
+        if level == 0 and filters.get("seniority") and os.getenv("SEARCH_STEP_DOWN", "1") != "0":
+            # people usually step up a level when they move (backtest: 26% of real hires vs 4% of others), so the
+            # first search also covers the same titles one level down, in one query
+            from .brief import _strip_seniority
+            base = list(dict.fromkeys(_strip_seniority(t) for t in titles))
+            if base and base != titles:
+                queries.append(dict(filters, titles=base, seniority=None))
         if titles and domain:
             # one extra query so domain-fit people (e.g. payments) get into the pool, not just title matches
             queries.append(dict(filters, domain=domain))

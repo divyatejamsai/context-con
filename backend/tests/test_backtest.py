@@ -69,6 +69,14 @@ def test_widened_filter_and_local_recheck():
     ("Full Stack Engineer with AWS LEX", "Fullstack Developer", True),
     ("Backend Engineer", "Software Engineer", False),
     ("Machine Learning Engineer", "ML Engineer", True),
+    # from the first live diagnosis: a bare function word says nothing about the specialisation
+    ("Associate SOC Engineer", "Senior Engineer", False),
+    ("Back End Developer", "Principal Engineer", False),
+    ("Manager, Software Engineering", "Manager Finance & Accounts", False),
+    ("Manager, Software Engineering", "Engineering Manager", True),
+    ("UI Developer", "UI/UX Design", False),
+    ("Java Full Stack", "Java developer intern", False),
+    ("Big Data - Senior Engineer", "Data Engineer", True),
 ])
 def test_role_match(posting, title, ok):
     assert bt.role_match(posting, title) is ok
