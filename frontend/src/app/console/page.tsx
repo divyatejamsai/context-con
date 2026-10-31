@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, BadgeCheck, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send, ShieldAlert,
-  ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
+  ArrowLeft, BadgeCheck, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, MousePointerClick, Plus, RefreshCw, RotateCcw, Send,
+  ShieldAlert, ShieldCheck, SlidersHorizontal, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
@@ -13,7 +13,8 @@ import {
   type Verdict,
 } from "./api";
 import {
-  AgentMark, Button, DecisionBadge, Field, RuntimeBadge, ScopeChip, ScopeToggle, StatusPill, VerdictList, ago, cardCls, checkLabel, day, inputCls,
+  AgentMark, Button, DecisionBadge, EmptyState, Field, RuntimeBadge, ScopeChip, ScopeToggle, SectionHead, StatusPill, TERMS, Term, VerdictList, ago, cardCls,
+  checkLabel, day, inputCls,
 } from "./parts";
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
@@ -25,11 +26,11 @@ type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
 
-const VIEWS: { v: View; label: string; icon: React.ElementType }[] = [
-  { v: "employees", label: "AI employees", icon: Users },
-  { v: "verify", label: "Verify passport", icon: ShieldCheck },
-  { v: "guard", label: "Send Guard", icon: Send },
-  { v: "ledger", label: "Ledger", icon: Link2 },
+const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string }[] = [
+  { v: "employees", label: "AI employees", icon: Users, desc: "Onboard agents, see their passports, and suspend or retire them" },
+  { v: "verify", label: "Verify passport", icon: ShieldCheck, desc: "Check whether an agent that contacts you can be trusted" },
+  { v: "guard", label: "Send Guard", icon: Send, desc: "Check a drafted message before an agent can send it" },
+  { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision" },
 ];
 const ALL_SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -109,6 +110,11 @@ export default function Console() {
     }
   };
 
+  const startOnboarding = () => {
+    setView("employees");
+    setOnboarding(true);
+  };
+
   const runPayroll = async () => {
     const before = new Map(agents.map((a) => [a.agent_id, a.status]));
     setBusy("payroll");
@@ -119,7 +125,7 @@ export default function Console() {
       const suspended = list.filter((a) => a.status === "suspended" && before.get(a.agent_id) === "active").map((a) => a.agent_id);
       setPayroll({ verdicts, suspended });
     } catch (e) {
-      setFlash({ tone: "bad", title: "Payroll check failed", body: e instanceof Error ? e.message : String(e) });
+      setFlash({ tone: "bad", title: "Sponsor re-check failed", body: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(null);
     }
@@ -130,12 +136,17 @@ export default function Console() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex h-12 max-w-[1680px] items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-1.5">
-            <Link href="/" className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12.5px] text-muted-foreground hover:bg-elevated hover:text-foreground">
+            <Link
+              href="/"
+              title="Back to Sourced, the hiring agent: paste a brief and get a verified shortlist"
+              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] text-muted-foreground hover:bg-elevated hover:text-foreground"
+            >
               <ArrowLeft className="size-3.5" /> Sourced
+              <span className="hidden text-faint 2xl:inline">· find candidates</span>
             </Link>
             <span className="text-faint">/</span>
-            <span className="flex items-center gap-2 px-1">
-              <IdCard className="size-4 text-primary" />
+            <span className="flex min-w-0 items-center gap-2 px-1" title="Countersign checks that an AI agent is vouched for by a real person before anyone trusts it">
+              <IdCard className="size-4 shrink-0 text-primary" />
               <span className="text-[14px] font-[620] tracking-[-0.01em]">Countersign</span>
             </span>
             <nav className="ml-4 hidden items-center gap-0.5 md:flex" aria-label="Countersign">
@@ -146,7 +157,7 @@ export default function Console() {
             <AdminToken />
             <ThemeToggle />
             {chain && (
-              <button onClick={() => setView("ledger")} title="Hash-chained ledger of every passport, check and decision">
+              <button onClick={() => setView("ledger")} title="Open the ledger: every passport, check and decision, hash-chained so edits are detectable">
                 <ChainPill {...chain} />
               </button>
             )}
@@ -155,7 +166,7 @@ export default function Console() {
                 "inline-flex h-6 items-center gap-1.5 rounded-full border px-2 font-mono text-[10.5px]",
                 mode === "live" ? "border-verified/30 text-verified" : mode === "offline" ? "border-contradicted/30 text-contradicted" : "border-border-strong text-faint",
               )}
-              title={mode === "live" ? `Connected to ${API_URL}` : `Can't reach ${API_URL}`}
+              title={mode === "live" ? `Connected to the Countersign backend at ${API_URL}. Everything here is real data.` : `Can't reach the backend at ${API_URL}`}
             >
               <span className={cn("size-1.5 rounded-full", mode === "live" ? "bg-verified" : mode === "offline" ? "bg-contradicted" : "bg-faint")} />
               {mode === "loading" ? "connecting" : mode === "live" ? "live" : "offline"}
@@ -171,45 +182,66 @@ export default function Console() {
         <Offline onRetry={connect} />
       ) : mode === "loading" ? (
         <div className="grid min-h-[60vh] place-items-center text-[13px] text-faint">
-          <Loader2 className="size-4 animate-spin" />
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="size-4 animate-spin" /> Connecting to the Countersign backend…
+          </span>
         </div>
       ) : view === "verify" ? (
-        <VerifyView agents={agents} scenarios={scenarios} />
+        <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
       ) : view === "guard" ? (
-        <GuardView agents={agents} onSent={refresh} />
+        <GuardView agents={agents} onSent={refresh} onOnboard={startOnboarding} />
       ) : view === "ledger" ? (
-        <LedgerExplorer agents={agents} onChain={setChain} />
+        <LedgerExplorer agents={agents} onChain={setChain} onOnboard={startOnboarding} />
       ) : (
         <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(360px,440px)_minmax(0,1fr)]">
           <section className="min-w-0 border-border lg:sticky lg:top-12 lg:h-[calc(100vh-3rem)] lg:overflow-y-auto lg:border-r">
             <div className="px-4 pb-4 pt-6">
               <h1 className="text-[22px] font-[620] tracking-[-0.02em]">AI employees</h1>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                Each one acts for a named person. Countersign checks that person against Crustdata before the agent is trusted, and again on
-                every payroll check.
+                The AI agents that work for your company. Each carries a <Term tip={TERMS.passport}>passport</Term> naming the real person it
+                acts for, its <Term tip={TERMS.sponsor}>sponsor</Term>. An agent is trusted only while Crustdata confirms that sponsor still
+                works there and can delegate the work.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button variant="primary" onClick={() => setOnboarding(true)}>
-                  <Plus className="size-3.5" /> Onboard
+                <Button variant="primary" onClick={() => setOnboarding(true)} title="Issue a passport for a new AI agent and check its sponsor in Crustdata">
+                  <Plus className="size-3.5" /> Onboard an agent
                 </Button>
-                <Button onClick={runPayroll} disabled={busy === "payroll" || !agents.length} title="Re-check every sponsor against Crustdata">
+                <Button
+                  onClick={runPayroll}
+                  disabled={busy === "payroll" || !agents.length}
+                  title="Payroll check: looks up every sponsor in Crustdata again and suspends any agent whose sponsor has left or lost authority"
+                >
                   {busy === "payroll" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-                  Run payroll check
+                  Re-check all sponsors
                 </Button>
                 <span className="ml-auto flex items-center gap-3 text-[11.5px] text-muted-foreground tabular-nums">
                   <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-verified" />{counts.active ?? 0} active</span>
                   {!!counts.suspended && <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-contradicted" />{counts.suspended} suspended</span>}
                 </span>
               </div>
+              {agents.length > 0 && (
+                <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-faint">
+                  <MousePointerClick className="size-3.5 shrink-0" /> Pick an agent to see its passport, permissions, reviews and history.
+                </p>
+              )}
             </div>
 
             {payroll && <PayrollBanner run={payroll} agents={agents} onClose={() => setPayroll(null)} onPick={setSelected} />}
 
             <ul className="border-t border-border">
               {!agents.length && (
-                <li className="px-4 py-12 text-center">
-                  <p className="text-[13px] text-secondary">No AI employees yet.</p>
-                  <p className="mt-1 text-[12px] text-faint">Onboard Sourced, the hiring agent, as employee #1.</p>
+                <li>
+                  <EmptyState
+                    icon={Users}
+                    title="No AI employees yet"
+                    action={
+                      <Button variant="primary" onClick={() => setOnboarding(true)}>
+                        <Plus className="size-3.5" /> Onboard Sourced as employee #1
+                      </Button>
+                    }
+                  >
+                    Onboarding issues the agent a passport and checks its sponsor in Crustdata straight away. Start with Sourced, the hiring agent.
+                  </EmptyState>
                 </li>
               )}
               {agents.map((a) => (
@@ -223,7 +255,9 @@ export default function Console() {
             {cur ? (
               <AgentDetail key={cur.agent_id} agent={cur} role={roles.find((r) => r.title === cur.role)} tab={tab} setTab={setTab} busy={busy} act={act} />
             ) : (
-              <div className="grid min-h-[50vh] place-items-center p-8 text-center text-[13px] text-faint">Select an AI employee.</div>
+              <EmptyState icon={MousePointerClick} title="Select an AI employee" className="min-h-[50vh] justify-center">
+                Its passport, permissions, reviews and history open here.
+              </EmptyState>
             )}
           </section>
         </main>
@@ -278,7 +312,7 @@ function AdminToken() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn("grid size-7 place-items-center rounded-md hover:bg-elevated", has ? "text-foreground" : "text-muted-foreground")}
-        title={has ? "Admin token set" : "Set admin token"}
+        title={has ? "Admin token set. Changes to agents are sent with it." : "Set the admin token (only needed if the backend asks for one)"}
         aria-label="Admin token"
       >
         <KeyRound className="size-3.5" />
@@ -309,10 +343,11 @@ function AdminToken() {
   );
 }
 
-function NavItem({ label, icon: I, active, onClick }: { label: string; icon: React.ElementType; active: boolean; onClick: () => void }) {
+function NavItem({ label, icon: I, desc, active, onClick }: { label: string; icon: React.ElementType; desc: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      title={desc}
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-[510] transition",
@@ -409,7 +444,7 @@ function PayrollBanner({
     <div className={cn(cardCls, "mx-4 mb-4 overflow-hidden animate-rise")}>
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
         <span className="flex items-center gap-2 text-[12.5px] font-[590]">
-          <ClipboardCheck className="size-3.5 text-primary" /> Payroll check
+          <ClipboardCheck className="size-3.5 text-primary" /> Sponsor re-check
           <span className="font-normal text-muted-foreground">
             {run.verdicts.length} checked, {blocked.length} blocked{run.suspended.length ? `, ${run.suspended.length} suspended now` : ""}
           </span>
@@ -418,6 +453,9 @@ function PayrollBanner({
           <X className="size-3.5" />
         </button>
       </div>
+      <p className="border-b border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+        Every sponsor was looked up in Crustdata again. Agents whose sponsor left or lost authority are suspended. Click one to see why.
+      </p>
       <ul className="divide-y divide-border">
         {run.verdicts.map((v) => {
           const a = byId.get(v.subject);
@@ -518,19 +556,23 @@ function AgentDetail({
         </div>
         {!gone && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button onClick={recheck} disabled={!!busy}>
+            <Button
+              onClick={recheck}
+              disabled={!!busy}
+              title={`Look up ${a.passport.sponsor.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}
+            >
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />} Re-check sponsor
             </Button>
             {a.status === "suspended" ? (
-              <Button onClick={reinstate} disabled={!!busy}>
+              <Button onClick={reinstate} disabled={!!busy} title="Run a fresh sponsor check. If it passes, the passport is valid again.">
                 {busy === "reinstate" ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reinstate
               </Button>
             ) : (
-              <Button onClick={() => setConfirm("suspend")} disabled={!!busy}>
+              <Button onClick={() => setConfirm("suspend")} disabled={!!busy} title="Pause this agent: its passport is revoked until you reinstate it">
                 <Ban className="size-3.5" /> Suspend
               </Button>
             )}
-            <Button variant="danger" onClick={() => setConfirm("offboard")} disabled={!!busy}>
+            <Button variant="danger" onClick={() => setConfirm("offboard")} disabled={!!busy} title="Retire this agent for good: its passport is revoked permanently">
               <UserMinus className="size-3.5" /> Offboard
             </Button>
           </div>
@@ -548,19 +590,32 @@ function AgentDetail({
       )}
 
       {confirm && (
-        <div className={cn(cardCls, "mt-4 p-3 animate-rise")}>
-          <p className="text-[13px] font-[510]">{confirm === "suspend" ? `Suspend ${a.name}?` : `Offboard ${a.name}? This can't be undone.`}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (recorded on the ledger)" className={cn(inputCls, "min-w-[240px] flex-1")} />
+        <div className={cn(cardCls, "mt-4 p-4 animate-rise", confirm === "offboard" && "border-contradicted/35")}>
+          <p className="text-[13.5px] font-[590]">{confirm === "suspend" ? `Suspend ${a.name}?` : `Offboard ${a.name}? This can't be undone.`}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+            {confirm === "suspend"
+              ? `Its passport is revoked right away, so anyone who checks it, and the Send Guard, will refuse it. You can reinstate it later after a fresh sponsor check.`
+              : `Its passport is revoked permanently and it leaves the active roster. Its history stays on the ledger.`}{" "}
+            Your reason is recorded on the ledger.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={confirm === "suspend" ? "Reason, e.g. sponsor on leave" : "Reason, e.g. project finished"}
+              className={cn(inputCls, "min-w-0 flex-1 sm:min-w-[240px]")}
+            />
             <Button variant={confirm === "offboard" ? "danger" : "primary"} onClick={doConfirm} disabled={!!busy}>
-              {confirm === "suspend" ? "Suspend" : "Offboard"}
+              {busy === confirm && <Loader2 className="size-3.5 animate-spin" />}
+              {confirm === "suspend" ? "Suspend and revoke passport" : "Offboard permanently"}
             </Button>
             <Button variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
           </div>
         </div>
       )}
 
-      <nav className="mt-6 flex gap-1 border-b border-border" role="tablist">
+      <nav className="mt-6 flex gap-0.5 overflow-x-auto border-b border-border sm:gap-1" role="tablist">
         {([
           ["passport", "Passport", IdCard],
           ["permissions", "Permissions", SlidersHorizontal],
@@ -573,7 +628,7 @@ function AgentDetail({
             aria-selected={tab === k}
             onClick={() => setTab(k)}
             className={cn(
-              "-mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 pb-2 pt-1 text-[12.5px] font-[510] transition",
+              "-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-2 pb-2 pt-1 text-[12.5px] font-[510] transition sm:px-2.5",
               tab === k ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
@@ -582,6 +637,8 @@ function AgentDetail({
           </button>
         ))}
       </nav>
+
+      <p className="mt-3 text-[12.5px] text-muted-foreground">{TAB_DESC[tab](a)}</p>
 
       <div className="mt-5">
         {tab === "passport" && <PassportTab agent={a} />}
@@ -592,6 +649,13 @@ function AgentDetail({
     </div>
   );
 }
+
+const TAB_DESC: Record<Tab, (a: Agent) => string> = {
+  passport: (a) => `The signed ID ${a.name} shows to anyone it contacts, and what Crustdata said about its sponsor at the last check.`,
+  permissions: (a) => `What ${a.name} is allowed to do. Adding a permission checks ${a.passport.sponsor.name}'s authority in Crustdata first.`,
+  reviews: (a) => `${a.name}'s track record from the ledger, and human reviews where you keep, restrict or offboard it.`,
+  ledger: (a) => `Every ledger entry about ${a.name}, newest first. Each one lists the Crustdata sources behind it.`,
+};
 
 function PassportTab({ agent: a }: { agent: Agent }) {
   const p = a.passport;
@@ -639,10 +703,12 @@ function PassportTab({ agent: a }: { agent: Agent }) {
       </div>
 
       <div>
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-[14px] font-[590]">Last sponsor check</h3>
-          <span className="text-[11.5px] text-faint">{a.last_checked ? `${ago(a.last_checked)} · ${day(a.last_checked)}` : "not checked yet"}</span>
-        </div>
+        <SectionHead
+          title="Last sponsor check"
+          aside={<span className="text-[11.5px] text-faint">{a.last_checked ? `${ago(a.last_checked)} · ${day(a.last_checked)}` : "not checked yet"}</span>}
+        >
+          Allow means every check passed and the agent can be trusted. Block means at least one failed, shown first.
+        </SectionHead>
         {a.last_verdict ? (
           <>
             <div className="mt-2 flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -652,7 +718,7 @@ function PassportTab({ agent: a }: { agent: Agent }) {
             <VerdictList verdict={a.last_verdict} className="mt-2" />
           </>
         ) : (
-          <p className="mt-2 text-[12.5px] text-faint">Run a check to see what Crustdata says about the sponsor.</p>
+          <p className="mt-2 text-[12.5px] text-faint">Not checked yet. Use Re-check sponsor above to see what Crustdata says about {s.name}.</p>
         )}
       </div>
     </div>
@@ -706,7 +772,7 @@ function PermissionsTab({ agent: a, role, busy, act }: { agent: Agent; role?: Ro
           {widening ? "Check sponsor and grant" : "Save"}
         </Button>
         {dirty && <Button variant="ghost" onClick={() => setScopes(a.passport.scopes)}>Reset</Button>}
-        <span className="text-[11.5px] text-faint">Changing scopes re-issues the passport.</span>
+        <span className="text-[11.5px] text-faint">{widening ? `Adding a permission checks ${a.passport.sponsor.name} in Crustdata, then re-issues the passport.` : "Saving re-issues the passport with these permissions."}</span>
       </div>
     </div>
   );
@@ -735,8 +801,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
   return (
     <div className="grid gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
       <div>
-        <h3 className="text-[14px] font-[590]">Scorecard</h3>
-        <p className="text-[12px] text-faint">Counted from the ledger: what the Send Guard let through and what it stopped, and the work this agent filed.</p>
+        <SectionHead title="Scorecard">Counted from the ledger: what the Send Guard let through, what it stopped, and the work this agent filed.</SectionHead>
         <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-border-strong sm:grid-cols-4">
           <Tile k="Messages checked" v={card?.messages_checked} />
           <Tile k="Allowed" v={card?.allowed} tone="text-verified" />
@@ -764,6 +829,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
         )}
         {!!card?.block_reasons.length && (
           <ul className="mt-3 space-y-1">
+            <li className="text-[11.5px] font-[510] text-muted-foreground">Why messages were blocked</li>
             {card.block_reasons.map(([name, n]) => (
               <li key={name} className="flex items-center justify-between text-[12.5px]">
                 <span className="text-secondary">{checkLabel(name)}</span>
@@ -773,7 +839,9 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
           </ul>
         )}
 
-        <h3 className="mt-8 text-[14px] font-[590]">Past reviews</h3>
+        <div className="mt-8">
+          <SectionHead title="Past reviews">Decisions a person made about this agent, newest first.</SectionHead>
+        </div>
         {a.reviews.length ? (
           <ol className="mt-2 space-y-2">
             {[...a.reviews].reverse().map((r) => (
@@ -796,13 +864,15 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
             ))}
           </ol>
         ) : (
-          <p className="mt-2 text-[12.5px] text-faint">No reviews yet.</p>
+          <p className="mt-2 rounded-lg border border-dashed border-border-strong px-3 py-3 text-[12.5px] text-muted-foreground">
+            No reviews yet. Once {a.name} has done some work, record one with the New review form.
+          </p>
         )}
       </div>
 
       {a.status !== "offboarded" && (
         <div className={cn(cardCls, "h-fit p-4")}>
-          <h3 className="text-[14px] font-[590]">New review</h3>
+          <SectionHead title="New review">Look at the scorecard, then decide what happens next.</SectionHead>
           <div className="mt-3 grid grid-cols-3 gap-0.5 rounded-md border border-border-strong bg-background p-0.5 text-[12px]">
             {(["keep", "restrict", "offboard"] as const).map((d) => (
               <button
@@ -814,6 +884,7 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
               </button>
             ))}
           </div>
+          <p className="mt-2 text-[12px] text-muted-foreground">{REVIEW_HELP[decision]}</p>
           {decision === "restrict" && (
             <div className="mt-3 space-y-1.5">
               <span className="text-[12px] font-[510] text-muted-foreground">Scopes to keep</span>
@@ -838,7 +909,8 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
               disabled={!!busy || (decision === "restrict" && (!keep.length || keep.length === a.passport.scopes.length))}
               className="w-full"
             >
-              {busy === "review" && <Loader2 className="size-3.5 animate-spin" />} Record review
+              {busy === "review" && <Loader2 className="size-3.5 animate-spin" />}
+              {decision === "keep" ? "Record review" : decision === "restrict" ? "Record review and narrow permissions" : "Record review and offboard"}
             </Button>
           </div>
         </div>
@@ -846,6 +918,12 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
     </div>
   );
 }
+
+const REVIEW_HELP: Record<ReviewDecision, string> = {
+  keep: "No change to the agent. The review is recorded on the ledger.",
+  restrict: "Keep the agent but take away some permissions. The passport is re-issued.",
+  offboard: "Retire the agent and revoke its passport permanently.",
+};
 
 function Tile({ k, v, tone, sub }: { k: string; v?: number; tone?: string; sub?: string }) {
   return (
@@ -859,14 +937,28 @@ function Tile({ k, v, tone, sub }: { k: string; v?: number; tone?: string; sub?:
 
 function AgentHistory({ agent: a }: { agent: Agent }) {
   const [view, setView] = useState<LedgerView | null>(null);
-  useEffect(() => {
-    api.ledger(a.agent_id).then(setView).catch(() => setView(null));
-  }, [a.agent_id, a.ledger_entries.length]);
-  if (!view) return <p className="text-[12.5px] text-faint">Loading…</p>;
+  const [failed, setFailed] = useState(false);
+  const load = useCallback(() => {
+    setFailed(false);
+    api.ledger(a.agent_id).then(setView).catch(() => setFailed(true));
+  }, [a.agent_id]);
+  useEffect(load, [load, a.ledger_entries.length]);
+  if (failed)
+    return (
+      <EmptyState icon={ShieldAlert} tone="bad" title="Couldn't load the history" action={<Button onClick={load}><RefreshCw className="size-3.5" /> Try again</Button>}>
+        The backend didn&apos;t answer. Check that it is running, then try again.
+      </EmptyState>
+    );
+  if (!view)
+    return (
+      <p className="inline-flex items-center gap-2 text-[12.5px] text-faint">
+        <Loader2 className="size-3.5 animate-spin" /> Loading history…
+      </p>
+    );
+  if (!view.entries.length) return <EmptyState icon={FileClock} title="No history yet">Entries appear here as soon as {a.name} is checked or does any work.</EmptyState>;
   return (
     <div className="max-w-[760px]">
-      <p className="text-[12.5px] text-muted-foreground">Every ledger entry that mentions {a.name}, newest first.</p>
-      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} className="mt-4" />
+      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} />
     </div>
   );
 }
@@ -918,6 +1010,9 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
             ? `Passport issued. ${sponsor.name}'s identity, employment and authority all checked out against Crustdata.`
             : `The passport was issued, but ${sponsor.name} can't vouch for it right now, so it was revoked straight away.`}
         </p>
+        <p className="mt-3 text-[12px] text-faint">
+          {ok ? "Next: close this panel to see its passport, or try it in Verify passport and Send Guard." : "Next: fix the sponsor details and onboard again, or pick a sponsor Crustdata can vouch for."}
+        </p>
         <VerdictList verdict={result.verdict} className="mt-4" />
       </div>
     );
@@ -928,7 +1023,10 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         <div>
           <h2 className="text-[18px] font-[600] tracking-[-0.01em]">Onboard an AI employee</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">It gets a signed passport tied to a real person, who is checked against Crustdata straight away.</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+            Fill this in from top to bottom. The agent gets a signed passport tied to a real person, its sponsor, who is checked in Crustdata
+            as soon as you submit. If the check fails, the agent starts suspended.
+          </p>
         </div>
 
         <Field label="Name">
@@ -940,7 +1038,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </Field>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Runs</span>
+          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Where it runs</span>
           <div className="inline-flex rounded-md border border-border-strong bg-background p-0.5 text-[12px]">
             {(["in-house", "external"] as const).map((r) => (
               <button
@@ -956,7 +1054,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Role</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Role</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Sets the most this agent could ever be allowed to do.</span>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {roles.map((r) => (
               <button
@@ -973,7 +1072,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Sponsor, the person it acts for</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Sponsor, the person it acts for</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Pick a sample person or enter a real one. Their LinkedIn URL is what Crustdata looks up.</span>
           {scenarios.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1">
               {scenarios.map((s) => (
@@ -1006,7 +1106,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         </div>
 
         <div>
-          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Scopes</span>
+          <span className="mb-0.5 block text-[12px] font-[510] text-muted-foreground">Permissions</span>
+          <span className="mb-1.5 block text-[11px] text-faint">Locked ones are outside this role. The sponsor&apos;s title must also allow each one.</span>
           <div className="grid gap-1.5">
             {ALL_SCOPES.map((sc) => (
               <ScopeToggle
