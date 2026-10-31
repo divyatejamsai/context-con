@@ -25,6 +25,17 @@ VERIFIED FACTS:
 """
 
 
+def _hook_sentence(fact: str) -> str:
+    """Turn a claim into a sentence for a person: "Skill: payments" -> "Your payments experience stood out." """
+    m = re.match(r"skill:\s*(.+)", fact, re.I)
+    if m:
+        return f"Your {m.group(1).strip()} experience stood out."
+    m = re.match(r"at (.+?) since (.+?)(?: \(.*\))?$", fact, re.I)
+    if m:
+        return f"Your time at {m.group(1)} since {m.group(2)[:4]} stood out."
+    return f"What stood out: {fact[0].lower() + fact[1:]}."
+
+
 def template_draft(c: Candidate, criteria: Criteria) -> str:
     first_name = c.name.split()[0] if c.name else "there"
     # hook from a verified fact (domain first), never from ranker/scoring text
@@ -33,8 +44,7 @@ def template_draft(c: Candidate, criteria: Criteria) -> str:
     hook = facts[0] if facts else None
     at = f" at {c.company}" if c.company else ""
     lines = [f"Hi {first_name},", ""]
-    lines.append(f"I came across your work as {c.title or 'an engineer'}{at}"
-                 + (f", in particular: {hook[0].lower() + hook[1:]}." if hook else "."))
+    lines.append(f"I came across your work as {c.title or 'an engineer'}{at}" + (f". {_hook_sentence(hook)}" if hook else "."))
     lines.append(f"We're hiring a {criteria.role or 'senior engineer'}"
                  + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
                  + " and I think your background is a strong fit. Open to a 15-minute chat this week?")

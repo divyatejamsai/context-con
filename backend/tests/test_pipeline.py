@@ -280,7 +280,8 @@ def test_qa_review_items():
                      claims=[Claim(id="k1", claim="Works at X since 2021", status="verified", evidence="e",
                                    source=Source(endpoint="person/enrich"))])
     d = template_draft(cand, Criteria(role="Eng"))
-    assert "claims verified" not in d and "works at X since 2021" in d
+    assert "claims verified" not in d
+    assert "works at x since 2021" in d.lower()
 
 
 def test_identify_fallback_uses_real_keys():

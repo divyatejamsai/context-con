@@ -174,6 +174,16 @@ def report(results: list[Result]) -> str:
         top = sorted(r.cands, key=lambda c: c.score, reverse=True)[:3]
         out.append(f"- {r.key}: " + ("; ".join(f"{c.name} ({c.title} @ {c.company}, {c.score}, flags: {', '.join(c.flags) or '-'})"
                                              for c in top) or "no candidates"))
+    out += ["", "### Sample output for review (top candidate per brief)"]
+    for r in results:
+        top = sorted(r.cands, key=lambda c: c.score, reverse=True)[:1]
+        for c in top:
+            out.append(f"#### {r.key}: {c.name}, {c.score}")
+            out += [f"- reason: {x.text} [{', '.join(x.claim_ids)}]" for x in c.reasons]
+            out += [f"- claim {k.id} ({k.status}): {k.claim} | {k.evidence} | {k.source.endpoint} {k.source.field or ''}"
+                    for k in c.claims]
+            if c.outreach_draft:
+                out += ["", "```", c.outreach_draft, "```"]
     errs = [f"- {r.key}: {m}" for r in results for m in r.messages("error")]
     out += ["", "### Error events", *(errs[:40] or ["- none"])]
     return "\n".join(out)
