@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:00 | Keep repo public and merge real person fixtures into main (chosen over making the repo private) | Replay mode and demo work from the repo alone | dummyanaxes |
 | ~10:46 | Commit real person fixtures to the public repo | Makes replay mode and the demo work from the repo alone | dummyanaxes |
 | ~10:46 | Seeded-fake resumes are built locally and never committed | Public repo; they contain real people's records | WS5 |
 | 10:43 | Ranker is deterministic and weighted (LLM only rewrites reason text, optional) | Reproducible scores; judges want decisions that stay the same however the case is worded | WS3 |
@@ -105,8 +106,9 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~11:00 | WS1 person fixtures merged into main (e476941). 36 tests pass in replay mode |
 | ~10:56 | Merged into main: **WS4 "Dossier" UI** (PR #2: trace, shortlist and dossier panes, compare table, pin/pass/hide-contradicted, Markdown/CSV/JSON export, keyboard shortcuts, bundled fonts, `frontend/.env.example`; tsc and `next build` pass). **WS3 real-data fixes**: skills match on the base name ("Python (Programming Language)"), stage/size fall back to job-level `company_headcount_latest` / `company_professional_network_industry`, titles show `seniority_level`, experience claims cite exact field paths, raw cached responses are unwrapped. **WS5**: final seeded fakes (5 fakes, 10 lies, all 7 lie types, 10/10 caught, 0 false positives) built locally and not committed, plus `show_fake.py` terminal view for the video. 36 backend tests pass |
-| ~10:53 | WS1 complete on `ws/crustdata` (0bc2906): person fixtures (`person_search.json`, 5 `person_enrich_*.json`, `companies.json`), plus `SMOKE_REPORT.md`. The live smoke run passed all 15 steps, and the city-OR-country `(.)` location filter works on the real API. **Not merged to main yet:** the branch publishes real people's profile data in a public repo, so this needs the user's explicit call (see open questions) |
+| ~10:53 | WS1 complete on `ws/crustdata` (0bc2906): person fixtures (`person_search.json`, 5 `person_enrich_*.json`, `companies.json`), plus `SMOKE_REPORT.md`. The live smoke run passed all 15 steps, and the city-OR-country `(.)` location filter works on the real API. Merged at ~11:00 IST after the user's decision |
 | ~10:51 | Vertex AI API enabled on the team's GCP project, and `GOOGLE_CLOUD_PROJECT` set in the Mac's `.env` (the project ID stays out of the repo). Next: confirm a live Gemini call |
 | ~10:48 | WS1 v2 merged: `person_search` accepts raw Crustdata syntax or the simple shape (with city/country aliases, overridable via `CRUSTDATA_LOCATION_FIELDS`). Concurrent `person_enrich` calls are coalesced into batches of up to 25. Note: the orchestrator currently sends its own mapped filters (`to_crustdata_filters`), so WS2's mapping is the one in effect. Pick one at the first live run |
 | ~10:47 | WS2 merged: the orchestrator maps simple filters to Crustdata syntax in `to_crustdata_filters()`: title `(.)` on `experience.employment_details.current.title`, city `(.)` on `basic_profile.location.city` with spelling variants OR-ed (bangalore\|bengaluru), country `=` on `basic_profile.location.country`, skills `(.)` on `skills.professional_network_skills`. **City and skills field names are unverified until the first live run.** One `person_enrich_many` call per run (15 req/min limit). `CRUSTDATA_MODE` default = cache |
@@ -147,7 +149,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 **Open questions**
 1. ~~LLM key~~ Resolved 10:12: Gemini via Vertex ADC. Each dev machine runs the ADC setup (`bash <(curl -sSL https://storage.googleapis.com/cloud-samples-data/adc/setup_adc.sh)`, or `gcloud auth application-default login`), then sets `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` in `.env`.
 2. Crustdata API key, rate limits and credit cost per call (from the 10:00 walkthrough).
-4. **Real people's data in a public repo:** `ws/crustdata` contains real LinkedIn-derived profiles. Recommendation: switch the repo back to private before merging. Judges can be given access, or the repo can be made public after scrubbing.
+4. ~~Real people's data in a public repo~~ Decided ~11:00 IST: keep public and merge.
 3. ~~Repo URL~~ https://github.com/divyatejamsai/context-con (private, branch `main`). Local clone on Sai's Mac: `~/context-con`. Claude pushes via a session on that Mac using Sai's git login.
 
 ## 6. Architecture
@@ -284,7 +286,7 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
   - company stage: `funding.{last_round_type, total_investment_usd}`. Size: `headcount.total`
 - Gotchas: `web_search` URLs are Google redirect links (unwrap before citing), and `web_fetch` content is raw HTML.
 - Person location: `basic_profile.location.{city, state, country, full_location, raw}`.
-- Person-level fixtures are on branch `ws/crustdata` (public). Merging to main is pending the user's call on privacy. Recommended: make the repo private again (the Claude GitHub App now has access), then merge to the public repo (user decision on WS1's card, ~10:46 IST), pushed from Sai's Mac together with `companies.json`.
+- Person-level fixtures are on `main` (user's decision, ~11:00 IST, repo stays public). to the public repo (user decision on WS1's card, ~10:46 IST), pushed from Sai's Mac together with `companies.json`.
 - **Demo-safety risk:** replay mode can't produce candidates from the repo alone, because person data isn't committed. For a reliable demo, run each demo brief live once on the Mac (in `cache` mode) so `cache/` fills locally, then record in `replay` mode.
 
 ### Branches (all on GitHub, merged to `main` at ~10:44 IST)
