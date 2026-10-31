@@ -216,3 +216,13 @@ async def test_domain_skill_not_invented_and_concurrent_roles_deduped():
     claims, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
     assert any(f.startswith("Holds 2 concurrent roles: Wipro, Razorpay") for f in flags)
     assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "current employer Razorpay is in Financial Services"
+
+
+@pytest.mark.asyncio
+async def test_scores_spread_out_and_bonuses_cite_claims():
+    scores = {k: (await run(k))[2] for k in ("clean", "moved", "nested", "live_job_facts", "fake", "sparse")}
+    assert max(scores.values()) < 100  # base is capped at 90, bonuses only add up to 10
+    assert len(set(scores.values())) >= 5, scores
+    assert scores["clean"] > scores["nested"] > scores["sparse"] and scores["fake"] == 0
+    _, _, _, reasons = await run("clean")
+    assert any(r.text.startswith("+") and r.claim_ids for r in reasons)
