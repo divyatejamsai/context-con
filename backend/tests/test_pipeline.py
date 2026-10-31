@@ -177,3 +177,25 @@ def test_real_shaped_client_end_to_end():
     c = cands[0]
     assert c.name == "Test Person" and c.company == "Razorpay" and c.profile_url.endswith("test-person")
     assert c.claims and evs[-1].type == "done"
+
+
+def test_domain_terms_shape_search_from_first_step():
+    from app.orchestrator import domain_terms, to_crustdata_filters
+    c = heuristic_parse("senior backend engineer, payments experience, Bangalore")
+    c.must_haves = ["payments experience"]
+    assert domain_terms(c)[0] == "payments"
+    client = RealShaped()
+    collect("senior backend engineer, payments experience, Bangalore", client=client)
+    first_level = [f for f, _ in client.calls["search"]]
+    flat = json.dumps(first_level)
+    assert "skills.professional_network_skills" in flat and "basic_profile.headline" in flat
+    f = to_crustdata_filters({"titles": ["Backend Engineer"], "locations": [], "domain": ["payments"]})
+    assert f["op"] == "and" and f["conditions"][1]["op"] == "or"
+
+
+def test_domain_match_is_prescored_first():
+    from app.orchestrator import prescore
+    c = heuristic_parse("backend engineer payments")
+    a = {"title": "Backend Engineer"}
+    b = {"title": "Backend Engineer", "_domain_match": True}
+    assert prescore(b, c) > prescore(a, c)

@@ -45,6 +45,7 @@ class DevCrustdataClient:
         titles = [t.lower() for t in filters.get("titles") or []]
         locs = [l.lower() for l in filters.get("locations") or []]
         skills = [s.lower() for s in filters.get("skills") or []]
+        domain = [d.lower() for d in filters.get("domain") or []]
         out = []
         for p in self._people.values():
             t = people.title(p).lower()
@@ -54,6 +55,8 @@ class DevCrustdataClient:
             if locs and not any(l in p["location"].lower() for l in locs):
                 continue
             if skills and not set(skills) & set(p["skills"]):
+                continue
+            if domain and not any(d in s or d in p["headline"].lower() for d in domain for s in p["skills"]):
                 continue
             out.append({k: p[k] for k in ("name", "headline", "location", "linkedin_profile_url", "current_employers")}
                        | {"_source": _src("person/search", repr(filters))})
