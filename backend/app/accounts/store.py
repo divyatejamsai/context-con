@@ -25,6 +25,8 @@ from typing import Any
 DEFAULT_DB = Path(__file__).resolve().parents[2] / "data" / "accounts.db"
 SESSION_DAYS = int(os.getenv("SESSION_DAYS", "14"))
 MAX_FAILED = 5
+RESET_MINUTES = 30
+RESETS_PER_HOUR = 3
 LOCK_MINUTES = 10
 
 _SCHEMA = """
@@ -63,6 +65,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_agent TEXT
 );
 CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS password_resets (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT
+);
 """
 
 
@@ -213,6 +222,42 @@ class AccountStore:
         with self._lock:
             self._db.execute("DELETE FROM sessions WHERE token_hash = ?", (_token_hash(token),))
             self._db.commit()
+
+    # ---- password reset ----------------------------------------------------
+    def create_reset(self, user_id: str) -> str | None:
+        """One-time reset token, valid RESET_MINUTES. None if this user already asked RESETS_PER_HOUR times this hour."""
+        now = _now()
+        recent = self._db.execute("SELECT COUNT(*) FROM password_resets WHERE user_id = ? AND created_at > ?",
+                                  (user_id, _iso(now - timedelta(hours=1)))).fetchone()[0]
+        if recent >= RESETS_PER_HOUR:
+            return None
+        token = secrets.token_urlsafe(32)
+        with self._lock:
+            self._db.execute("INSERT INTO password_resets (token_hash, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+                             (_token_hash(token), user_id, _iso(now), _iso(now + timedelta(minutes=RESET_MINUTES))))
+            self._db.commit()
+        return token
+
+    def reset_email(self, token: str) -> str | None:
+        row = self._db.execute("SELECT u.email FROM password_resets r JOIN users u ON u.id = r.user_id"
+                               " WHERE r.token_hash = ?", (_token_hash(token or ""),)).fetchone()
+        return row["email"] if row else None
+
+    def reset_password(self, token: str, new_password: str) -> dict:
+        """Uses the token once, sets the new password, clears any lockout and signs out every existing session."""
+        th = _token_hash(token or "")
+        row = self._db.execute("SELECT * FROM password_resets WHERE token_hash = ?", (th,)).fetchone()
+        now = _now()
+        if row is None or row["used_at"] or datetime.fromisoformat(row["expires_at"]) <= now:
+            raise AuthError("reset_invalid", "This reset link has expired or was already used. Ask for a new one.", 400)
+        with self._lock:
+            self._db.execute("UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL",
+                             (_iso(now), row["user_id"]))
+            self._db.execute("UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL WHERE id = ?",
+                             (hash_password(new_password), row["user_id"]))
+            self._db.execute("DELETE FROM sessions WHERE user_id = ?", (row["user_id"],))
+            self._db.commit()
+        return self.user(row["user_id"])
 
     def user(self, user_id: str) -> dict:
         return _user(self._db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())

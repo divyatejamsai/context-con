@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // Proxies /api/auth/* to the FastAPI backend and keeps the session token in an httpOnly cookie,
 // so browser JavaScript never sees it.
-const POST_ACTIONS = new Set(["lookup", "signup", "login", "demo", "logout"]);
+const POST_ACTIONS = new Set(["lookup", "signup", "login", "demo", "logout", "forgot", "reset"]);
 const GET_ACTIONS = new Set(["me", "options"]);
 
 async function forward(path: string, init: RequestInit): Promise<Response> {
