@@ -1,0 +1,307 @@
+"""WS3 verifier: turn a candidate's record into checkable claims and label each one.
+
+Each claim is verified / contradicted / unverifiable and always carries a Source.
+What gets checked against what:
+  - "claimed" facts (a resume or seeded fake passed as person["claimed"], or the profile headline)
+    are checked against the employment record from Person Enrich and the Company Enrich record.
+  - Employer claims with no graph backing are corroborated by Crustdata web search when possible.
+Missing data or a failed call never produces a guess: the claim becomes unverifiable.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+import re
+from datetime import date
+from typing import TYPE_CHECKING, Any
+
+from ..schemas import Claim, Criteria, Source
+
+from .profile import (
+    CompanyFacts, Job, Profile, company_key, load_company, load_person, norm, parse_date,
+    same_company, seniority_rank, stage_bucket, title_similarity, tokens, unwrap_url,
+)
+
+if TYPE_CHECKING:  # avoid a hard dependency on WS1's module at import time
+    from ..crustdata.client import CrustdataClient
+
+log = logging.getLogger(__name__)
+
+RECENT_CHANGE_DAYS = 120
+TENURE_TOLERANCE_DAYS = 183
+EXPERIENCE_TOLERANCE_YEARS = 1.5
+CALL_TIMEOUT_S = float(os.getenv("VERIFY_CALL_TIMEOUT", "8"))
+
+
+class _Claims:
+    def __init__(self) -> None:
+        self.items: list[Claim] = []
+
+    def add(self, text: str, status: str, evidence: str, endpoint: str, field: str | None = None, url: str | None = None) -> Claim:
+        c = Claim(id=f"k{len(self.items) + 1}", claim=text, status=status, evidence=evidence,
+                  source=Source(endpoint=endpoint, field=field, url=url))
+        self.items.append(c)
+        return c
+
+
+def _years(a: date, b: date) -> float:
+    return (b - a).days / 365.25
+
+
+def _fmt_years(y: float) -> str:
+    return f"{y:.1f} yrs" if y < 10 else f"{y:.0f} yrs"
+
+
+def _months_ago(d: date, today: date) -> str:
+    days = (today - d).days
+    if days < 0:
+        return f"starts {d.isoformat()}"
+    if days < 60:
+        return f"{max(1, days // 7)} weeks ago"
+    return f"{days // 30} months ago"
+
+
+async def _safe(coro, what: str):
+    try:
+        return await asyncio.wait_for(coro, timeout=CALL_TIMEOUT_S)
+    except Exception as e:  # CrustdataError, timeout, anything: the claim just stays unverifiable
+        log.warning("verify: %s failed: %s", what, e)
+        return None
+
+
+def _headline_employer(headline: str | None) -> str | None:
+    if not headline:
+        return None
+    m = re.search(r"\b(?:at|@)\s+([A-Z0-9][\w&.\- ]{1,40}?)(?:\s*[|,·•(\-]|$)", headline)
+    return m.group(1).strip() if m else None
+
+
+def _headline_title(headline: str | None) -> str | None:
+    if not headline:
+        return None
+    return re.split(r"\s+(?:at|@)\s+|\s*[|·•]\s*", headline, maxsplit=1)[0].strip() or None
+
+
+async def _fetch_company(client: CrustdataClient, job: Job | None) -> dict | None:
+    if job is None or client is None:
+        return None
+    if job.company_id or job.domain:
+        r = await _safe(client.company_enrich(company_id=str(job.company_id) if job.company_id else None, domain=job.domain), "company_enrich")
+        if r:
+            return r
+    if job.company:
+        return await _safe(client.company_identify(name=job.company), "company_identify")
+    return None
+
+
+async def _web_corroborate(client: CrustdataClient, name: str | None, employer: str | None) -> dict | None:
+    """Return the first web result that mentions both the person and the employer."""
+    if client is None or not name or not employer or os.getenv("VERIFY_WEB", "1") != "1":
+        return None
+    results = await _safe(client.web_search(f'"{name}" "{employer}"'), "web_search") or []
+    name_toks = tokens(name)
+    ckey = company_key(employer)
+    # Prefer results whose URL is a real page; opaque google.com/goto links still work but cite worse.
+    results = sorted((r for r in results[:8] if isinstance(r, dict)),
+                     key=lambda r: "google." in (_result_url(r) or ""))
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        text = norm(" ".join(str(r.get(k) or "") for k in ("title", "snippet", "description", "content", "text")))
+        if ckey and ckey in text and name_toks and name_toks <= set(text.split()):
+            return r
+    return None
+
+
+def _result_url(r: dict | None) -> str | None:
+    if not r:
+        return None
+    return unwrap_url(r.get("url") or r.get("link") or r.get("source_url"))
+
+
+async def verify_candidate(
+    person: dict,
+    company: dict | None,
+    criteria: Criteria,
+    client: CrustdataClient | None,
+    today: date | None = None,
+) -> tuple[list[Claim], list[str]]:
+    """Return (claims, flags). Never raises on bad or missing data."""
+    today = today or date.today()
+    person = person or {}
+    pr: Profile = load_person(person)
+    claimed: dict[str, Any] = person.get("claimed") or {}
+    claimed_src = claimed.get("_source") or "candidate resume"
+    ep = pr.endpoint
+    out = _Claims()
+    flags: list[str] = []
+    flagged: set[str] = set()  # claim ids that already have a specific flag
+
+    cur: Job | None = pr.current[0] if pr.current else None
+
+    if company is None and cur is not None:
+        company = await _fetch_company(client, cur)
+    cf: CompanyFacts | None = load_company(company)
+
+    # 1. Employer
+    stated_employer = claimed.get("employer") or _headline_employer(pr.headline)
+    stated_via = claimed_src if claimed.get("employer") else "profile headline"
+    if stated_employer and cur and not same_company(stated_employer, cur.company):
+        other = next((j for j in pr.current[1:] if same_company(stated_employer, j.company)), None)
+        if other:
+            out.add(f"Works at {stated_employer}", "verified",
+                    f"{stated_employer} is listed as a current role alongside {cur.company}", ep, other.path)
+        else:
+            left = next((j for j in pr.past if same_company(stated_employer, j.company)), None)
+            ev = f"{stated_via} says {stated_employer}, but the employment record shows current employer {cur.company}"
+            if cur.start:
+                ev += f" since {cur.start.isoformat()}"
+            if left and left.end:
+                ev += f"; left {left.company} {left.end.isoformat()}"
+            flagged.add(out.add(f"Works at {stated_employer}", "contradicted", ev, ep, cur.path).id)
+            flags.append(f"Profile out of date: says {stated_employer}, now at {cur.company}")
+    elif cur:
+        ev = f"current employer from {ep}"
+        fld, url = cur.path, None
+        if cf and cf.name and same_company(cf.name, cur.company):
+            ev += f", matched to company record {cf.name}"
+        out.add(f"Works at {cur.company}", "verified", ev, ep, fld, url)
+    elif stated_employer:
+        hit = await _web_corroborate(client, pr.name, stated_employer)
+        if hit:
+            out.add(f"Works at {stated_employer}", "verified",
+                    f"web result names {pr.name} at {stated_employer}: {hit.get('title') or ''}".strip(),
+                    "web/search", None, _result_url(hit))
+        else:
+            out.add(f"Works at {stated_employer}", "unverifiable",
+                    "no current employer in the graph and no web result naming them there", ep, "current_employers")
+    else:
+        out.add("Current employer", "unverifiable", "no current employer in the graph", ep, "current_employers")
+
+    # 2. Title
+    graph_title = cur.title if cur else None
+    stated_title = claimed.get("title") or _headline_title(pr.headline)
+    if stated_title and graph_title:
+        sim = title_similarity(stated_title, graph_title)
+        record_rank = max(seniority_rank(graph_title), seniority_rank(cur.seniority_level) if cur.seniority_level else 0)
+        inflated = seniority_rank(stated_title) > record_rank
+        if sim >= 0.5 and not inflated:
+            out.add(f"Title: {graph_title}", "verified", f"stated '{stated_title}' matches record '{graph_title}'", ep, f"{cur.path}.title")
+        elif inflated:
+            out.add(f"Title: {stated_title}", "contradicted",
+                    f"stated '{stated_title}' is more senior than the record '{graph_title}' at {cur.company}", ep, f"{cur.path}.title")
+        elif claimed.get("title"):
+            out.add(f"Title: {stated_title}", "contradicted",
+                    f"stated '{stated_title}' but the record says '{graph_title}' at {cur.company}", ep, f"{cur.path}.title")
+        else:
+            # Headline wording often differs from the formal title; record the formal one.
+            out.add(f"Title: {graph_title}", "verified", f"title on current role (headline reads '{stated_title}')", ep, f"{cur.path}.title")
+    elif graph_title:
+        out.add(f"Title: {graph_title}", "verified", "title on current role", ep, f"{cur.path}.title")
+    elif stated_title:
+        out.add(f"Title: {stated_title}", "unverifiable", "no title on the current role in the graph", ep, pr.headline_field)
+
+    # 3. Tenure at current employer
+    if cur and cur.start:
+        yrs = _years(cur.start, today)
+        claimed_start = parse_date(claimed.get("start_date"))
+        tenure_co = claimed.get("employer") or cur.company
+        claimed_tenure = claimed.get("tenure_years")
+        if claimed_start and abs((claimed_start - cur.start).days) > TENURE_TOLERANCE_DAYS:
+            out.add(f"At {tenure_co} since {claimed_start.isoformat()}", "contradicted",
+                    f"record shows current role at {cur.company} starting {cur.start.isoformat()}", ep, f"{cur.path}.start_date")
+        elif claimed_tenure is not None and abs(float(claimed_tenure) - yrs) > TENURE_TOLERANCE_DAYS / 365.25:
+            out.add(f"{claimed_tenure} yrs at {tenure_co}", "contradicted",
+                    f"record shows start {cur.start.isoformat()} ({_fmt_years(yrs)})", ep, f"{cur.path}.start_date")
+        else:
+            out.add(f"At {cur.company} since {cur.start.isoformat()} ({_fmt_years(yrs)})", "verified",
+                    "start date of current role", ep, f"{cur.path}.start_date")
+    elif cur:
+        out.add(f"Tenure at {cur.company}", "unverifiable", "current role has no start date", ep, f"{cur.path}.start_date")
+
+    # 4. Total experience (only when claimed, or computable)
+    starts = [j.start for j in pr.current + pr.past if j.start]
+    if starts:
+        total = _years(min(starts), today)
+        cy = claimed.get("years_experience")
+        if cy is not None and float(cy) - total > EXPERIENCE_TOLERANCE_YEARS:
+            out.add(f"{cy} yrs of experience", "contradicted",
+                    f"earliest role in the record starts {min(starts).isoformat()} ({_fmt_years(total)})", ep, "past_employers")
+        else:
+            out.add(f"~{_fmt_years(total)} of experience", "verified",
+                    f"earliest role starts {min(starts).isoformat()}", ep, "past_employers")
+    elif claimed.get("years_experience") is not None:
+        out.add(f"{claimed['years_experience']} yrs of experience", "unverifiable", "no dated roles in the graph", ep, "past_employers")
+
+    # 5. Location
+    stated_loc = claimed.get("location")
+    if stated_loc and pr.location:
+        if tokens(stated_loc) & tokens(pr.location):
+            out.add(f"Based in {pr.location}", "verified", f"matches stated '{stated_loc}'", ep, pr.location_field)
+        else:
+            out.add(f"Based in {stated_loc}", "contradicted", f"record says {pr.location}", ep, pr.location_field)
+    elif pr.location:
+        out.add(f"Based in {pr.location}", "verified", "location on profile", ep, pr.location_field)
+    else:
+        out.add(f"Based in {stated_loc}" if stated_loc else "Location", "unverifiable", "no location in the graph", ep, "location")
+
+    # 6. Company stage / size
+    if cf:
+        bucket = stage_bucket(cf)
+        bits = [b for b in (
+            cf.stage, f"~{cf.headcount:,} employees" if cf.headcount else None,
+            f"founded {cf.founded}" if cf.founded else None, cf.industry,
+        ) if b]
+        claimed_stage = claimed.get("company_stage")
+        name = cf.name or (cur.company if cur else "Company")
+        if claimed_stage and bucket and norm(claimed_stage) not in (norm(cf.stage), bucket) and not (
+            bucket in ("seed", "early") and "startup" in norm(claimed_stage)
+        ):
+            out.add(f"{name} is {claimed_stage}", "contradicted", f"company record: {', '.join(bits)}",
+                    cf.endpoint, cf.stage_field or cf.headcount_field)
+        elif bits:
+            label = f" ({bucket} stage)" if bucket else ""
+            out.add(f"{name}: {', '.join(bits)}{label}", "verified", "company record", cf.endpoint,
+                    cf.stage_field or cf.headcount_field)
+        else:
+            out.add(f"{name} stage/size", "unverifiable", "company record has no funding or headcount", cf.endpoint)
+    elif cur:
+        out.add(f"{cur.company} stage/size", "unverifiable", "company record not found", "company/enrich")
+
+    # 7. Skills the brief asks for
+    graph_text = norm(" ".join(pr.skills + [pr.headline or ""] + [j.title or "" for j in pr.current + pr.past]))
+    graph_skills = {norm(s) for s in pr.skills}
+    short_must = [m for m in criteria.must_haves if isinstance(m, str) and len(m.split()) <= 3]
+    wanted = list(dict.fromkeys(criteria.skills + short_must + [s for s in (claimed.get("skills") or []) if isinstance(s, str)]))
+    missing = []
+    for skill in wanted[:10]:
+        k = norm(skill)
+        if not k:
+            continue
+        if k in graph_skills:
+            out.add(f"Skill: {skill}", "verified", "listed in profile skills", ep, pr.skills_field)
+        elif re.search(rf"\b{re.escape(k)}\b", graph_text):
+            out.add(f"Skill: {skill}", "verified", "named in profile headline or job titles", ep, pr.headline_field or "current_employers")
+        else:
+            missing.append(skill)
+    if missing:
+        out.add(f"Skills not evidenced: {', '.join(missing)}", "unverifiable",
+                "not found in profile skills, headline or titles", ep, pr.skills_field or "skills")
+
+    # Flags: freshness is Crustdata's edge, so surface recent moves loudly.
+    if cur and cur.start and 0 <= (today - cur.start).days <= RECENT_CHANGE_DAYS:
+        flags.insert(0, f"Changed jobs {_months_ago(cur.start, today)} (joined {cur.company})")
+    recent_exit = [j for j in pr.past if j.end and 0 <= (today - j.end).days <= RECENT_CHANGE_DAYS]
+    if recent_exit and not (cur and cur.start and (today - cur.start).days <= RECENT_CHANGE_DAYS):
+        j = recent_exit[0]
+        flags.append(f"Left {j.company} {_months_ago(j.end, today)}")
+    if not pr.current and pr.past:
+        flags.append("No current role in the graph (may be between jobs)")
+    if len(pr.current) > 1:
+        flags.append(f"Holds {len(pr.current)} concurrent roles: {', '.join(j.company for j in pr.current[:3])}")
+    for c in out.items:
+        if c.status == "contradicted" and c.id not in flagged:
+            flags.append(f"Contradicted: {c.claim}")
+
+    return out.items, list(dict.fromkeys(flags))
