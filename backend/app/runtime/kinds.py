@@ -178,6 +178,16 @@ KINDS: dict[str, dict[str, Any]] = {
 }
 
 
+KINDS["assignment"] = {
+    "label": "Task for an outside agent", "scope": "data.read", "agent_hint": "Claude Code", "external": True,
+    "description": "Written instructions for an agent that runs on its own machine (e.g. Claude Code). It claims the task, "
+                   "reports progress and asks before sending, all signed with its own key, and stops when you pause it.",
+    "fields": [{"name": "instructions", "label": "Instructions", "type": "textarea", "required": True,
+                "placeholder": "Draft a two-line note to Vinod Sonagara (https://www.linkedin.com/in/vinod-sonagara) at Fam "
+                               "about a backend role, and ask to send it."}],
+    "handler": None}
+
+
 def public_kinds() -> list[dict]:
     return [{"kind": k, **{x: v for x, v in spec.items() if x != "handler"}} for k, spec in KINDS.items()]
 
@@ -190,6 +200,8 @@ def title_for(kind: str, inp: dict) -> str:
         return f"Diligence on {inp.get('domain')}"
     if kind == "sales_outreach":
         return "Work the CRM lead list" if not (inp.get("leads") or "").strip() else "Work a custom lead list"
+    if kind == "assignment":
+        return (inp.get("instructions") or "Task").strip().splitlines()[0][:80]
     if kind == "reference_check":
         return "Check the applicant pile" if not (inp.get("resumes") or "").strip() else "Check pasted resumes"
     return kind
@@ -200,8 +212,9 @@ def can_do(agent: dict, kind: str) -> str | None:
     spec = KINDS.get(kind)
     if not spec:
         return f"unknown task kind {kind}"
-    if agent.get("runtime") == "external":
-        return f"{agent['name']} runs outside Agaxes; it can't be assigned work here"
+    if bool(spec.get("external")) != (agent.get("runtime") == "external"):
+        return (f"{agent['name']} runs on its own machine: give it an outside-agent task" if agent.get("runtime") == "external"
+                else f"{spec['label']} is for outside agents (like Claude Code)")
     if spec["scope"] not in agent["passport"]["scopes"]:
         return f"{agent['name']}'s passport has no {spec['scope']} scope"
     if agent.get("status") == "offboarded":

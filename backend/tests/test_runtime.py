@@ -298,3 +298,74 @@ def test_receipts_verify_and_catch_edits():
     resigned = copy.deepcopy(r)
     resigned["head"]["seq"] = 99
     assert not receipts.verify_receipt(resigned)["valid"]  # issuer signature covers the whole receipt
+
+
+def test_outside_agent_is_governed_end_to_end(monkeypatch, tmp_path):
+    """Claude Code (runtime external) gets a task, works it from 'its own machine' over HTTP with signed calls, asks
+    before sending, and is stopped by pause and suspend like any in-house agent."""
+    import time as _t
+    from app.agents.models import Passport
+    from app.agents.passport import sign_message
+    from app.runtime.external import signed_text
+    monkeypatch.setenv("RUNTIME_ENABLED", "1")
+    from app.main import app
+    ags = {k: a for k, a, _ in onboard(["claude-code", "pipeline"])}
+    cc = ags["claude-code"]
+    aid, p, key = cc["agent_id"], Passport.model_validate(cc["passport"]), registry.private_key(cc["agent_id"])
+
+    def call(c, action, task_id=None, text="", sig_key=key, **extra):
+        import base64
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from app.agents.passport import _message_bytes
+        ts = int(_t.time())
+        raw = Ed25519PrivateKey.from_private_bytes(sig_key).sign(_message_bytes(p, signed_text(action, aid, task_id, ts, text)))
+        return c.post(f"/api/runtime/agent/{action}", json={"agent_id": aid, "task_id": task_id, "ts": ts, "text": text,
+                      "signature": base64.b64encode(raw).decode(), **extra})
+
+    with TestClient(app) as c:
+        bad = c.post("/api/runtime/tasks", json={"agent_id": ags["pipeline"]["agent_id"], "kind": "assignment",
+                                                 "input": {"instructions": "x"}})
+        assert bad.status_code == 400  # in-house agents don't take outside-agent tasks
+        t = c.post("/api/runtime/tasks", json={"agent_id": aid, "kind": "assignment",
+                                               "input": {"instructions": "Draft a note to Vinod at Fam and ask to send it"}}).json()
+        asyncio.run(asyncio.sleep(0.3))
+        assert "pick it up" in c.get(f"/api/runtime/tasks/{t['task_id']}").json()["waiting_on"]
+        other = registry.private_key(ags["pipeline"]["agent_id"])
+        assert call(c, "claim", sig_key=other).status_code == 401  # someone else's key
+        got = call(c, "claim").json()
+        assert got["task"]["task_id"] == t["task_id"] and "Vinod" in got["task"]["input"]["instructions"]
+        assert call(c, "progress", t["task_id"], "drafting the note").json()["continue"]
+
+        body = "Hi Vinod, your work at Fam caught our eye. Open to a chat about a backend role?"
+        r = c.post("/api/runtime/agent/send", json={"agent_id": aid, "task_id": t["task_id"], "body": body, "scope": "outreach.hiring",
+                   "to": {"name": "Vinod Sonagara", "profile_url": "https://www.linkedin.com/in/vinod-sonagara", "company": "Fam"},
+                   "signature": sign_message(p, key, body)}).json()
+        assert r["decision"] == "allow" and r["pending_approval"] and not r["sent"]
+        lie = "Hi Vinod, congrats on 5 years at Fam! Open to a chat?"
+        r2 = c.post("/api/runtime/agent/send", json={"agent_id": aid, "task_id": t["task_id"], "body": lie, "scope": "outreach.hiring",
+                    "to": {"name": "Vinod Sonagara", "profile_url": "https://www.linkedin.com/in/vinod-sonagara", "company": "Fam"},
+                    "signature": sign_message(p, key, lie)}).json()
+        assert r2["decision"] == "block" and not r2["pending_approval"]
+        assert not (tmp_path / "outbox.jsonl").exists()
+
+        c.post(f"/api/runtime/agents/{aid}/pause", json={"by": "me"})
+        asyncio.run(asyncio.sleep(0.3))
+        stop = call(c, "progress", t["task_id"], "still going").json()
+        assert stop["stop"] and "paused" in stop["reason"]
+        assert c.get(f"/api/runtime/tasks/{t['task_id']}").json()["status"] == "queued"
+        assert call(c, "claim").json()["stop"]
+        c.post(f"/api/runtime/agents/{aid}/resume", json={"by": "me"})
+        assert call(c, "claim").json()["task"]["task_id"] == t["task_id"]
+        done = call(c, "complete", t["task_id"], "Drafted the note; one clean draft is waiting for approval.").json()
+        assert done["recorded"]
+        tj = c.get(f"/api/runtime/tasks/{t['task_id']}").json()
+        assert tj["status"] == "done" and tj["output"]["artifacts"][0]["kind"] == "report"
+
+        t2 = c.post("/api/runtime/tasks", json={"agent_id": aid, "kind": "assignment", "input": {"instructions": "again"}}).json()
+        assert call(c, "claim").json()["task"]["task_id"] == t2["task_id"]
+        c.post(f"/api/runtime/agents/{aid}/suspend", json={"by": "me", "reason": "audit"})
+        asyncio.run(asyncio.sleep(0.3))
+        assert c.get(f"/api/runtime/tasks/{t2['task_id']}").json()["status"] == "cancelled"
+        assert call(c, "progress", t2["task_id"], "hello?").json()["stop"]
+        kinds_on_ledger = [e["kind"] for e in ledger.entries()]
+        assert kinds_on_ledger.count("task.started") >= 2 and "task.cancelled" in kinds_on_ledger
