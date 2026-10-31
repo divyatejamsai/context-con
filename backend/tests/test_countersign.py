@@ -172,3 +172,35 @@ def test_admin_token_guards_mutating_routes(monkeypatch):
     r = c.post("/api/passport/issue", json=body, headers={"x-admin-token": "s3cret"})
     assert r.status_code == 200
     assert c.post("/api/passport/verify", json={"passport": r.json()["passport"]}).status_code == 200  # verify stays public
+
+
+def test_assistants_interns_and_former_execs_carry_no_authority_round3():
+    from app.agents.passport import can_grant, title_matches
+    for t, sc in [("Executive Assistant to Chief Financial Officer (CFO)", "payment.send"),
+                  ("Executive Assistant to the Chief Financial and Operating Officer", "payment.send"),
+                  ("Intern, Office of the CEO", "contract.sign"), ("Founder's Office Associate", "contract.sign"),
+                  ("Chief of Staff to CFO", "payment.send"), ("Finance Intern", "payment.send"), ("Ex-CFO", "payment.send")]:
+        assert not can_grant(t, sc), t
+    assert can_grant("Cofounder - Data Analyst", "contract.sign")
+    for claimed, real in [("President", "Vice President"), ("CFO", "Former CFO"), ("CEO", "CEO Office Intern"),
+                          ("VP Sales", "AVP Sales"), ("Director of Engineering", "Associate Director of Engineering"),
+                          ("Head of Sales", "Assistant to Head of Sales")]:
+        assert not title_matches(claimed, real), (claimed, real)
+    assert title_matches("Engineer", "Staff Engineer")
+
+
+def test_round4_red_team():
+    from app.agents.passport import can_grant, title_matches
+    holes = [("Executive Assistant to CEO & CFO", "payment.send"), ("Executive Assistant to Co-Founder and CEO", "contract.sign"),
+             ("Finance & Tax Intern", "payment.send"), ("HR Business Partner", "contract.sign"), ("Product Owner", "payment.send"),
+             ("Chief of Staff & Strategic Partner", "contract.sign"), ("Aspiring CFO", "payment.send"), ("Founder (2015-2019)", "contract.sign"),
+             ("Asistente del CEO", "contract.sign"), ("Ｆｏｒｍｅｒ CFO", "payment.send"), ("Finance Clerk", "payment.send"),
+             ("Chief Happiness Officer", "contract.sign"), ("Board Director", "contract.sign")]
+    for t, sc in holes:
+        assert not can_grant(t, sc), t
+    for t, sc in [("Head of Finance", "payment.send"), ("Directeur Financier", "payment.send"), ("Geschäftsführer", "contract.sign"),
+                  ("Head of Go-To-Market", "outreach.sales"), ("Managing Partner", "contract.sign"), ("HR Business Partner", "outreach.hiring")]:
+        assert can_grant(t, sc), t
+    for claimed, real in [("CFO", "Executive Assistant to CEO & CFO"), ("CFO", "Intern and CFO"), ("Director", "Asst. Director"),
+                          ("CFO", "Acting CFO"), ("CFO", "Ｆｏｒｍｅｒ CFO"), ("Director", "Non-Executive Director")]:
+        assert not title_matches(claimed, real), (claimed, real)
