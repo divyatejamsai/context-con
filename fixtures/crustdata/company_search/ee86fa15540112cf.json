@@ -1,0 +1,777 @@
+{
+  "endpoint": "company/search",
+  "request": {
+    "filters": {
+      "op": "and",
+      "conditions": [
+        {
+          "field": "locations.country",
+          "type": "in",
+          "value": [
+            "IND"
+          ]
+        },
+        {
+          "field": "headcount.total",
+          "type": ">",
+          "value": 200
+        }
+      ]
+    },
+    "limit": 5
+  },
+  "status": 200,
+  "response": {
+    "companies": [
+      {
+        "crustdata_company_id": 6,
+        "metadata": {
+          "growth_calculation_date": "2026-10-27T23:08:48+00:00",
+          "updated_at": "2026-10-30T00:23:30Z",
+          "indexed_at": "2026-10-30T00:23:30Z"
+        },
+        "basic_info": {
+          "name": "a2z Infrastructure (P) Ltd",
+          "crustdata_company_id": 6,
+          "primary_domain": "a2zgroup.co.in",
+          "all_domains": [
+            "a2zgroup.co.in"
+          ],
+          "website": "http://www.a2zgroup.co.in",
+          "professional_network_url": "https://www.linkedin.com/company/a2z-infrastructure-p-ltd",
+          "professional_network_id": "429392",
+          "profile_name": "a2z Infrastructure (P) Ltd",
+          "logo_permalink": "",
+          "description": "Our Company is fastest growing EPC Business Enterprise in Transmission Distribution sector.The group focus on 4 Business areas:1. Power sector,EPC Part of Transmission & Distribution2. Facilities Management services-Services for  operation  & Maintenance of existing Infrstructure.3. Solid waste management4. Cogeneration power project.",
+          "company_type": "Privately Held",
+          "status": "active",
+          "year_founded": 2002,
+          "employee_count_range": "201-500",
+          "markets": [
+            "NSE",
+            "BSE"
+          ]
+        },
+        "revenue": {
+          "estimated": {
+            "lower_bound_usd": 20000000,
+            "upper_bound_usd": 50000000
+          },
+          "public_markets": {
+            "ipo_date": null,
+            "stock_symbols": [
+              "533292",
+              "A2ZGROUP",
+              "A2ZINFRA"
+            ],
+            "fiscal_year_end": ""
+          },
+          "acquisition_status": ""
+        },
+        "headcount": {
+          "total": 321
+        },
+        "software_reviews": null,
+        "funding": {
+          "is_investor": false,
+          "contact_email": "info@a2zemail.com",
+          "phone_number": "+91 124 4723383",
+          "total_investment_usd": 0.0,
+          "last_round_amount_usd": null,
+          "last_fundraise_date": null,
+          "last_round_type": "",
+          "investors": null
+        },
+        "hiring": null,
+        "locations": {
+          "country": "IND",
+          "headquarters": "India",
+          "street_address": "India",
+          "city": null,
+          "state": null,
+          "all_office_addresses": []
+        },
+        "maps": null,
+        "social_profiles": {
+          "twitter_url": "https://x.com/A2ZMES",
+          "professional_network": {
+            "url": "https://www.linkedin.com/company/a2z-infrastructure-p-ltd",
+            "id": "429392"
+          }
+        },
+        "taxonomy": {
+          "professional_network_industry": "Oil and Gas"
+        },
+        "followers": {
+          "count": 948,
+          "mom_percent": 0.10559662090813093,
+          "qoq_percent": 0.6369426751592357,
+          "six_months_growth_percent": 1.282051282051282,
+          "yoy_percent": 1.8259935553168638
+        }
+      },
+      {
+        "crustdata_company_id": 16,
+        "metadata": {
+          "growth_calculation_date": "2026-10-29T04:14:33+00:00",
+          "updated_at": "2026-10-30T00:23:30Z",
+          "indexed_at": "2026-10-30T00:23:30Z"
+        },
+        "basic_info": {
+          "name": "Aarti Drugs Limited",
+          "crustdata_company_id": 16,
+          "primary_domain": "aartidrugs.com",
+          "all_domains": [
+            "aartidrugs.co.in",
+            "aartidrugs.com"
+          ],
+          "website": "http://www.aartidrugs.com",
+          "professional_network_url": "https://www.linkedin.com/company/aarti-drugs-limited",
+          "professional_network_id": "3939740",
+          "profile_name": "Aarti Drugs Limited",
+          "logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/20c1cdc126afbed5cb263a43f543b5f9245e67ec1cbbf0e57804cc0cdb3dbda2.jpg",
+          "description": "Aarti Drugs Limited – Your Trusted API Partner in a Regulated World 🌍💊At Aarti Drugs, we go beyond just manufacturing Active Pharmaceutical Ingredients (APIs) — we deliver trust, quality, and regulatory confidence to pharmaceutical partners across Europe and beyond.With nearly 42 years of experience, we’re proud to be the go-to API partner for companies operating in highly regulated markets. Whether you're launching a new formulation or scaling up existing production, we offer flexible, end-to-end solutions designed to help your business grow.🧪 Focused Expertise in Anti-Inflammatory APIsWe specialize in a broad portfolio with strong capabilities in key anti-inflammatory compounds like:• Aceclofenac• Celecoxib• Diclofenac• Nimesulide... and more — all tailored for regulated markets and manufactured in EU-compliant facilities with full documentation support. Why European Pharma Trusts Us✔ Seamless Global Exports – backed by an experienced logistics team✔ Regulatory Confidence – from dossiers to DMFs, we’ve got you covered✔ Custom Solutions – including tailored packaging and flexible delivery formats✔ Free Development Samples – to support your R&D and trialsLet’s connect if you're looking to:✅ Strengthen your API supply chain✅ Launch or expand in regulated markets✅ Partner with a reliable, EU-compliant API manufacturerWe’re here to support your success with science, service, and long-term collaboration.Let’s start a conversation. 🤝",
+          "company_type": "Public Company",
+          "status": "active",
+          "year_founded": 1984,
+          "employee_count_range": "1001-5000",
+          "markets": [
+            "NSE",
+            "BSE"
+          ]
+        },
+        "revenue": {
+          "estimated": {
+            "lower_bound_usd": 500000000,
+            "upper_bound_usd": 1000000000
+          },
+          "public_markets": {
+            "ipo_date": null,
+            "stock_symbols": [
+              "AARTIDRUGS",
+              "524348"
+            ],
+            "fiscal_year_end": ""
+          },
+          "acquisition_status": ""
+        },
+        "headcount": {
+          "total": 928
+        },
+        "software_reviews": null,
+        "funding": {
+          "is_investor": false,
+          "contact_email": null,
+          "phone_number": null,
+          "total_investment_usd": null,
+          "last_round_amount_usd": null,
+          "last_fundraise_date": null,
+          "last_round_type": null,
+          "investors": null
+        },
+        "hiring": null,
+        "locations": {
+          "country": "IND",
+          "headquarters": "Transit Camp, Raoli Camp, Chunabhatti, Sion, Mahārāshtra, India",
+          "street_address": "Sion East, Transit Camp, Raoli Camp, Chunabhatti, Sion, Mahārāshtra",
+          "city": "Transit Camp, Raoli Camp, Chunabhatti, Sion",
+          "state": "Mahārāshtra",
+          "all_office_addresses": []
+        },
+        "maps": null,
+        "social_profiles": {
+          "twitter_url": "",
+          "professional_network": {
+            "url": "https://www.linkedin.com/company/aarti-drugs-limited",
+            "id": "3939740"
+          }
+        },
+        "taxonomy": {
+          "professional_network_industry": "Pharmaceutical Manufacturing"
+        },
+        "followers": {
+          "count": 11974,
+          "mom_percent": 4.022239596907306,
+          "qoq_percent": 11.69776119402985,
+          "six_months_growth_percent": 23.252702007205354,
+          "yoy_percent": 76.29564193168433
+        }
+      },
+      {
+        "crustdata_company_id": 17,
+        "metadata": {
+          "growth_calculation_date": "2026-10-27T23:08:48+00:00",
+          "updated_at": "2026-10-30T00:23:30Z",
+          "indexed_at": "2026-10-30T00:23:30Z"
+        },
+        "basic_info": {
+          "name": "Aarti Industries Ltd.",
+          "crustdata_company_id": 17,
+          "primary_domain": "aarti-industries.com",
+          "all_domains": [
+            "aarti-industries.com"
+          ],
+          "website": "http://www.aarti-industries.com",
+          "professional_network_url": "https://www.linkedin.com/company/aarti-industries",
+          "professional_network_id": "1500330",
+          "profile_name": "Aarti Industries Ltd.",
+          "logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/d69b2128b3543f99fc14324c33131a408a0cb13c2b05ce135b851f22608c7950.jpg",
+          "description": "Aarti Industries Limited (AIL) is one of the world's leading speciality chemical companies combining process chemistry competence with scale-up engineering competence. Over the years, we have transformed from an Indian company servicing global markets to a global company selecting to manufacture out of India. We globally rank between 1st – 4th position for 75% of our portfolio and are a \"Partner of Choice\" for over 400+ major global & 700+ domestic customers spread across 60 countries with a major presence in the USA, Europe, and Japan.With a de-risked portfolio which is multi-product, multi-geography, multi-customer and multi-industry, we operate through 16 manufacturing sites. With an offering of 100+ products, we cater to a range of end-use products and industries comprising Agrochemicals, Pharmaceuticals, Polymers, Pigments, Printing Inks, Dyes, Fuel additives, Aromatics, and Surfactants.",
+          "company_type": "Public Company",
+          "status": "active",
+          "year_founded": 1984,
+          "employee_count_range": "5001-10000",
+          "markets": [
+            "NSE",
+            "BSE"
+          ]
+        },
+        "revenue": {
+          "estimated": {
+            "lower_bound_usd": 1000000000,
+            "upper_bound_usd": 1000000000000
+          },
+          "public_markets": {
+            "ipo_date": "1995-02-08",
+            "stock_symbols": [
+              "AARTIIND",
+              "AARTIGROUP",
+              "524208"
+            ],
+            "fiscal_year_end": ""
+          },
+          "acquisition_status": ""
+        },
+        "headcount": {
+          "total": 5235
+        },
+        "software_reviews": null,
+        "funding": {
+          "is_investor": false,
+          "contact_email": "info@aartigroup.com",
+          "phone_number": "+912267976666",
+          "total_investment_usd": 0.0,
+          "last_round_amount_usd": null,
+          "last_fundraise_date": null,
+          "last_round_type": "",
+          "investors": null
+        },
+        "hiring": null,
+        "locations": {
+          "country": "IND",
+          "headquarters": "Mulund Dd Road, Mulund West, S.B. Road, Nehru Road (Mumbai), Nahur, Maharashtra, India",
+          "street_address": "Mulund Goregaon Link Road, Mulund, Mulund Dd Road, Mulund West, S.B. Road, Nehru Road (Mumbai), Nahur, Maharashtra",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "all_office_addresses": []
+        },
+        "maps": null,
+        "social_profiles": {
+          "twitter_url": "https://x.com/usentrywaiver",
+          "professional_network": {
+            "url": "https://www.linkedin.com/company/aarti-industries",
+            "id": "1500330"
+          }
+        },
+        "taxonomy": {
+          "professional_network_industry": "Chemical Manufacturing"
+        },
+        "followers": {
+          "count": 247290,
+          "mom_percent": 0.8729349377931878,
+          "qoq_percent": 2.580588960007301,
+          "six_months_growth_percent": 5.093389430738828,
+          "yoy_percent": 14.194808613213517
+        }
+      },
+      {
+        "crustdata_company_id": 25,
+        "metadata": {
+          "growth_calculation_date": "2026-10-27T23:08:48+00:00",
+          "updated_at": "2026-10-30T06:25:46Z",
+          "indexed_at": "2026-10-30T06:25:46Z"
+        },
+        "basic_info": {
+          "name": "Aditya Birla Capital",
+          "crustdata_company_id": 25,
+          "primary_domain": "adityabirlacapital.com",
+          "all_domains": [
+            "adityabirla.com",
+            "adityabirlacapital.com"
+          ],
+          "website": "http://adityabirlacapital.com/careers",
+          "professional_network_url": "https://www.linkedin.com/company/aditya-birla-capital",
+          "professional_network_id": "40439053",
+          "profile_name": "Aditya Birla Capital",
+          "logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/835e9f2af33f21dc13a674fdf7396afacd497211e8630a2a12c8a48d54f10413.jpg",
+          "description": "Aditya Birla Capital Ltd is a financial services company based out of One World Center, Tower 1, 18th Floor, Jupiter Mills Compound, 841, Senapati Bapat Marg, Elphinstone Road, MUMBAI, India.-Aditya Birla Capital is committed to provide equal opportunity to all in employment and prohibits discrimination or harassment in any form on the basis of race, colour, religion, ethnicity, age, gender, disability or any other characteristic protected by law. Diversity, Equity and Inclusion (DEI) is embedded in our recruitment policies based on our business needs and candidates meeting the eligibility criteria such as qualification, skills and experience.",
+          "company_type": "Public Company",
+          "status": "active",
+          "year_founded": 1994,
+          "employee_count_range": "10001+",
+          "markets": [
+            "NSE",
+            "BSE"
+          ]
+        },
+        "revenue": {
+          "estimated": {
+            "lower_bound_usd": 1000000000,
+            "upper_bound_usd": 1000000000000
+          },
+          "public_markets": {
+            "ipo_date": "2017-09-01",
+            "stock_symbols": [
+              "ABSLAMC",
+              "ADITYABIRLACAPITAL",
+              "540691",
+              "ABCAPITAL"
+            ],
+            "fiscal_year_end": ""
+          },
+          "acquisition_status": ""
+        },
+        "headcount": {
+          "total": 32985
+        },
+        "software_reviews": null,
+        "funding": {
+          "is_investor": true,
+          "contact_email": "abc.secretarial@adityabirlacapital.com",
+          "phone_number": "+91 88288 00039",
+          "total_investment_usd": 1621204840.0,
+          "last_round_amount_usd": 412957073.0,
+          "last_fundraise_date": "2026-05-20",
+          "last_round_type": "post_ipo_equity",
+          "investors": [
+            "Abu Dhabi Investment Authority",
+            "Asian Infrastructure Investment Bank",
+            "BlackRock",
+            "Capital Group",
+            "Goldman Sachs",
+            "Grasim Industries",
+            "HDFC Standard Life Insurance",
+            "ICICI Prudential Life Insurance",
+            "ITI Mutual Fund",
+            "International Finance Corporation",
+            "M&G Investments",
+            "Massachusetts Institute of Technology",
+            "Morgan Stanley",
+            "Motilal Oswal Asset Management",
+            "National Pension System Trust",
+            "Norges Bank",
+            "Public Sector Pension Investment Board",
+            "Royal Bank of Canada",
+            "SBI Life Insurance",
+            "SBI Mutual Fund",
+            "Societe Generale",
+            "Surya Kiran Investments"
+          ]
+        },
+        "hiring": null,
+        "locations": {
+          "country": "IND",
+          "headquarters": "Delisle Road, Maharashtra, India",
+          "street_address": "One World Center, Tower 1, 18th Floor, Jupiter Mills Compound, 841, Senapati Bapat Marg, Elphinstone Road, Delisle Road, Maharashtra",
+          "city": "Delisle Road",
+          "state": "Maharashtra",
+          "all_office_addresses": []
+        },
+        "maps": {
+          "locations": [
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital, RG Bhawan Parbirhata, Sripally, Perbirhata, Bardhaman, West Bengal 713103",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Ground Floor, Aditya Birla Sun Life Insurance, Kuber's Building, No. 42/425, Pantheon Rd, opposite Bus Stop, Egmore, Chennai, Tamil Nadu 600008",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "F8P7+J4V ADITYA BIRLA CAPITAL, Behala Chowrasta, Sakher Bazar, Paschim Barisha, Kolkata, West Bengal 700008",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Ground Floor, Aditya Birla Health Insurance Co Ltd, Block No 3, Krishna Swamy St, Lakshmi Nagar, Ganapathipuram, Chromepet, Tambaram, Tamil Nadu 603001",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Gr, 2nd & 3rd Flr, Aditya Birla Capital Limited, Prem Kamla Tower, No. 45, Near City Hospital, Zone 2, Maharana Pratap Nagar, Bhopal, Madhya Pradesh 462011",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital Limited, Bell Rd, near Indira Chowk, Bharat Nagar, Sombartota, Koraput, Jeypore, Odisha 764001",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital Limited, Udgir - Bidar Rd, near Rajyog Bajaj, Ramchandra Nagar, Udgir, Maharashtra 413517",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Aditya Birla Capital Limited, City Centre Mall, No 3/1/9 & 10, CVRN Rd, near Tanishq Jewellery, Christian Colony, Karimnagar, Telangana 505001",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital Limited, Denkanikottai Rd, opp. Ramakrishna School, Railway Quarters, Hosur, Tamil Nadu 635109",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "2nd Floor, Aditya Birla Capital Limited, Kirans Arcade, No 35/A7, Denkanikottai Rd, Shanthi Nagar East, Shanthi Nagar West, Hosur, Tamil Nadu 635109",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital, Office No, 108 to 111, Gorakshan Rd, near Old It Square, Sindhi Colony, Akola, Maharashtra 444004",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "2nd Floor, Aditya Birla Capital Limited, Vishwa Complex, Mumbai Hwy, opposite Police Station, Omerga, Maharashtra 413606",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital Limited, 1st Ln, above Bank of India, New Colony, Rayagada, Odisha 765001",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "H. no: 11, Aditya Birla Capital, 10-411, O City, Azam Jahi Mills Colony, Warangal, Telangana 506013",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Khasra No 2126, 1st Floor, Aditya Birla Capital Limited, Rohtak - Delhi Rd, Dayanand Nagar, Dayanand Road, Kailash Colony, Bahadurgarh, Haryana 124507",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Aditya Birla Capital, Sy No 1601, 1st Flr, Mundada Heights Lane No 6, Parola Rd, Dhule, Maharashtra 424001",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "13th Flr, Aditya Birla Capital Limited, G Corp Tech Park, No. 1301-1304, Ghodbunder Rd, near Decathlon, Sai Nagar, Anand Nagar, Thane West, Thane, Maharashtra 400615",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "3rd Flr, Shivnath Cplx, Aditya Birla Capital, Chouhan Estate Plaza, GE Rd, near Maurya Talkies, Akash Ganga, Supela, Bhilai, Chhattisgarh 490023",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "2nd Flr, Aditya Birla Capital Limited, Dr. CS Pastil Shopping Complex, Megur Hospital Rd, near District Jail Road, Devi Colony, Nawadgeri, Bidar, Karnataka 585401",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "Aditya Birla Capital, Shop No 1, Ambernath, Mumbai, Maharashtra 421501",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "1st Floor, Aditya Birla Capital Limited, Mahalakshmi Central, Bangalore - Honnavar Hwy, opposite Rto Office, Ashok Nagar, Tumakur, Karnataka 572103",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "H No 1/98/2/11/3, Hitech City Rd, VIP Hills, Silicon Valley, Madhapur, Hyderabad, Telangana 500081, India",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "5/4/2, Tower, Tavarekere Main Rd, Krishna Murthi Layout, S.G. Palya, Bengaluru, Karnataka 560029, India",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            }
+          ]
+        },
+        "social_profiles": {
+          "twitter_url": "https://x.com/abcapital",
+          "professional_network": {
+            "url": "https://www.linkedin.com/company/aditya-birla-capital",
+            "id": "40439053"
+          }
+        },
+        "taxonomy": {
+          "professional_network_industry": "Financial Services"
+        },
+        "followers": {
+          "count": 831574,
+          "mom_percent": 3.030295521337701,
+          "qoq_percent": 10.551805829011583,
+          "six_months_growth_percent": 31.460848230376687,
+          "yoy_percent": 64.12050879737905
+        }
+      },
+      {
+        "crustdata_company_id": 29,
+        "metadata": {
+          "growth_calculation_date": "2026-10-29T04:14:33+00:00",
+          "updated_at": "2026-10-30T00:23:30Z",
+          "indexed_at": "2026-10-30T00:23:30Z"
+        },
+        "basic_info": {
+          "name": "Aban Offshore Limited",
+          "crustdata_company_id": 29,
+          "primary_domain": "abanoffshore.com",
+          "all_domains": [
+            "abanoffshore.com"
+          ],
+          "website": "http://abanoffshore.com",
+          "professional_network_url": "https://www.linkedin.com/company/aban-offshore-limited",
+          "professional_network_id": "697353",
+          "profile_name": "Aban Offshore Limited",
+          "logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f6fc7e4033dc0282b148406936fe9b32f868d1d427dcd5a2424ba831b6142d34.jpg",
+          "description": "Welcome to Aban Offshore!We are India's largest offshore drilling contractor in the private sector, offering world-class drilling and oil field services for offshore exploration and production of hydrocarbons to the oil industry in India and abroad.Our innovative and cost effective solutions make us one of the most efficient international drilling contractors. Thanks to a highly qualified professional team backed by years of experience and expertise, we continue to foray into newer waters.",
+          "company_type": "Public Company",
+          "status": "active",
+          "year_founded": 1986,
+          "employee_count_range": "1001-5000",
+          "markets": [
+            "NSE",
+            "PRIVATE",
+            "BSE"
+          ]
+        },
+        "revenue": {
+          "estimated": {
+            "lower_bound_usd": 500000000,
+            "upper_bound_usd": 1000000000
+          },
+          "public_markets": {
+            "ipo_date": null,
+            "stock_symbols": [
+              "523204",
+              "ABAN",
+              "ABANOFFSHORE"
+            ],
+            "fiscal_year_end": ""
+          },
+          "acquisition_status": ""
+        },
+        "headcount": {
+          "total": 889
+        },
+        "software_reviews": null,
+        "funding": {
+          "is_investor": false,
+          "contact_email": "abanoffshore@aban.com",
+          "phone_number": "+91 - 44 - 28195555",
+          "total_investment_usd": 0.0,
+          "last_round_amount_usd": null,
+          "last_fundraise_date": null,
+          "last_round_type": "",
+          "investors": null
+        },
+        "hiring": null,
+        "locations": {
+          "country": "IND",
+          "headquarters": "Ethiraj Salai, Egmore ND, Egmore, Tamil Nādu, India",
+          "street_address": "113, Janpriya crest, Pantheon Road. Egmore., Ethiraj Salai, Egmore ND, Egmore, Tamil Nādu",
+          "city": "Ethiraj Salai, Egmore ND, Egmore",
+          "state": "Tamil Nādu",
+          "all_office_addresses": [
+            "Temasek Boulevard,, Singapore, Singapore, SG",
+            "Spectrum Building, Office # 310, Oud Metha Road, P.O – 333897, Dubai., Dubai, UAE, AE",
+            "Carmen, Carmen, MX"
+          ]
+        },
+        "maps": {
+          "locations": [
+            {
+              "formatted_address": "Aban Offshore Limited, 113, Pantheon Rd, Egmore, Chennai, Tamil Nadu 600008",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            },
+            {
+              "formatted_address": "3RRQ+55M Aban Offshore, Vikas Center, Swami Vivekanand Rd, BEST Colony, Juhu, Mumbai, Maharashtra 400054",
+              "street_address": null,
+              "city": null,
+              "state": null,
+              "state_code": null,
+              "country": null,
+              "country_code": null,
+              "postal_code": null,
+              "timezone": null
+            }
+          ]
+        },
+        "social_profiles": {
+          "twitter_url": "",
+          "professional_network": {
+            "url": "https://www.linkedin.com/company/aban-offshore-limited",
+            "id": "697353"
+          }
+        },
+        "taxonomy": {
+          "professional_network_industry": "Oil and Gas"
+        },
+        "followers": {
+          "count": 44041,
+          "mom_percent": 0.7134853301013058,
+          "qoq_percent": 2.152483009765036,
+          "six_months_growth_percent": 4.172481491118102,
+          "yoy_percent": 14.273482096523093
+        }
+      }
+    ],
+    "next_cursor": "H4sIAAx25WoC_xXMMQ7DIAxA0atEzB0AyzbuVaoqAoOVISpqQoaq6t2bjP8N_-veR9s-85L3xd0nlzJXyLGCURFkAdEIgbC1UjSA-mTikZpVCkzFjFUxi6RGqILmbpPb-zbO1yPK86zRR15n7cfrwuiB-fcHhjb6BHYAAAA=",
+    "total_count": 20377
+  },
+  "fetched_at": "2026-10-31T05:01:00+00:00"
+}

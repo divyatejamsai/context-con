@@ -1,0 +1,449 @@
+{
+  "endpoint": "job/search",
+  "request": {
+    "filters": {
+      "op": "and",
+      "conditions": [
+        {
+          "field": "job_details.category",
+          "type": "=",
+          "value": "Engineering"
+        },
+        {
+          "field": "job_details.title",
+          "type": "(.)",
+          "value": "backend"
+        }
+      ]
+    },
+    "limit": 5
+  },
+  "status": 200,
+  "response": {
+    "job_listings": [
+      {
+        "company": {
+          "basic_info": {
+            "crustdata_company_id": 1906482,
+            "industries": [
+              "Information Technology & Services"
+            ],
+            "name": "DaCodes.",
+            "primary_domain": "dacodes.com",
+            "professional_network_id": "10017588",
+            "website": "https://dacodes.com"
+          },
+          "competitors": {
+            "websites": []
+          },
+          "followers": {
+            "count": 74290
+          },
+          "funding": {
+            "investors": null,
+            "last_fundraise_date": null,
+            "last_round_type": "",
+            "num_funding_rounds": null,
+            "total_investment_usd": null,
+            "valuation_usd": 0.0
+          },
+          "headcount": {
+            "largest_headcount_country": "MEX",
+            "range": "201-500",
+            "total": 231
+          },
+          "locations": {
+            "city": null,
+            "country": "United States",
+            "state": "Texas",
+            "street_address": "2700 Post Oak Blvd Galleria Office Tower I,, Houston, Texas"
+          },
+          "revenue": {
+            "acquisition_status": null,
+            "estimated": {
+              "lower_bound_usd": 20000000,
+              "upper_bound_usd": 50000000
+            },
+            "public_markets": {
+              "fiscal_year_end": "",
+              "stock_symbols": [
+                "DACODES."
+              ]
+            }
+          }
+        },
+        "content": {
+          "description": "¡Trabaja en DaCodes!\n\nSomos una firma de expertos en software y transformación digital de alto impacto.\n\nDurante 10 años hemos creado soluciones enfocadas en la tecnología e innovación gracias a nuestro equipo de +220 talentosos #DaCoders, Desarrolladores, arquitectos, Diseñadores UX/UI, PMs, QA testers y más, que se integran a nuestros proyectos con clientes en LATAM y Estados Unidos para lograr resultados sobresalientes.\n\nCon nosotros lograrás impulsar y acelerar tu desarrollo profesional, colaborando en diversidad de proyectos, sectores y giros empresariales.\n\nTrabajar en DaCodes te permitirá ser versátil y ágil al poder trabajar con diversas tecnologías y colaborar con profesionales de alto nivel.\n\nLos DaCoders tienen gran impacto en el éxito de nuestro negocio, así como en el éxito de nuestros clientes. Serás el experto que participará en nuestros proyectos y tendrás acceso a startups disruptivas y marcas globales; ¿Te pareció interesante?\n\n¡Estamos en busca de talento para unirse al equipo, vamos a trabajar juntos!\n\nEl candidato o candidata ideal tiene una combinación única de experiencia técnica, curiosidad, mentalidad lógica y analítica, proactividad, ownership, y gusto por el trabajo en equipo\n\nRequirements\n\nBuscamos un Backend Engineer con experiencia en el desarrollo de aplicaciones backend utilizando Node.js y TypeScript. El candidato ideal tendrá una sólida comprensión de las arquitecturas de microservicios, buenas prácticas de desarrollo y experiencia en la creación de sistemas escalables y de alto rendimiento.\n\nResponsabilidades\n\nDesarrollar y mantener soluciones backend robustas y escalables utilizando Node.js y TypeScript.Diseñar y crear API RESTful eficientes y seguras para la integración con otros servicios.Experiencia con GCP ,loud functions, secret manager, terraform, serverless, Github, Github actions, MonorepoConocimiento previo trabajando con herramientas de IA Colaborar con equipos multidisciplinarios, incluidos frontend developers, diseñadores y product managers, para garantizar la implementación de soluciones efectivas.Implementar pruebas unitarias y de integración para asegurar la calidad y la estabilidad del código.Trabajar con bases de datos relacionales y no relacionales (SQL, NoSQL), garantizando una correcta integración con las aplicaciones.Optimizar el rendimiento y la escalabilidad de las aplicaciones backend.Participar en revisiones de código y aportar mejoras al proceso de desarrollo.Documentar el código y los procesos de desarrollo de manera clara y eficiente.\n\nRequisitosExperiencia y habilidades técnicas\n\nAl menos 4 años de experiencia como Backend Engineer o desarrollador similar.Experiencia sólida con Node.js y TypeScript.Conocimiento de API RESTful y buenas prácticas de diseño de API.Experiencia con bases de datos SQL (MySQL, PostgreSQL) y NoSQL (MongoDB, DynamoDB, etc.).Familiaridad con la implementación de pruebas unitarias e integración (Jest, Mocha, Chai, similares).Conocimiento de control de versiones con Git.Experiencia con la implementación de soluciones escalables y optimización de rendimiento. \n\nHabilidades blandas\n\nCapacidad para trabajar de manera independiente y colaborar eficazmente en equipo.Actitud proactiva para resolver problemas complejos y generar soluciones eficientes.Habilidades de comunicación clara tanto en inglés como en español (si aplica), para colaborar con equipos internacionales.Orientación al detalle y capacidad para escribir código limpio y mantenible.\n\nBenefits\n\nIntegración a marcas globales y startups disruptivas\n\nTrabajo remoto/Home office.\n\nEn caso de requerir modalidad híbrida o presencial, serás informado desde la primera sesión.\n\n⏳ Horario ajustado a la célula de trabajo/proyecto asignado.\n\nTrabajo de lunes a viernes.\n\nDía off en tu cumpleaños.\n\nSeguro de gastos médicos mayores (aplica para México).\n\n️ Seguro de vida (aplica para México).\n\nEquipos de trabajo multiculturales.\n\nAcceso a cursos y certificaciones.\n\nMeetups con invitados especiales del área de IT.\n\nEventos virtuales de integración y grupos de interés.\n\nClases de inglés.\n\nOportunidades dentro de nuestras diferentes líneas de negocio.\n\nOrgullosamente certificados como Great Place to Work."
+        },
+        "crustdata_job_id": 7568043464686551,
+        "job_details": {
+          "category": "Engineering",
+          "employment_type": "full_time",
+          "job_id": 7568043464686551,
+          "number_of_openings": null,
+          "reposted_job": false,
+          "source": "professional_network",
+          "title": "Backend Engineer (Nodejs/TypeScript)",
+          "url": "https://www.linkedin.com/jobs/view/4483764607",
+          "workplace_type": null
+        },
+        "location": {
+          "city": "Mexico City",
+          "country": "Mexico",
+          "district": null,
+          "pincode": null,
+          "raw": "Mexico City, Mexico",
+          "state": "Mexico City"
+        },
+        "metadata": {
+          "date_added": "2026-10-26T23:37:26",
+          "date_updated": "2026-10-27T00:00:00"
+        }
+      },
+      {
+        "company": {
+          "basic_info": {
+            "crustdata_company_id": 1190850,
+            "industries": [
+              "IT Services and IT Consulting",
+              "Professional Services"
+            ],
+            "name": "IRIUM Portugal",
+            "primary_domain": "irium.pt",
+            "professional_network_id": "71121294",
+            "website": "https://www.irium.pt"
+          },
+          "competitors": {
+            "websites": []
+          },
+          "followers": {
+            "count": 39283
+          },
+          "headcount": {
+            "largest_headcount_country": "PRT",
+            "range": "51-200",
+            "total": 14
+          },
+          "locations": {
+            "city": null,
+            "country": "Portugal",
+            "state": "Lisbon",
+            "street_address": "Avenida António Augusto de Aguiar, Nº 27, Lisboa, Lisbon"
+          },
+          "revenue": {
+            "acquisition_status": null,
+            "estimated": {
+              "lower_bound_usd": 10000000,
+              "upper_bound_usd": 20000000
+            },
+            "public_markets": {
+              "fiscal_year_end": "",
+              "stock_symbols": [
+                "IRIUMPORTUGAL"
+              ]
+            }
+          }
+        },
+        "content": {
+          "description": "Na IRIUM queremos que persigas sempre os teus sonhos! Aqui, prepara-te para conquistares as tuas metas, enquanto desfrutas do caminho.\n\nAtualmente encontramo-nos à procura de um(a) Backend Developer – Java EE para integrar um projeto tecnológico desafiante, com foco no desenvolvimento, manutenção e evolução de soluções Backend em ambiente empresarial.\n\nRequired Competencies:\n\nMais de 5 anos de experiência profissional em desenvolvimento de softwareExperiência sólida em Java EE (Java Enterprise Edition)Experiência prática com CDI (Contexts and Dependency Injection)Experiência com EJB (Enterprise JavaBeans)Conhecimentos sólidos de JPA/HibernateExperiência com JMS (Java Message Service)Conhecimentos sólidos de SQL\n\nPreferred Competencies:\n\nExperiência em projetos empresariais complexos com tecnologias Java EnterpriseBoas competências de análise, resolução de problemas e trabalho em equipa\n\nRegime: Híbrido – Oeiras, Portugal.\n\nSalário Bruto Mensal: 2.650 €–2.950 €.\n\nNota: A remuneração indicada corresponde à faixa bruta mensal. Os restantes componentes remuneratórios e benefícios serão esclarecidos durante o processo de recrutamento.\n\nO que oferecemos?\n\nUma empresa inovadora e em crescimento, com muitas oportunidades de desenvolvimento profissionalRetribuição de acordo com a tua experiência e performance. Acesso a retribuição flexível e seguro médico como benefício socialAcesso ilimitado a formação tecnológica em modalidade livre\n\nA IRIUM é uma empresa formada por profissionais dinâmicos e proativos. Os nossos valores são a responsabilidade e o compromisso com a qualidade do trabalho. Este é o espírito que procuramos na IRIUM, seja qual for a tua idade.\n\nSe te reconheces nestes valores, esta é a tua empresa!\n\nPodemos construir juntos o futuro. Falamos?\n\nEnvia a tua candidatura para: recrutamento@irium.pt\n\nNa IRIUM defendemos um mundo sem estereótipos nem limitações e acreditamos na igualdade para todos, princípios que subscrevemos no nosso Plano de Igualdade e Código de Ética, garantindo a igualdade de tratamento e de oportunidades à margem de qualquer condição pessoal, física ou social.\n\nPowered by JazzHR\n\nVePhEWFVzx"
+        },
+        "crustdata_job_id": 7788311207687895,
+        "job_details": {
+          "category": "Engineering",
+          "employment_type": "full_time",
+          "job_id": 7788311207687895,
+          "number_of_openings": null,
+          "reposted_job": false,
+          "source": "professional_network",
+          "title": "Backend Developer",
+          "url": "https://www.linkedin.com/jobs/view/4483734989",
+          "workplace_type": "On-site"
+        },
+        "location": {
+          "city": "Lisbon",
+          "country": "Portugal",
+          "district": "Lisbon",
+          "pincode": null,
+          "raw": "Lisboa, Lisbon, Portugal",
+          "state": "Lisbon"
+        },
+        "metadata": {
+          "date_added": "2026-10-26T22:22:31",
+          "date_updated": "2026-10-27T00:00:00"
+        }
+      },
+      {
+        "company": {
+          "basic_info": {
+            "crustdata_company_id": 2233748,
+            "industries": [
+              "IT Services and IT Consulting",
+              "Professional Services"
+            ],
+            "name": "TheWhiteam",
+            "primary_domain": "twtspain.com",
+            "professional_network_id": "2645966",
+            "website": "https://twtspain.com"
+          },
+          "competitors": {
+            "websites": []
+          },
+          "followers": {
+            "count": 20288
+          },
+          "funding": {
+            "investors": null,
+            "last_fundraise_date": null,
+            "last_round_type": "",
+            "num_funding_rounds": null,
+            "total_investment_usd": null,
+            "valuation_usd": 0.0
+          },
+          "headcount": {
+            "largest_headcount_country": "ESP",
+            "range": "201-500",
+            "total": 88
+          },
+          "locations": {
+            "city": null,
+            "country": "Spain",
+            "state": "Comunidad de Madrid",
+            "street_address": "Ronda de Poniente, 14, Tratamiento De Aguas (Goloso, El), Soto De Viñuelas, Castillo De Viñuelas, Tres Cantos, Valdeloshielos, De Los (Finca), Jarillas, De Las (Finca), Madrid-Colmenar Viejo, Del Km. 17,500 Al 22,600 (Carretera), Colonia Militar El Goloso, Laboratorio Mopu, Km. 18,6, Valdelamasa, De (Finca), Cedex, Goloso, De El (Estacion), Colonia Valdecastellanos, Comunidad de Madrid"
+          },
+          "revenue": {
+            "acquisition_status": null,
+            "estimated": {
+              "lower_bound_usd": 50000000,
+              "upper_bound_usd": 100000000
+            },
+            "public_markets": {
+              "fiscal_year_end": "",
+              "stock_symbols": [
+                "THEWHITEAM"
+              ]
+            }
+          }
+        },
+        "content": {
+          "description": "Descripción del puesto\n\nDesde THEWHITEAM Consulting buscamos un/a Desarrollador/a Backend Java para incorporarse a un proyecto centrado en el desarrollo de servicios y APIs REST.\n\nLa persona seleccionada trabajará en tareas relacionadas con el desarrollo de servicios backend, la implementación de APIs y la seguridad de las interfaces de comunicación, participando en soluciones basadas en tecnologías Java y entornos ASO/APX.\n\nResponsabilidades\n\nDesarrollar y mantener servicios backend utilizando Java.Diseñar, desarrollar e integrar APIs REST.Participar en tareas relacionadas con la seguridad de las APIs.Colaborar en la implementación y mejora de servicios backend.Contribuir a la calidad, fiabilidad y correcto funcionamiento de las soluciones desarrolladas.\n\nRequisitos\n\nAl menos 3 años de experiencia en desarrollo backend.Experiencia en desarrollo de servicios con Java.Experiencia en diseño y desarrollo de APIs REST.Conocimientos relacionados con la seguridad de APIs.Capacidad para analizar necesidades técnicas y desarrollar soluciones backend.Experiencia en entornos ASO/APX.\n\nCondiciones\n\nExperiencia: 3 años.Tarifa de referencia: 30-32K SBA.Ubicación, modalidad de trabajo y duración: No especificadas.\n\nCompañía\n\nFormar parte de THEWHITEAM es colaborar con una empresa formada por profesionales con una dilatada experiencia en consultoría tecnológica.\n\nCreemos firmemente que las empresas y clientes marcan el camino a seguir en el sector, pero este lo construyen las personas. Consideramos que nuestro equipo humano es nuestro principal activo y una parte fundamental del valor que aportamos.\n\nBeneficios\n\nNuestro convenio es el de Consultoras y estudios de mercado.Tenemos 23 días de vacaciones al año.Tenemos 14 pagas, 12 mensuales y dos extras (junio y diciembre).Como retribución flexible, ofrecemos ticket guardería y seguro médico + dental."
+        },
+        "crustdata_job_id": 104515043940051,
+        "job_details": {
+          "category": "Engineering",
+          "employment_type": "full_time",
+          "job_id": 104515043940051,
+          "number_of_openings": null,
+          "reposted_job": false,
+          "source": "professional_network",
+          "title": "Desarrollador/a Backend Java | APIs REST y Seguridad",
+          "url": "https://www.linkedin.com/jobs/view/4483257702",
+          "workplace_type": "Remote"
+        },
+        "location": {
+          "city": null,
+          "country": "Spain",
+          "district": null,
+          "pincode": null,
+          "raw": "Spain",
+          "state": null
+        },
+        "metadata": {
+          "date_added": "2026-10-26T22:11:39",
+          "date_updated": "2026-10-27T00:00:00"
+        }
+      },
+      {
+        "company": {
+          "basic_info": {
+            "crustdata_company_id": 1486047,
+            "industries": [
+              "Staffing and Recruiting",
+              "Administrative and Support Services"
+            ],
+            "name": "Talently",
+            "primary_domain": "talently.com",
+            "professional_network_id": "74097560",
+            "website": "https://talently.com"
+          },
+          "competitors": {
+            "websites": []
+          },
+          "followers": {
+            "count": 188494
+          },
+          "funding": {
+            "investors": null,
+            "last_fundraise_date": null,
+            "last_round_type": "",
+            "num_funding_rounds": null,
+            "total_investment_usd": null,
+            "valuation_usd": 0.0
+          },
+          "headcount": {
+            "largest_headcount_country": "USA",
+            "range": "11-50",
+            "total": 34
+          },
+          "locations": {
+            "city": null,
+            "country": "United States",
+            "state": "California",
+            "street_address": "Newport Beach, California, United States"
+          },
+          "revenue": {
+            "acquisition_status": null,
+            "estimated": {
+              "lower_bound_usd": 2500000,
+              "upper_bound_usd": 5000000
+            },
+            "public_markets": {
+              "fiscal_year_end": "",
+              "stock_symbols": [
+                "TALENTLYRECRUITING"
+              ]
+            }
+          }
+        },
+        "content": {
+          "description": "A growing consumer marketplace is hiring a Staff Backend Engineer to lead the architecture and evolution of its core platform and external APIs.\nThe company is expanding an established product into new categories, markets, and distribution channels. You’ll shape the technical foundation for that growth, make meaningful architectural decisions, and build systems that other engineers and partners depend on. This is a hands on individual contributor role with broad ownership and direct access to engineering leadership. You’ll write production code, guide technical direction, and help other engineers deliver.\nTech stack is open. We’re looking for strong backend engineers with solid fundamentals, sound technical judgment, and the ability to learn quickly. Our environment includes Ruby on Rails, Node.js, Postgres, and AWS, but experience with our specific stack is not required.\nThis is a full time position based in Manhattan, NYC. Monday through Thursday is in office work and Fridays are remote work.\nResponsibilities:Lead architecture and technical direction for core backend systems and partner-facing APIs.Write production code and guide implementation across multiple backend engineers.Design data models and system boundaries that support complex business rules and new product categories.Build stable, versioned APIs and reusable integration patterns.Ensure transactional correctness through concurrency controls, safe retries, recovery, and reconciliation.Evolve existing production systems through incremental migrations, testing, monitoring, and safe rollouts.Partner with engineering leadership, Product, and business stakeholders on priorities and technical tradeoffs.Mentor engineers through design reviews, code reviews, and pairing.Own technical outcomes from initial design through launch and ongoing operation.\nMust-Have Skills:8+ years of software engineering experience, or equivalent technical depth and demonstrated impact.Strong hands-on backend development skills and recent experience writing production code.Experience leading substantial technical projects across multiple engineers or teams.Experience designing transactional systems, external APIs, or integration platforms.Strong relational data modeling and system design fundamentals.An understanding of concurrency, consistency, asynchronous workflows, and production failure handling.A track record of safely evolving existing production systems.Clear communication, strong product thinking, and a curious, collaborative approach.\nNice to Have Skills:Payments, orders, inventory, reservations, or marketplace systems.Partner integrations and public APIs.Establishing technical patterns adopted by other engineers or teams.\nBenefits:Equity.Medical, dental, and vision coverage.401(k).Unlimited PTO.Paid parental leave."
+        },
+        "crustdata_job_id": 8428825880234019,
+        "job_details": {
+          "category": "Engineering",
+          "employment_type": "full_time",
+          "job_id": 8428825880234019,
+          "number_of_openings": null,
+          "reposted_job": false,
+          "source": "professional_network",
+          "title": "Staff Backend Engineer",
+          "url": "https://www.linkedin.com/jobs/view/4483754000",
+          "workplace_type": "Hybrid"
+        },
+        "location": {
+          "city": null,
+          "country": "United States",
+          "district": null,
+          "pincode": null,
+          "raw": "New York City Metropolitan Area",
+          "state": null
+        },
+        "metadata": {
+          "date_added": "2026-10-26T21:44:56",
+          "date_updated": "2026-10-27T00:00:00"
+        }
+      },
+      {
+        "company": {
+          "basic_info": {
+            "crustdata_company_id": 632906,
+            "industries": [
+              "Financial Services"
+            ],
+            "name": "Lively, Inc.",
+            "primary_domain": "livelyme.com",
+            "professional_network_id": "11017335",
+            "website": "https://www.livelyme.com"
+          },
+          "competitors": {
+            "websites": [
+              "http://www.tangohealth.com",
+              "http://vivebenefits.com",
+              "http://www.healthequity.com"
+            ]
+          },
+          "followers": {
+            "count": 16669
+          },
+          "funding": {
+            "investors": [
+              "Ally Ventures",
+              "B Capital",
+              "Bossa Invest",
+              "Brad Flora",
+              "CSC Upshot",
+              "Cantos",
+              "Costanoa Ventures",
+              "Duro Ventures",
+              "Fifty Years",
+              "Frederic Kerrest",
+              "Friále",
+              "FundersClub",
+              "Haystack",
+              "Isaac Oates",
+              "Jeff Epstein",
+              "Liquid 2 Ventures",
+              "PJC",
+              "Paul Buchheit",
+              "SV Angel",
+              "Streamlined",
+              "Teamworthy Ventures",
+              "Thirty Five Ventures",
+              "Titanium Ventures",
+              "Transmedia Capital",
+              "Y Combinator"
+            ],
+            "last_fundraise_date": "2021-10-13T00:00:00",
+            "last_round_type": "series_c",
+            "num_funding_rounds": 5,
+            "total_investment_usd": 122200000.0,
+            "valuation_usd": 0.0
+          },
+          "headcount": {
+            "largest_headcount_country": "USA",
+            "range": "201-500",
+            "total": 175
+          },
+          "locations": {
+            "city": null,
+            "country": "United States",
+            "state": "California",
+            "street_address": "950 Mason St. #1355, San Francisco, California"
+          },
+          "revenue": {
+            "acquisition_status": null,
+            "estimated": {
+              "lower_bound_usd": 50000000,
+              "upper_bound_usd": 100000000
+            },
+            "public_markets": {
+              "fiscal_year_end": "",
+              "stock_symbols": [
+                "LIVELY"
+              ]
+            }
+          }
+        },
+        "content": {
+          "description": "About Lively Lively set out to raise the bar on benefit solutions, because we believe no one should have to sacrifice personal wellness for financial wellness. While traditional benefits focus more on transactions and less on the humans using them, Lively harnesses user-centric design and innovative technology to deliver an effortless experience for employers and account holders alike. Our modern HSA is consistently top-rated, and we have since expanded our offerings to provide a full suite of other benefits and services for companies, consumers, and financial institutions. Lively is a remote-first company, headquartered in San Francisco with employees across the US. Come join us and help make getting the value out of your benefits as simple as it should be. About the Role We are looking for a strong Senior Software Engineer who wants to create deep and meaningful product engagement experiences! We have an increasing user base, and you will be focusing on implementing and enhancing our investment and financial products. Our customers trust us with a lot: integrating seamlessly across financial institutions, moving funds, tracking balances, helping with their healthcare decisions, and keeping their data extremely secure. In order to take on this mission we’re building our applications on modern web technologies around HTML/CSS/Javascript/React, NodeJS/Typescript, PostgreSQL, Amazon Lambdas and Kinesis etc. You should be comfortable in contributing to every part of the stack: from UI to API development, to complex integrations with financial institutions and partners, and building infrastructure, but you will be expected to be focused mostly on backend development. You should feel comfortable in a fast paced, growing, and nimble environment, keeping in mind that everything we do is to better the lives of our users! Even though this position is based in Portugal, you will be working closely with US based employees. You must be fluent in both written and spoken English. Responsibilities Analyze and provide feedback on product requirements. Implement features and functionality with clean and maintainable codes. Take pride in software quality through rigorous functional testing and writing automated unit tests. Troubleshoot production issues, provide resolutions and recommendations for improvement. Skills & Experience 5+ years at a technology company in a software development or similar role. Fluent in both written and spoken English, with strong communication skills. Bachelor's degree in computer science, or equivalent. Strong knowledge in software design and familiarity with design patterns. Experienced with TypeScript, Javascript, and NodeJs. Strong fundamental understanding of relational DataBase (Postgresql, Mysql). Able to model and design intuitive and scalable schemas. Strong debugging skills and not afraid of getting hands dirty in other areas. Strong product delivery records. Experience with Agile/Scrum development methodology. Proven experience on building backend services with high availability and scalability requirements. Someone who isn't afraid of responsibility, a good sense of humor and a down-to-earth personality. This position is based in Portugal, and candidates are not eligible for the benefits or requirements below. The base salary listed is a range for this position. Actual pay will depend on the candidate’s location and experience. €80.000 &mdash; €90.000 EUR We encourage you to apply even if you do not meet all of the qualifications, but feel you would be a good fit for the position. Benefits & Perks We offer competitive salaries, stock options, medical, dental, vision, life and disability coverage. An HSA with employer contribution, FSA, paid parental leave, medical travel benefits, a 401k plan, flexible vacation policy, lifestyle spending accounts, and more! At Lively, we believe having diverse teams in which everyone can be their authentic self is key to our success. We encourage people from underrepresented backgrounds to apply. Pursuant to the San Francisco Fair Chance Ordinance, we will consider for employment qualified applicants with arrest and conviction records. Come join us in our mission to help people optimize their healthcare spending, maximize their savings, and better their livelihood! Lively Inc. participates in the E-Verify program. Learn more about E-Verify here: https://e-verify.uscis.gov/web/media/resourcesContents/E-Verify_Participation_Poster_ES.pdf #LI-Remote"
+        },
+        "crustdata_job_id": 6327702171817187,
+        "job_details": {
+          "category": "Engineering",
+          "employment_type": null,
+          "job_id": 6327702171817187,
+          "number_of_openings": null,
+          "reposted_job": null,
+          "source": "greenhouse",
+          "title": "Sr. Software Engineer (Backend) - Portugal",
+          "url": "https://job-boards.greenhouse.io/lively43/jobs/6234942004",
+          "workplace_type": null
+        },
+        "location": {
+          "city": null,
+          "country": "Portugal",
+          "district": null,
+          "pincode": null,
+          "raw": "Portugal - Remote",
+          "state": null
+        },
+        "metadata": {
+          "date_added": "2026-10-26T18:35:37",
+          "date_updated": "2026-10-26T19:06:56"
+        }
+      }
+    ],
+    "next_cursor": "H4sIAA125WoC_xWMOQ7CQBAEv2Jt7GAu78zwFYSsPYwcIFb4CCzE37GDTkpV_Q2ffVqOcU7rHG5d4OpFc6k0kDAKQQaVYoZOlt24Dk6CJ60SJ9VoCYmtPPPkmQVL6LuwtmU7v-6ozsCurADQd5FJFQgV7Zo-TnVrW3qNpe3vq0CAiPD7A6_m-9iUAAAA",
+    "total_count": 100610
+  },
+  "fetched_at": "2026-10-31T05:01:01+00:00"
+}
