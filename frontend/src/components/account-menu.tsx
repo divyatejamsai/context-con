@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, LogOut } from "lucide-react";
+import { BadgeCheck, LogOut, Plus } from "lucide-react";
 import type { AuthCompany, AuthUser } from "@/lib/auth";
 
 /** Avatar button in the app header: who's signed in, which workspace, and log out. */
@@ -25,9 +25,9 @@ export function AccountMenu() {
   if (!me) return null;
   const initials = me.user.full_name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
-  async function logout() {
+  async function logout(to = "/login?reason=logout") {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-    router.replace("/login?reason=logout");
+    router.replace(to);
     router.refresh();
   }
 
@@ -53,7 +53,10 @@ export function AccountMenu() {
               {me.company.verified_via === "demo" && " · demo"}
             </p>
           </div>
-          <button onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-hover hover:text-foreground">
+          <button onClick={() => logout("/signup")} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-hover hover:text-foreground">
+            <Plus className="size-3.5" /> Create a new workspace
+          </button>
+          <button onClick={() => logout()} className=" flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] text-muted-foreground hover:bg-hover hover:text-foreground">
             <LogOut className="size-3.5" /> Log out
           </button>
         </div>

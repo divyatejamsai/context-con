@@ -9,6 +9,7 @@ const REASONS: Record<string, string> = {
   expired: "Your session ended. Log in again to pick up where you left off.",
   backend: "Can't reach the Sourced backend right now. Start it (backend/scripts/demo_up.sh) and try again.",
   logout: "You're logged out.",
+  reset: "Password updated. Every other session was signed out.",
 };
 
 function LoginForm() {
@@ -56,7 +57,7 @@ function LoginForm() {
       </p>
 
       <div className="mt-6 space-y-4">
-        {reason && REASONS[reason] && !error && <Notice tone={reason === "logout" ? "success" : "info"}>{REASONS[reason]}</Notice>}
+        {reason && REASONS[reason] && !error && <Notice tone={reason === "logout" || reason === "reset" ? "success" : "info"}>{REASONS[reason]}</Notice>}
         {error && <Notice tone="error">{error}</Notice>}
 
         <form onSubmit={submit} className="space-y-4" noValidate>
@@ -64,7 +65,8 @@ function LoginForm() {
             <Input id="email" type="email" autoComplete="username" autoFocus value={email}
               onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
           </Field>
-          <Field label="Password" htmlFor="password">
+          <Field label="Password" htmlFor="password"
+            labelAside={<Link href={`/forgot${email ? `?email=${encodeURIComponent(email)}` : ""}`} className="text-[12.5px] font-normal text-muted-foreground hover:text-foreground hover:underline">Forgot password?</Link>}>
             <PasswordInput id="password" autoComplete="current-password" value={password}
               onChange={(e) => setPassword(e.target.value)} required />
           </Field>
@@ -76,6 +78,14 @@ function LoginForm() {
         <Button variant="secondary" onClick={demo} loading={busy === "demo"} disabled={busy !== null}>
           Use the demo workspace
         </Button>
+
+        <div className="mt-2 rounded-lg border border-border bg-elevated p-4">
+          <p className="text-[13.5px] font-medium">New to Sourced?</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Set up a workspace for your company in two steps. No sales call.</p>
+          <Link href="/signup" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-[14px] font-medium text-primary-foreground transition hover:bg-primary-strong">
+            Sign up your company
+          </Link>
+        </div>
       </div>
     </>
   );
@@ -83,7 +93,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <AuthShell>
+    <AuthShell switchTo="signup">
       <Suspense>
         <LoginForm />
       </Suspense>

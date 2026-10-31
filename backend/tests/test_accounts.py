@@ -99,3 +99,49 @@ def test_band_mapping():
     assert auth_api._band("10001+") == "5001+"
     assert auth_api._band("11-50") == "11-50"
     assert auth_api._band(None) is None
+
+
+def test_forgot_and_reset_password(client, monkeypatch):
+    sent = []
+
+    async def fake_send(to, name, link):
+        sent.append((to, link))
+    monkeypatch.setattr(auth_api, "send_reset_email", fake_send)
+    old = client.post("/api/auth/signup", json=SIGNUP).json()["token"]
+
+    # unknown email gets the same answer and sends nothing
+    assert client.post("/api/auth/forgot", json={"email": "ghost@acme.io"}).json()["ok"]
+    assert sent == []
+    r = client.post("/api/auth/forgot", json={"email": SIGNUP["email"]})
+    assert r.status_code == 200 and len(sent) == 1
+    to, link = sent[0]
+    assert to == SIGNUP["email"] and "/reset?token=" in link
+    token = link.split("token=")[1]
+
+    assert client.post("/api/auth/reset", json={"token": token, "password": "short"}).json()["field"] == "password"
+    r = client.post("/api/auth/reset", json={"token": token, "password": "a brand new passphrase"})
+    assert r.status_code == 200 and r.json()["token"]
+    # old sessions are signed out, the old password stops working, the new one works, the link is single-use
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {old}"}).status_code == 401
+    assert client.post("/api/auth/login", json={"email": SIGNUP["email"], "password": SIGNUP["password"]}).status_code == 401
+    assert client.post("/api/auth/login", json={"email": SIGNUP["email"], "password": "a brand new passphrase"}).status_code == 200
+    assert client.post("/api/auth/reset", json={"token": token, "password": "another passphrase!"}).json()["error"] == "reset_invalid"
+
+
+def test_forgot_rate_limit_and_missing_mailer(client, monkeypatch):
+    client.post("/api/auth/signup", json=SIGNUP)
+
+    async def refused(to, name, link):
+        raise ImportError("no mailer")
+    monkeypatch.setattr(auth_api, "send_reset_email", refused)
+    r = client.post("/api/auth/forgot", json={"email": SIGNUP["email"]})
+    assert r.status_code == 503 and r.json()["error"] == "email_unavailable"
+
+    sent = []
+
+    async def ok(to, name, link):
+        sent.append(link)
+    monkeypatch.setattr(auth_api, "send_reset_email", ok)
+    for _ in range(4):
+        client.post("/api/auth/forgot", json={"email": SIGNUP["email"]})
+    assert len(sent) == 2  # 3 per hour, and the refused one above counted

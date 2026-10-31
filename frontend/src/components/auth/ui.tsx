@@ -14,14 +14,21 @@ export function Logo() {
 }
 
 /** Two-column auth layout: the form on the left, what the workspace gives you on the right. */
-export function AuthShell({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
+export function AuthShell({ children, aside, switchTo }: { children: React.ReactNode; aside?: React.ReactNode; switchTo?: "login" | "signup" }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
       <div className="flex flex-col px-5 py-6 sm:px-10">
-        <Link href="/login" className="flex items-center gap-2 self-start">
-          <Logo />
-          <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/login" className="flex items-center gap-2">
+            <Logo />
+            <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
+          </Link>
+          {switchTo && (
+            <Link href={`/${switchTo}`} className="inline-flex h-8 items-center rounded-md border border-border-strong px-3 text-[13px] font-medium transition hover:bg-hover">
+              {switchTo === "signup" ? "Sign up" : "Log in"}
+            </Link>
+          )}
+        </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">{children}</div>
         <p className="text-[12px] text-faint">Runs under Countersign: every agent action is passport-checked and logged.</p>
       </div>
@@ -66,15 +73,17 @@ function ProductAside() {
   );
 }
 
-export function Field({ label, hint, error, optional, htmlFor, children }: {
-  label: string; hint?: string; error?: string | null; optional?: boolean; htmlFor?: string; children: React.ReactNode;
+export function Field({ label, hint, error, optional, htmlFor, labelAside, children }: {
+  label: string; hint?: string; error?: string | null; optional?: boolean; htmlFor?: string; labelAside?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="flex items-baseline justify-between text-[13px] font-medium">
-        {label}
+      <div className="flex items-baseline justify-between">
+        <label htmlFor={htmlFor} className="text-[13px] font-medium">{label}</label>
         {optional && <span className="text-[12px] font-normal text-faint">Optional</span>}
-      </label>
+        {labelAside}
+      </div>
       {children}
       {error ? (
         <p className="text-[12.5px] text-contradicted" role="alert">{error}</p>
