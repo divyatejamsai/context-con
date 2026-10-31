@@ -226,8 +226,8 @@ export default function Home() {
         <main className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] gap-5 px-4 py-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,500px)] 2xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,560px)]">
           <aside className="order-last min-w-0 lg:order-none lg:sticky lg:top-[76px] lg:max-h-[calc(100vh-96px)] lg:self-start lg:overflow-y-auto lg:pb-2 lg:pr-1">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-[20px] font-extrabold tracking-tight">Agent run</h2>
-              <span className="rounded-full border-2 border-ink bg-panel px-2 font-mono text-[10.5px] font-bold">{mode === "live" ? "LIVE · CRUSTDATA" : "REPLAY"}</span>
+              <h2 className="font-display text-[20px] font-bold tracking-tight">Agent run</h2>
+              <span className="rounded-full border-[1.5px] border-ink bg-panel px-2 font-mono text-[10.5px] font-bold">{mode === "live" ? "LIVE · CRUSTDATA" : "REPLAY"}</span>
             </div>
             <Trace run={run} now={now} />
           </aside>
@@ -237,12 +237,12 @@ export default function Home() {
             {run.criteria && <CriteriaChips criteria={run.criteria} />}
 
             {run.fatal && (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-ink bg-coral px-4 py-3 text-[13.5px] font-semibold text-on-color shadow-brut">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border-[1.5px] border-ink bg-coral px-4 py-3 text-[13.5px] font-semibold text-on-color shadow-brut">
                 <span>
-                  <span className="font-extrabold">Run failed.</span> {run.fatal}
+                  <span className="font-bold">Run failed.</span> {run.fatal}
                 </span>
                 {mode === "live" && (
-                  <button onClick={() => setMode("replay")} className="press h-8 rounded-lg border-2 border-[#111] bg-white px-3 text-[12.5px] font-bold text-[#111] shadow-[2px_2px_0_0_#111]">
+                  <button onClick={() => setMode("replay")} className="press h-8 rounded-lg border-[1.5px] border-[#111] bg-white px-3 text-[12.5px] font-bold text-[#111] shadow-[2px_2px_0_0_#111]">
                     Switch to replay
                   </button>
                 )}
@@ -252,9 +252,9 @@ export default function Home() {
             <Stats summary={run.summary} shortlisted={tiers.main.length} totals={totals} running={run.running} />
 
             <div className="mb-4 mt-6 flex flex-wrap items-center justify-between gap-2">
-              <h1 className="font-display flex items-baseline gap-2 text-[26px] font-extrabold tracking-tight">
+              <h1 className="font-display flex items-baseline gap-2 text-[26px] font-bold tracking-tight">
                 Shortlist
-                <span className="rounded-full border-2 border-ink bg-yellow px-2 text-[14px] text-on-color tabular-nums">{tiers.main.length}</span>
+                <span className="rounded-full border-[1.5px] border-ink bg-panel px-2 text-[14px] tabular-nums">{tiers.main.length}</span>
               </h1>
               <div className="flex flex-wrap items-center gap-2">
                 <Seg
@@ -267,7 +267,7 @@ export default function Home() {
                 />
                 <button
                   onClick={() => setHideContra((h) => !h)}
-                  className={cn("press inline-flex h-8 items-center gap-1.5 rounded-lg border-2 border-ink px-2.5 text-[12.5px] font-bold shadow-brut-sm", hideContra ? "bg-coral text-on-color" : "bg-panel")}
+                  className={cn("press inline-flex h-8 items-center gap-1.5 rounded-lg border-[1.5px] border-ink px-2.5 text-[12.5px] font-bold shadow-brut-sm", hideContra ? "bg-coral text-on-color" : "bg-panel")}
                   title="Hide candidates with any contradicted claim (H)"
                 >
                   {hideContra ? <X className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
@@ -301,13 +301,13 @@ export default function Home() {
                       <div key={key} className={cn(key === "other" && "opacity-70")}>
                         <button
                           onClick={() => setOpenTiers((t) => ({ ...t, [key]: !t[key] }))}
-                          className="press flex w-full items-center justify-between gap-3 rounded-xl border-2 border-dashed border-ink bg-panel px-4 py-3 text-left"
+                          className="press flex w-full items-center justify-between gap-3 rounded-xl border-[1.5px] border-dashed border-ink bg-panel px-4 py-3 text-left"
                           aria-expanded={openTiers[key]}
                         >
                           <span>
-                            <span className="font-display flex items-center gap-2 text-[17px] font-extrabold">
+                            <span className="font-display flex items-center gap-2 text-[17px] font-bold">
                               {title}
-                              <span className={cn("rounded-full border-2 border-ink px-1.5 text-[12px] text-[#111] tabular-nums", bg)}>{tiers[key].length}</span>
+                              <span className={cn("rounded-full border-[1.5px] border-ink px-1.5 text-[12px] text-[#111] tabular-nums", bg)}>{tiers[key].length}</span>
                             </span>
                             <span className="text-[12.5px] font-medium text-muted-foreground">{sub}</span>
                           </span>
@@ -346,13 +346,12 @@ export default function Home() {
           </section>
 
           {wide && (
-            <aside className="sticky top-[76px] hidden max-h-[calc(100vh-96px)] self-start overflow-hidden rounded-xl border-2 border-ink bg-panel shadow-brut-lg xl:block">
+            <aside className="sticky top-[76px] hidden max-h-[calc(100vh-96px)] self-start overflow-hidden rounded-xl border-[1.5px] border-ink bg-panel shadow-brut-lg xl:block">
               <div className="max-h-[calc(100vh-100px)] overflow-y-auto">
                 {dossier ?? (
                   <div className="grid min-h-80 place-items-center p-8 text-center">
                     <div>
-                      <div className="font-display text-[44px] font-extrabold leading-none">👀</div>
-                      <p className="mt-3 text-[14px] font-semibold">{run.running ? "The top candidate lands here once their claims are checked." : "Pick a candidate."}</p>
+                                            <p className="mt-3 text-[14px] font-semibold">{run.running ? "The top candidate lands here once their claims are checked." : "Pick a candidate."}</p>
                     </div>
                   </div>
                 )}
@@ -364,7 +363,7 @@ export default function Home() {
 
       {!wide && (
         <Sheet open={sheetOpen && !!dossier} onOpenChange={setSheetOpen}>
-          <SheetContent className="border-l-2 border-ink bg-panel">
+          <SheetContent className="border-l-[1.5px] border-ink bg-panel">
             <SheetTitle className="sr-only">{cur?.name ?? "Candidate"}</SheetTitle>
             <div className="h-full overflow-y-auto">{dossier}</div>
           </SheetContent>
@@ -378,7 +377,7 @@ export default function Home() {
 
 function Logo() {
   return (
-    <span className="grid size-8 -rotate-6 place-items-center rounded-lg border-2 border-ink bg-yellow shadow-brut-sm">
+    <span className="grid size-8 place-items-center rounded-lg border-[1.5px] border-ink bg-yellow shadow-brut-sm">
       <Check className="size-4 text-[#111]" strokeWidth={4} />
     </span>
   );
@@ -388,16 +387,16 @@ function TopBar({
   mode, setMode, running, done, elapsed, started, onHelp,
 }: { mode: RunMode; setMode: (m: RunMode) => void; running: boolean; done: boolean; elapsed: number; started: boolean; onHelp: () => void }) {
   return (
-    <header className="sticky top-0 z-30 h-14 border-b-2 border-ink bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-30 h-14 border-b-[1.5px] border-ink bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-full max-w-[1680px] items-center justify-between gap-4 px-4">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo />
-          <span className="font-display text-[22px] font-extrabold tracking-[-0.03em]">Sourced</span>
-          <span className="hidden rotate-2 rounded-md border-2 border-ink bg-lavender px-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-on-color sm:inline">on Crustdata</span>
+          <span className="font-display text-[20px] font-bold tracking-[-0.02em]">Sourced</span>
+          <span className="hidden rounded-md border-[1.5px] border-ink bg-panel px-1.5 text-[10.5px] font-semibold uppercase tracking-wider sm:inline">on Crustdata</span>
         </Link>
         <div className="flex items-center gap-2.5">
           {started && (
-            <span className="hidden items-center gap-1.5 rounded-full border-2 border-ink bg-panel px-2.5 py-0.5 font-mono text-[11px] font-bold tabular-nums sm:flex">
+            <span className="hidden items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-panel px-2.5 py-0.5 font-mono text-[11px] font-bold tabular-nums sm:flex">
               <span className={cn("size-2 rounded-full border border-ink", running ? "animate-pulse bg-yellow" : done ? "bg-lime" : "bg-elevated")} />
               {running ? "running" : done ? "done" : "stopped"} · {elapsed.toFixed(1)}s
             </span>
@@ -410,7 +409,7 @@ function TopBar({
               { v: "live", label: "Live", icon: <Radio className="size-3" /> },
             ]}
           />
-          <button onClick={onHelp} className="press hidden size-8 place-items-center rounded-lg border-2 border-ink bg-panel shadow-brut-sm sm:grid" aria-label="Keyboard shortcuts">
+          <button onClick={onHelp} className="press hidden size-8 place-items-center rounded-lg border-[1.5px] border-ink bg-panel shadow-brut-sm sm:grid" aria-label="Keyboard shortcuts">
             <Keyboard className="size-4" />
           </button>
         </div>
@@ -433,20 +432,14 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
   return (
     <main>
       <section className="relative mx-auto max-w-[1100px] px-4 pb-14 pt-14 sm:pt-20">
-        <span className="absolute right-4 top-10 hidden animate-wiggle rounded-full border-2 border-ink bg-pink px-3 py-1.5 text-[13px] font-extrabold text-on-color shadow-brut md:block">
-          0 humans in the loop
-        </span>
-        <span className="absolute left-2 top-48 hidden -rotate-12 rounded-lg border-2 border-ink bg-sky px-2.5 py-1 text-[12px] font-extrabold text-on-color shadow-brut-sm lg:block">
-          ✦ every claim cited
-        </span>
         <div className="mx-auto max-w-[860px] text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border-2 border-ink bg-panel px-3 py-1 text-[12.5px] font-bold shadow-brut-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-panel px-3 py-1 text-[12.5px] font-bold shadow-brut-sm">
             <span className="size-2 rounded-full border border-ink bg-lime" /> Recruiting agent · built on Crustdata&apos;s people graph
           </span>
-          <h1 className="font-display mt-6 text-[52px] font-extrabold leading-[0.92] tracking-[-0.045em] sm:text-[92px]">
+          <h1 className="font-display mt-6 text-[46px] font-bold leading-[0.98] tracking-[-0.04em] sm:text-[76px]">
             Hire on{" "}
             <span className="relative inline-block">
-              <span className="absolute inset-x-[-6px] bottom-[8%] top-[18%] -z-10 -rotate-2 rounded-lg border-2 border-ink bg-lime sm:bottom-[10%]" />
+              <span className="absolute inset-x-[-4px] bottom-[6%] top-[52%] -z-10 rounded-sm bg-lime" />
               receipts,
             </span>
             <br />
@@ -473,15 +466,14 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             }
           />
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            {EXAMPLES.map((ex, i) => (
+            {EXAMPLES.map((ex) => (
               <button
                 key={ex.label}
                 onClick={() => setBrief(ex.brief)}
                 className={cn(
-                  "press h-9 rounded-full border-2 border-ink px-3.5 text-[13px] font-bold shadow-brut-sm",
+                  "press h-9 rounded-full border-[1.5px] border-ink px-3.5 text-[13px] font-bold shadow-brut-sm",
                   brief === ex.brief ? "bg-yellow text-on-color" : "bg-panel",
                 )}
-                style={{ rotate: `${[-1.5, 1, -0.5, 1.5][i % 4]}deg` }}
                 title={ex.brief}
               >
                 {ex.label}
@@ -491,13 +483,13 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
         </div>
       </section>
 
-      <div className="relative -rotate-1 overflow-hidden border-y-2 border-ink bg-ink py-3 text-background">
+      <div className="relative overflow-hidden border-y-[1.5px] border-ink bg-ink py-2.5 text-background">
         <div className="flex w-max animate-marquee gap-8 whitespace-nowrap">
           {[...TICKER, ...TICKER].map(([s, t], i) => (
-            <span key={i} className="inline-flex items-center gap-2 text-[14px] font-bold">
+            <span key={i} className="inline-flex items-center gap-2 text-[13px] font-medium">
               <span
                 className={cn(
-                  "grid size-5 place-items-center rounded-full border-2 border-background text-[11px] font-extrabold text-[#111]",
+                  "grid size-5 place-items-center rounded-full border-[1.5px] border-background text-[11px] font-bold text-[#111]",
                   s === "verified" ? "bg-lime" : s === "contradicted" ? "bg-coral" : "bg-[#d9d4c7]",
                 )}
               >
@@ -513,14 +505,14 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
         <Bento className="bg-lavender sm:col-span-4" n="01" title="Search like a sourcer" body="Expands the brief into title variants and searches the people graph. Zero results? It broadens the search on its own instead of giving up.">
           <div className="mt-4 flex flex-wrap gap-1.5">
             {["Senior Backend Engineer", "SDE III", "Backend Lead", "+ Bengaluru", "+ payments"].map((t) => (
-              <span key={t} className="rounded-md border-2 border-[#111] bg-white px-2 py-0.5 text-[12px] font-bold text-[#111]">{t}</span>
+              <span key={t} className="rounded-md border-[1.5px] border-[#111] bg-white px-2 py-0.5 text-[12px] font-bold text-[#111]">{t}</span>
             ))}
           </div>
         </Bento>
         <Bento className="bg-lime sm:col-span-2" n="02" title="Verify everything" body="Employer, tenure, location and company stage, each checked against enrich data.">
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {(["verified", "contradicted", "unverifiable"] as const).map((s, i) => (
-              <span key={s} className="rounded-full border-2 border-[#111] bg-white px-2 text-[11px] font-extrabold uppercase text-[#111]" style={{ rotate: `${[-3, 2, -1][i]}deg` }}>
+            {(["verified", "contradicted", "unverifiable"] as const).map((s) => (
+              <span key={s} className="rounded-full border-[1.5px] border-[#111] bg-white px-2 text-[11px] font-bold uppercase text-[#111]">
                 {s === "verified" ? "✓" : s === "contradicted" ? "✗" : "?"} {s}
               </span>
             ))}
@@ -528,7 +520,7 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
         </Bento>
         <Bento className="bg-sky sm:col-span-3" n="03" title="Cite every line" body="Each ranking reason links to the claim behind it, and each claim names the exact Crustdata endpoint and field it came from." />
         <Bento className="bg-coral sm:col-span-3" n="04" title="Draft, never send" body="Outreach is written for strong matches only, and it stays a draft. The agent never contacts anyone.">
-          <span className="mt-4 inline-block rotate-3 rounded-md border-2 border-[#111] bg-yellow px-2 py-0.5 text-[12px] font-extrabold uppercase tracking-wider text-[#111]">Draft · not sent</span>
+          <span className="mt-4 inline-block rounded-md border-[1.5px] border-[#111] bg-yellow px-2 py-0.5 text-[12px] font-bold uppercase tracking-wider text-[#111]">Draft · not sent</span>
         </Bento>
       </section>
     </main>
@@ -537,9 +529,9 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
 
 function Bento({ className, n, title, body, children }: { className?: string; n: string; title: string; body: string; children?: React.ReactNode }) {
   return (
-    <div className={cn("rounded-2xl border-2 border-ink p-6 text-[#111] shadow-brut-lg", className)}>
-      <div className="font-display text-[13px] font-extrabold">{n}</div>
-      <h3 className="font-display mt-2 text-[28px] font-extrabold leading-tight tracking-tight">{title}</h3>
+    <div className={cn("rounded-2xl border-[1.5px] border-ink p-6 text-[#111] shadow-brut-lg", className)}>
+      <div className="font-display text-[13px] font-bold">{n}</div>
+      <h3 className="font-display mt-2 text-[24px] font-bold leading-tight tracking-tight">{title}</h3>
       <p className="mt-2 max-w-[520px] text-[14.5px] font-medium leading-relaxed">{body}</p>
       {children}
     </div>
@@ -566,13 +558,14 @@ function useCountUp(target: number) {
   return v;
 }
 
-function Stat({ label, value, sub, className }: { label: string; value?: number; sub: string; className: string }) {
+function Stat({ label, value, sub, accent, alert }: { label: string; value?: number; sub: string; accent: string; alert?: boolean }) {
   const n = useCountUp(value ?? 0);
   return (
-    <div className={cn("rounded-xl border-2 border-ink p-3 text-[#111] shadow-brut", className)}>
-      <div className="text-[11px] font-extrabold uppercase tracking-wider">{label}</div>
-      <div className="font-display text-[34px] font-extrabold leading-none tabular-nums">{value === undefined ? "–" : n}</div>
-      <div className="mt-1 text-[11.5px] font-semibold opacity-75">{sub}</div>
+    <div className="relative overflow-hidden rounded-xl border-[1.5px] border-ink bg-panel p-3 pl-4 shadow-brut">
+      <span className={cn("absolute inset-y-0 left-0 w-1.5 border-r-[1.5px] border-ink", accent)} />
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={cn("font-display mt-0.5 text-[30px] font-bold leading-none tabular-nums", alert && "text-contradicted")}>{value === undefined ? "–" : n}</div>
+      <div className="mt-1 text-[11.5px] text-muted-foreground">{sub}</div>
     </div>
   );
 }
@@ -580,10 +573,10 @@ function Stat({ label, value, sub, className }: { label: string; value?: number;
 function Stats({ summary, shortlisted, totals, running }: { summary?: Record<string, number | undefined>; shortlisted: number; totals: { v: number; x: number; u: number }; running: boolean }) {
   return (
     <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-      <Stat label="Searched" value={summary?.searched} sub={running && summary?.searched === undefined ? "counting…" : "profiles found"} className="bg-lavender" />
-      <Stat label="Shortlisted" value={shortlisted} sub={summary?.enriched !== undefined ? `of ${summary.enriched} enriched` : "candidates"} className="bg-sky" />
-      <Stat label="Verified" value={totals.v} sub={`claims · ${totals.u} unverifiable`} className="bg-lime" />
-      <Stat label="Contradicted" value={totals.x} sub={totals.x ? "caught on the record" : "nothing caught yet"} className={totals.x ? "bg-coral" : "bg-[#e9e4d6]"} />
+      <Stat label="Searched" value={summary?.searched} sub={running && summary?.searched === undefined ? "counting…" : "profiles found"} accent="bg-lavender" />
+      <Stat label="Shortlisted" value={shortlisted} sub={summary?.enriched !== undefined ? `of ${summary.enriched} enriched` : "candidates"} accent="bg-sky" />
+      <Stat label="Verified" value={totals.v} sub={`claims · ${totals.u} unverifiable`} accent="bg-lime" />
+      <Stat label="Contradicted" value={totals.x} sub={totals.x ? "caught on the record" : "nothing caught yet"} accent="bg-coral" alert={totals.x > 0} />
     </div>
   );
 }
@@ -600,16 +593,17 @@ function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
   const more = chips.length - shown.length + extra;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-1.5 animate-fade">
-      <span className="mr-1 text-[12px] font-bold">Understood as →</span>
+      <span className="mr-1 text-[12px] font-semibold text-muted-foreground">Understood as</span>
       {shown.map((ch, i) => (
-        <span key={i} className={cn("inline-flex h-7 animate-pop items-center gap-1 rounded-md border-2 border-ink px-2 text-[12px] text-[#111]", ch.bg)} style={{ animationDelay: `${i * 40}ms` }}>
-          <span className="opacity-60">{ch.k}</span>
-          <span className="font-bold">{ch.v}</span>
+        <span key={i} className="inline-flex h-7 animate-pop items-center gap-1.5 rounded-md border-[1.5px] border-ink bg-panel px-2 text-[12px]" style={{ animationDelay: `${i * 40}ms` }}>
+          <span className={cn("size-2 rounded-full border border-ink", ch.bg)} />
+          <span className="text-muted-foreground">{ch.k}</span>
+          <span className="font-semibold">{ch.v}</span>
         </span>
       ))}
       {more > 0 && (
         <span
-          className="inline-flex h-7 items-center rounded-md border-2 border-dashed border-ink px-2 text-[12px] font-bold"
+          className="inline-flex h-7 items-center rounded-md border-[1.5px] border-dashed border-ink px-2 text-[12px] font-bold"
           title={[...(c.title_variants ?? []).map((t) => `title: ${t}`), ...(c.nice_to_haves ?? []).map((t) => `nice: ${t}`)].join("\n")}
         >
           +{more} more
@@ -621,7 +615,7 @@ function CriteriaChips({ criteria: c }: { criteria: Criteria }) {
 
 function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: React.ReactNode }[] }) {
   return (
-    <div className="inline-flex h-8 items-center overflow-hidden rounded-lg border-2 border-ink bg-panel text-[12.5px] shadow-brut-sm" role="radiogroup">
+    <div className="inline-flex h-8 items-center overflow-hidden rounded-lg border-[1.5px] border-ink bg-panel text-[12.5px] shadow-brut-sm" role="radiogroup">
       {options.map((o, i) => (
         <button
           key={o.v}
@@ -630,7 +624,7 @@ function Seg<T extends string>({ value, onChange, options }: { value: T; onChang
           onClick={() => onChange(o.v)}
           className={cn(
             "inline-flex h-full items-center gap-1.5 px-2.5 font-bold transition-colors",
-            i > 0 && "border-l-2 border-ink",
+            i > 0 && "border-l-[1.5px] border-ink",
             value === o.v ? "bg-ink text-background" : "hover:bg-hover",
           )}
         >
@@ -655,19 +649,19 @@ function ExportMenu({ disabled, onMd, onCsv, onJson }: { disabled: boolean; onMd
       <button
         disabled={disabled}
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        className="press inline-flex h-8 items-center gap-1.5 rounded-lg border-2 border-ink bg-panel px-2.5 text-[12.5px] font-bold shadow-brut-sm disabled:opacity-40"
+        className="press inline-flex h-8 items-center gap-1.5 rounded-lg border-[1.5px] border-ink bg-panel px-2.5 text-[12.5px] font-bold shadow-brut-sm disabled:opacity-40"
       >
         <Download className="size-3.5" /> Export
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border-2 border-ink bg-panel shadow-brut-lg animate-pop">
+        <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border-[1.5px] border-ink bg-panel shadow-brut-lg animate-pop">
           {[
             ["Markdown report", "Every claim with its source", onMd, "bg-lime"],
             ["CSV", "For a spreadsheet or ATS", onCsv, "bg-sky"],
             ["JSON", "Raw shortlist", onJson, "bg-lavender"],
           ].map(([l, d, fn, bg], i) => (
-            <button key={l as string} onClick={fn as () => void} className={cn("flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-hover", i > 0 && "border-t-2 border-ink")}>
-              <span className={cn("grid size-7 shrink-0 place-items-center rounded-md border-2 border-ink text-[#111]", bg as string)}>
+            <button key={l as string} onClick={fn as () => void} className={cn("flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-hover", i > 0 && "border-t-[1.5px] border-ink")}>
+              <span className={cn("grid size-7 shrink-0 place-items-center rounded-md border-[1.5px] border-ink text-[#111]", bg as string)}>
                 <FileText className="size-3.5" />
               </span>
               <span>
@@ -687,25 +681,25 @@ function Empty({ running, done, filtered }: { running: boolean; done: boolean; f
     return (
       <div className="flex flex-col gap-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="flex animate-pulse items-center gap-3 rounded-xl border-2 border-dashed border-ink/50 p-3" style={{ animationDelay: `${i * 150}ms` }}>
-            <div className="size-[42px] rounded-full border-2 border-dashed border-ink/50" />
+          <div key={i} className="flex animate-pulse items-center gap-3 rounded-xl border-[1.5px] border-dashed border-ink/50 p-3" style={{ animationDelay: `${i * 150}ms` }}>
+            <div className="size-[42px] rounded-full border-[1.5px] border-dashed border-ink/50" />
             <div className="flex-1 space-y-2">
               <div className="h-3.5 w-40 rounded bg-ink/15" />
               <div className="h-3 w-64 rounded bg-ink/10" />
             </div>
-            <div className="h-[52px] w-[60px] rounded-lg border-2 border-dashed border-ink/50" />
+            <div className="h-[52px] w-[60px] rounded-lg border-[1.5px] border-dashed border-ink/50" />
           </div>
         ))}
         <p className="text-[13px] font-semibold text-muted-foreground">Candidates drop in here as soon as their claims have been checked.</p>
       </div>
     );
   return (
-    <div className="rounded-xl border-2 border-dashed border-ink p-10 text-center">
+    <div className="rounded-xl border-[1.5px] border-dashed border-ink p-10 text-center">
       {filtered ? (
         <p className="text-[14px] font-semibold">Every candidate has at least one contradicted claim. Press <kbd>H</kbd> to show them.</p>
       ) : done ? (
         <>
-          <p className="font-display text-[28px] font-extrabold">No one matched 🤷</p>
+          <p className="font-display text-[28px] font-bold">No one matched</p>
           <p className="mt-1 text-[14px] text-muted-foreground">Try fewer must-haves or a wider location.</p>
         </>
       ) : (
@@ -730,8 +724,8 @@ function Shortcuts({ onClose }: { onClose: () => void }) {
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 animate-fade" onClick={onClose}>
-      <div className="w-full max-w-sm animate-pop rounded-2xl border-2 border-ink bg-panel p-6 shadow-brut-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-display text-[24px] font-extrabold">Shortcuts</h3>
+      <div className="w-full max-w-sm animate-pop rounded-2xl border-[1.5px] border-ink bg-panel p-6 shadow-brut-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-display text-[24px] font-bold">Shortcuts</h3>
         <dl className="mt-4 grid grid-cols-[76px_1fr] gap-y-2.5 text-[14px]">
           {keys.map(([k, d]) => (
             <div key={k} className="contents">

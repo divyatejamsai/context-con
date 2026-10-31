@@ -30,7 +30,7 @@ export function StatusPill({ status, count, className }: { status: ClaimStatus; 
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full border-2 border-ink px-2 text-[11px] font-bold uppercase tracking-wide",
+        "inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full border-[1.5px] border-ink px-2 text-[11px] font-semibold",
         STATUS_BG[status],
         status === "unverifiable" ? "text-foreground" : "text-on-color",
         className,
@@ -71,16 +71,16 @@ export function FitBadge({ score, size = "md" }: { score?: number; size?: "md" |
   return (
     <span
       className={cn(
-        "flex shrink-0 flex-col items-center justify-center rounded-lg border-2 border-ink text-on-color shadow-brut-sm",
+        "flex shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] border-ink text-on-color shadow-brut-sm",
         m.bg,
         score === undefined && "text-foreground",
         size === "lg" ? "h-[68px] w-[76px]" : "h-[52px] w-[60px]",
       )}
     >
-      <span className={cn("font-display font-extrabold leading-none tabular-nums", size === "lg" ? "text-[30px]" : "text-[22px]")}>
+      <span className={cn("font-display font-bold leading-none tabular-nums", size === "lg" ? "text-[30px]" : "text-[22px]")}>
         {score === undefined ? "–" : Math.round(score)}
       </span>
-      <span className="mt-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em]">{m.label}</span>
+      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em]">{m.label}</span>
     </span>
   );
 }
@@ -92,7 +92,7 @@ export function Avatar({ name, size = 28, className }: { name: string; size?: nu
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return (
     <span
-      className={cn("font-display grid shrink-0 place-items-center rounded-full border-2 border-ink font-extrabold text-on-color", SWATCH[h % SWATCH.length], className)}
+      className={cn("font-display grid shrink-0 place-items-center rounded-full border-[1.5px] border-ink font-bold text-on-color", SWATCH[h % SWATCH.length], className)}
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initials}

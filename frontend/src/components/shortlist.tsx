@@ -25,14 +25,14 @@ export function ShortlistRows({ rows, selected, onSelect }: { rows: Row[]; selec
               data-row={c.id}
               onClick={() => onSelect(c.id)}
               className={cn(
-                "press group relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border-2 border-ink p-3 text-left shadow-brut",
-                active ? "bg-yellow text-on-color" : "bg-panel",
+                "press group relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border-[1.5px] border-ink p-3 text-left shadow-brut",
+                active ? "bg-yellow/30" : "bg-panel",
                 dismissed && "opacity-45",
               )}
             >
               <span
                 className={cn(
-                  "font-display absolute -left-2.5 -top-2.5 grid size-7 place-items-center rounded-full border-2 border-ink text-[13px] font-extrabold shadow-brut-sm",
+                  "font-display absolute -left-2.5 -top-2.5 grid size-7 place-items-center rounded-full border-[1.5px] border-ink text-[13px] font-bold shadow-brut-sm",
                   rank === 1 ? "bg-lime text-on-color" : "bg-panel text-foreground",
                 )}
               >
@@ -41,11 +41,11 @@ export function ShortlistRows({ rows, selected, onSelect }: { rows: Row[]; selec
               <Avatar name={c.name} size={42} />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className={cn("font-display truncate text-[17px] font-extrabold tracking-tight", dismissed && "line-through")}>{c.name}</span>
+                  <span className={cn("font-display truncate text-[16px] font-bold tracking-tight", dismissed && "line-through")}>{c.name}</span>
                   {pinned && <Pin className="size-3.5 shrink-0 fill-current" />}
                   {k.contradicted > 0 && <StatusPill status="contradicted" count={k.contradicted} className="ml-0.5" />}
                 </div>
-                <p className={cn("truncate text-[13px] font-medium", active ? "text-on-color/80" : "text-muted-foreground")}>
+                <p className="truncate text-[13px] text-muted-foreground">
                   {[c.title, c.company].filter(Boolean).join(" · ") || "Title unknown"}
                   {c.location && <span> · {c.location.split(",")[0]}</span>}
                 </p>
@@ -59,7 +59,7 @@ export function ShortlistRows({ rows, selected, onSelect }: { rows: Row[]; selec
                 {!!c.flags?.length && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {c.flags.slice(0, 2).map((f) => (
-                      <span key={f} className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-ink bg-coral/80 px-1.5 text-[11px] font-bold text-on-color">
+                      <span key={f} className="inline-flex items-center gap-1 rounded-md border-[1.5px] border-ink bg-coral/40 px-1.5 text-[11px] font-semibold">
                         <Flag className="size-3" /> {f}
                       </span>
                     ))}
@@ -102,10 +102,10 @@ export function CompareTable({
   onSort: (k: SortKey) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border-2 border-ink bg-panel shadow-brut">
+    <div className="overflow-x-auto rounded-xl border-[1.5px] border-ink bg-panel shadow-brut">
       <table className="w-full min-w-[520px] border-collapse text-[13px]">
         <thead>
-          <tr className="border-b-2 border-ink bg-ink text-left text-[11px] uppercase tracking-wider text-background">
+          <tr className="border-b-[1.5px] border-ink bg-ink text-left text-[11px] uppercase tracking-wider text-background">
             {COLS.map((col) => (
               <th key={col.label} className={cn("h-9 px-3 font-bold", col.className)}>
                 {col.key ? (
@@ -129,12 +129,12 @@ export function CompareTable({
                 data-row={c.id}
                 onClick={() => onSelect(c.id)}
                 className={cn(
-                  "h-14 cursor-pointer border-b-2 border-ink/15 transition-colors last:border-0",
-                  selected === c.id ? "bg-yellow text-on-color" : "hover:bg-hover",
+                  "h-14 cursor-pointer border-b-[1.5px] border-ink/15 transition-colors last:border-0",
+                  selected === c.id ? "bg-yellow/30" : "hover:bg-hover",
                   dismissed && "opacity-40",
                 )}
               >
-                <td className="font-display px-3 text-right text-[15px] font-extrabold tabular-nums">{rank}</td>
+                <td className="font-display px-3 text-right text-[15px] font-bold tabular-nums">{rank}</td>
                 <td className="px-3">
                   <div className="flex items-center gap-2.5">
                     <Avatar name={c.name} size={28} />
@@ -146,7 +146,7 @@ export function CompareTable({
                     </div>
                   </div>
                 </td>
-                <td className="font-display px-3 text-right text-[17px] font-extrabold tabular-nums">{c.score ?? "–"}</td>
+                <td className="font-display px-3 text-right text-[17px] font-bold tabular-nums">{c.score ?? "–"}</td>
                 <td className="px-3">
                   <div className="flex items-center gap-2">
                     <EvidenceStrip candidate={c} />

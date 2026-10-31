@@ -42,10 +42,10 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
         return (
           <li key={s} className="relative animate-rise" style={{ animationDelay: `${idx * 20}ms` }}>
             <div className="flex gap-2.5">
-              <span className={cn("relative z-10 grid size-10 shrink-0 place-items-center rounded-full border-2 border-ink text-on-color shadow-brut-sm", m.bg, active && "animate-pulse")}>
+              <span className={cn("relative z-10 grid size-10 shrink-0 place-items-center rounded-full border-[1.5px] border-ink text-on-color shadow-brut-sm", m.bg, active && "animate-pulse")}>
                 <m.Icon className="size-4" strokeWidth={2.5} />
               </span>
-              <div className={cn("min-w-0 flex-1 rounded-lg border-2 border-ink bg-panel", active ? "shadow-brut" : "shadow-brut-sm")}>
+              <div className={cn("min-w-0 flex-1 rounded-lg border-[1.5px] border-ink bg-panel", active ? "shadow-brut" : "shadow-brut-sm")}>
                 <button onClick={() => setOpen((o) => ({ ...o, [s]: !isOpen }))} className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left">
                   <span className="min-w-0 flex-1">
                     <span className={cn("block truncate text-[13px] font-bold", active && "caret")}>{m.label}</span>
@@ -61,14 +61,14 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
                   )}
                   <span className="font-mono text-[10.5px] text-muted-foreground tabular-nums">{fmt(dur)}</span>
                   {active ? (
-                    <span className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-ink border-t-transparent" />
+                    <span className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-ink border-t-transparent" />
                   ) : (
                     <Check className="size-3.5 shrink-0" strokeWidth={3} />
                   )}
                   {lines.length > 0 && <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", isOpen && "rotate-180")} />}
                 </button>
                 {isOpen && lines.length > 0 && (
-                  <ol className="border-t-2 border-dashed border-ink/40 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed">
+                  <ol className="border-t-[1.5px] border-dashed border-ink/40 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed">
                     {lines.map((l, i) => (
                       <li key={i} className={cn("flex gap-2 py-0.5", l.kind === "error" ? "font-semibold text-contradicted" : "text-secondary")}>
                         <span className="shrink-0 text-faint tabular-nums">{(l.t / 1000).toFixed(1)}s</span>
@@ -83,7 +83,7 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
         );
       })}
       {ungrouped.map((l, i) => (
-        <li key={`u${i}`} className="relative ml-[50px] rounded-lg border-2 border-ink bg-coral px-2.5 py-1.5 text-[12px] font-semibold text-on-color">
+        <li key={`u${i}`} className="relative ml-[50px] rounded-lg border-[1.5px] border-ink bg-coral px-2.5 py-1.5 text-[12px] font-semibold text-on-color">
           {l.message}
         </li>
       ))}
@@ -91,10 +91,10 @@ export function Trace({ run, now }: { run: RunState; now: number }) {
         const m = META[s];
         return (
           <li key={s} className="relative flex items-center gap-2.5 opacity-60">
-            <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-ink bg-background">
+            <span className="relative z-10 grid size-10 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-ink bg-background">
               <m.Icon className="size-4" />
             </span>
-            <span className="flex-1 rounded-lg border-2 border-dashed border-ink/60 px-2.5 py-2 text-[13px] font-semibold">{m.todo}</span>
+            <span className="flex-1 rounded-lg border-[1.5px] border-dashed border-ink/60 px-2.5 py-2 text-[13px] font-semibold">{m.todo}</span>
           </li>
         );
       })}
