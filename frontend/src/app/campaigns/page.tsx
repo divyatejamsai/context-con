@@ -511,6 +511,7 @@ function StagePill({ stage, className }: { stage: Stage; className?: string }) {
 function Conversations({ camp, onOpen }: { camp: Campaign; onOpen: (cid: string) => void }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
+  const [limit, setLimit] = useState(25);
   const rows = camp.conversations_list;
   const counts = useMemo(
     () => ({
@@ -549,7 +550,10 @@ function Conversations({ camp, onOpen }: { camp: Campaign; onOpen: (cid: string)
               key={v}
               role="tab"
               aria-selected={filter === v}
-              onClick={() => setFilter(v)}
+              onClick={() => {
+                setFilter(v);
+                setLimit(25);
+              }}
               className={cn("h-6 rounded px-2 text-[12px] font-[510]", filter === v ? "bg-panel text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
             >
               {l} <span className="tabular-nums text-faint">{counts[v]}</span>
@@ -576,7 +580,7 @@ function Conversations({ camp, onOpen }: { camp: Campaign; onOpen: (cid: string)
               </tr>
             </thead>
             <tbody>
-              {shown.map((r) => (
+              {shown.slice(0, limit).map((r) => (
                 <tr key={r.id} onClick={() => onOpen(r.id)} className="cursor-pointer border-b border-border last:border-0 hover:bg-hover">
                   <td className="max-w-[240px] px-4 py-2.5">
                     <div className="flex items-center gap-2.5">
@@ -612,6 +616,11 @@ function Conversations({ camp, onOpen }: { camp: Campaign; onOpen: (cid: string)
               ))}
             </tbody>
           </table>
+          {shown.length > limit && (
+            <button onClick={() => setLimit((l) => l + 50)} className="w-full border-t border-border py-2.5 text-[12.5px] font-[510] text-muted-foreground hover:bg-hover hover:text-foreground">
+              Show {Math.min(50, shown.length - limit)} more of {shown.length - limit}
+            </button>
+          )}
         </div>
       )}
     </section>
