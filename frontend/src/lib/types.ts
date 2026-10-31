@@ -55,7 +55,7 @@ export interface Summary {
 }
 
 export type RunEvent =
-  | { type: "step"; step: string; message: string; data?: { criteria?: Criteria; order?: string[]; [k: string]: unknown } | null; ts?: string }
+  | { type: "step"; step: string; message: string; data?: { criteria?: Criteria; order?: string[]; shortlist?: string[]; near_miss?: string[]; [k: string]: unknown } | null; ts?: string }
   | { type: "candidate"; candidate: Candidate; ts?: string }
   | { type: "criteria"; criteria: Criteria; ts?: string }
   | { type: "error"; step?: string; message: string; ts?: string }

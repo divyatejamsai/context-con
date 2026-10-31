@@ -25,7 +25,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
-from app.orchestrator import SHORTLIST_MIN, domain_terms, run  # noqa: E402
+from app.orchestrator import SHORTLIST_MIN, domain_terms, fit_terms, run  # noqa: E402
 from app.schemas import Criteria  # noqa: E402
 
 EDGE = {
@@ -126,12 +126,14 @@ def metrics(r: Result) -> dict:
     claims = [k for c in r.cands for k in c.claims]
     n = len(claims) or 1
     c = r.criteria
-    terms = domain_terms(c) if c else []
+    terms = fit_terms(c) if c else []
+    hit = lambda t, txt: re.search(rf"(?<![a-z0-9]){re.escape(t)}(?![a-z0-9])", txt.lower())
     domain_hits = sum(1 for cand in r.cands if any(
-        k.status == "verified" and any(t in k.claim.lower() or t in k.evidence.lower() for t in terms) for k in cand.claims))
+        k.status == "verified" and any(hit(t, k.claim + " " + k.evidence) for t in terms) for k in cand.claims))
     return {
         "pool": s.searched if s else 0, "enriched": s.enriched if s else 0, "shortlisted": s.shortlisted if s else 0,
         "top": max((x.score for x in r.cands), default=0),
+        "near": sum(any(f.startswith("Near miss") for f in x.flags) for x in r.cands),
         "verified%": round(100 * sum(k.status == "verified" for k in claims) / n),
         "contra": sum(k.status == "contradicted" for k in claims),
         "unverif%": round(100 * sum(k.status == "unverifiable" for k in claims) / n),
@@ -154,13 +156,13 @@ async def run_one(key: str, brief: str) -> Result:
 
 
 def report(results: list[Result]) -> str:
-    lines = ["| Brief | Pass | Pool | Enriched | Shortlist | Top | Verified% | Contra | Unverif% | Domain fit | Errors | Secs |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Brief | Pass | Pool | Enriched | Shortlist | Near miss | Top | Verified% | Contra | Unverif% | Domain fit | Errors | Secs |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     fails = []
     for r in results:
         m = metrics(r)
         ok = sum(p for _, p in r.checks)
-        lines.append(f"| {r.key} | {ok}/{len(r.checks)} | {m['pool']} | {m['enriched']} | {m['shortlisted']} | {m['top']} | "
+        lines.append(f"| {r.key} | {ok}/{len(r.checks)} | {m['pool']} | {m['enriched']} | {m['shortlisted']} | {m['near']} | {m['top']} | "
                      f"{m['verified%']} | {m['contra']} | {m['unverif%']} | {m['domain_fit']} | {m['errors']} | {m['secs']} |")
         fails += [f"- {r.key}: {name}" for name, p in r.checks if not p]
     total = sum(len(r.checks) for r in results)
@@ -173,6 +175,16 @@ def report(results: list[Result]) -> str:
         top = sorted(r.cands, key=lambda c: c.score, reverse=True)[:3]
         out.append(f"- {r.key}: " + ("; ".join(f"{c.name} ({c.title} @ {c.company}, {c.score}, flags: {', '.join(c.flags) or '-'})"
                                              for c in top) or "no candidates"))
+    out += ["", "### Sample output for review (top candidate per brief)"]
+    for r in results:
+        top = sorted(r.cands, key=lambda c: c.score, reverse=True)[:1]
+        for c in top:
+            out.append(f"#### {r.key}: {c.name}, {c.score}")
+            out += [f"- reason: {x.text} [{', '.join(x.claim_ids)}]" for x in c.reasons]
+            out += [f"- claim {k.id} ({k.status}): {k.claim} | {k.evidence} | {k.source.endpoint} {k.source.field or ''}"
+                    for k in c.claims]
+            if c.outreach_draft:
+                out += ["", "```", c.outreach_draft, "```"]
     errs = [f"- {r.key}: {m}" for r in results for m in r.messages("error")]
     out += ["", "### Error events", *(errs[:40] or ["- none"])]
     return "\n".join(out)

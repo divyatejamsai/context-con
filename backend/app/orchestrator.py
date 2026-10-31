@@ -25,10 +25,11 @@ SEARCH_LIMIT = int(os.getenv("SEARCH_LIMIT", "25"))
 MIN_POOL = int(os.getenv("MIN_POOL", "3"))          # broaden the search while the pool is smaller than this
 MAX_ENRICH = int(os.getenv("MAX_ENRICH", "10"))      # how many candidates get the full enrich/verify/rank treatment
 CONCURRENCY = int(os.getenv("PIPELINE_CONCURRENCY", "10"))
-COMPANY_TIMEOUT = float(os.getenv("COMPANY_TIMEOUT", "10"))    # cap on Company Identify + Enrich per company
-OUTREACH_TIMEOUT = float(os.getenv("OUTREACH_TIMEOUT", "20"))  # slower than this -> template draft
+COMPANY_TIMEOUT = float(os.getenv("COMPANY_TIMEOUT", "6"))    # cap on Company Identify + Enrich per company
+OUTREACH_TIMEOUT = float(os.getenv("OUTREACH_TIMEOUT", "12"))  # slower than this -> template draft
 CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
 SHORTLIST_MIN = int(os.getenv("SHORTLIST_MIN", "40"))  # below this a candidate is shown but not shortlisted
+NEAR_MISS_MIN = int(os.getenv("NEAR_MISS_MIN", "30"))  # [NEAR_MISS_MIN, SHORTLIST_MIN) = near miss, flagged as such
 
 
 # ---- pluggable parts (WS1 / WS3), with fallbacks so the pipeline always runs --------------------
@@ -236,8 +237,45 @@ def prescore(p: dict, c: Criteria) -> int:
     if p.get("_domain_match"):
         s += 3
     blob = str(p).lower()
-    s += sum(1 for k in domain_terms(c) if k in blob)
+    s += sum(1 for k in fit_terms(c) if re.search(rf"(?<![a-z0-9]){re.escape(k)}(?![a-z0-9])", blob))
     return s
+
+
+def fit_terms(c: Criteria) -> list[str]:
+    """Everything the brief asks for as a keyword, languages included (matched on word boundaries, so 'go'
+    doesn't hit 'Google'). Used for prescoring and evals; domain_terms() is the narrower set sent to search."""
+    out: list[str] = []
+    for raw in brief_domain_words(c.raw_brief) + c.must_haves + c.skills:
+        t = clean_term(raw)
+        if t and len(t) <= 30 and t not in out:
+            out.append(t)
+    return out
+
+
+async def prefetch_companies(client, persons: list[dict], companies: dict) -> None:
+    """One batched Company Enrich call for every employer id we know (the endpoint allows 15 req/min, and the
+    verifier would otherwise call it once per candidate). Fills `companies` with finished futures."""
+    try:
+        from .crustdata.client import COMPANY_ENRICH_FIELDS, _unwrap_matches
+    except Exception:
+        return
+    if not hasattr(client, "request"):
+        return
+    ids = list(dict.fromkeys(str(i) for i in (people.company_id(p) for p in persons) if i))
+    ids = [i for i in ids if i not in companies]
+    for chunk in (ids[i:i + 25] for i in range(0, len(ids), 25)):
+        payload = {"crustdata_company_ids": [int(i) if i.isdigit() else i for i in chunk], "fields": COMPANY_ENRICH_FIELDS}
+        try:
+            res = await asyncio.wait_for(client.request("company/enrich", payload), timeout=COMPANY_TIMEOUT * 2)
+            found = _unwrap_matches(res, "company_data")
+        except Exception as e:
+            log.warning("company batch enrich failed: %s", e)
+            continue
+        for i in chunk:
+            fut = asyncio.get_running_loop().create_future()
+            fut.set_result(found.get(i))
+            if found.get(i) is not None:  # misses fall through to the per-company lookup
+                companies[i] = fut
 
 
 async def _lookup_company(client, cid, domain, cname) -> dict | None:
@@ -285,6 +323,8 @@ async def enrich(client, p: dict, pre: dict | None = None, companies: dict | Non
             problems.append(f"Company Enrich timed out after {COMPANY_TIMEOUT:.0f}s; company claims unverifiable")
         except Exception as e:
             problems.append(f"Company Enrich failed ({type(e).__name__}); company claims unverifiable")
+        # {} = "already looked up, nothing usable": stops the verifier from repeating the same slow call
+        company = company or {}
     return person, company, problems
 
 
@@ -343,6 +383,8 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
         location=people.location(person), profile_url=people.profile_url(person),
         score=int(score), reasons=reasons, claims=claims, flags=flags,
     )
+    if NEAR_MISS_MIN <= cand.score < SHORTLIST_MIN:
+        cand.flags.append(f"Near miss: scored {cand.score}, just under the {SHORTLIST_MIN} shortlist bar")
     if cand.score >= SHORTLIST_MIN:  # drafts only for people we'd actually contact
         await stage("outreach", "Drafting outreach for shortlisted candidates (drafts only, never sent)...")
         try:
@@ -423,12 +465,14 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                 except Exception as e:
                     await emit(ErrorEvent(step="enrich", message=f"Batch Person Enrich failed ({type(e).__name__}); using search data"))
                     pre = {u: None for u in urls}
+            companies: dict = {}
+            persons = [{**p, **((pre or {}).get(people.profile_url(p)) or {})} for p in chosen]
+            await prefetch_companies(client, persons, companies)
             timings["enrich_batch"] = _ms(t)
             t = time.monotonic()
             sem = asyncio.Semaphore(CONCURRENCY)
             seen_steps: set = set()
             done: list[Candidate] = []
-            companies: dict = {}
             slowest: dict[str, int] = {}
 
             async def one(i: int, p: dict):
@@ -457,14 +501,17 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
                                                  -sum(k.status == "contradicted" for k in c.claims),
                                                  pre_by_url.get(c.profile_url, 0)), reverse=True)
             shortlist = [c for c in ranked if c.score >= SHORTLIST_MIN]
+            near = [c for c in ranked if NEAR_MISS_MIN <= c.score < SHORTLIST_MIN]
             summary.shortlisted = len(shortlist)
             if ranked:
                 top = f", top match {ranked[0].name} ({ranked[0].score})"
                 msg = (f"Shortlist ready: {len(shortlist)} of {len(ranked)} candidates score {SHORTLIST_MIN}+{top}"
                        if shortlist else f"No candidate scored {SHORTLIST_MIN}+; showing the {len(ranked)} closest{top}")
+                if near:
+                    msg += f". {len(near)} near miss{'es' if len(near) != 1 else ''} ({NEAR_MISS_MIN}-{SHORTLIST_MIN - 1}) shown below"
                 await emit(StepEvent(step="rank", message=msg,
                                      data={"order": [c.id for c in ranked], "shortlist": [c.id for c in shortlist],
-                                           "threshold": SHORTLIST_MIN}))
+                                           "near_miss": [c.id for c in near], "threshold": SHORTLIST_MIN}))
         except Exception as e:
             log.exception("run failed")
             await emit(ErrorEvent(message=f"Run failed: {type(e).__name__}: {e}"))

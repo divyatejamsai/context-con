@@ -26,6 +26,8 @@ export interface RunState {
   candidates: Record<string, Candidate>;
   arrival: string[]; // candidate ids in arrival order
   order?: string[];
+  shortlist?: string[]; // ids the backend shortlisted (score above threshold)
+  nearMiss?: string[]; // ids just under the threshold
   summary?: Summary;
   done: boolean;
   fatal?: string;
@@ -73,6 +75,8 @@ export function runReducer(s: RunState, a: RunAction): RunState {
             currentStep: step,
             criteria: ev.data?.criteria ?? s.criteria,
             order: Array.isArray(ev.data?.order) ? (ev.data.order as string[]) : s.order,
+            shortlist: Array.isArray(ev.data?.shortlist) ? (ev.data.shortlist as string[]) : s.shortlist,
+            nearMiss: Array.isArray(ev.data?.near_miss) ? (ev.data.near_miss as string[]) : s.nearMiss,
             log: [...s.log, { kind: "step", step, message: ev.message, t }],
           };
         }

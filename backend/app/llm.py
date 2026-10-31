@@ -57,8 +57,17 @@ def _get_client():
     return _client
 
 
+def _thinking_budget(tier: Tier) -> int | None:
+    """Flash thinks by default, which made outreach drafts take ~20s. Off for the fast tier unless overridden."""
+    v = os.getenv("GEMINI_FAST_THINKING_BUDGET", "0") if tier == "fast" else os.getenv("GEMINI_SMART_THINKING_BUDGET")
+    return int(v) if v not in (None, "") else None
+
+
 async def _call(prompt: str, tier: Tier, config: dict[str, Any], retries: int = 2) -> str:
     client = _get_client()
+    budget = _thinking_budget(tier)
+    if budget is not None and "thinking_config" not in config:
+        config = {**config, "thinking_config": {"thinking_budget": budget}}
     last: Exception | None = None
     for attempt in range(retries + 1):
         try:

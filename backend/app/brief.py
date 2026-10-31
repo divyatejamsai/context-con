@@ -79,10 +79,20 @@ _DOMAIN_WORDS = ["payments", "upi", "cards", "fintech", "lending", "credit", "ba
                  "data infrastructure", "observability", "design systems", "consumer apps", "trading", "risk", "fraud"]
 
 
+_HIRER_CONTEXT = re.compile(r"\b(our|we'?re|we are|we're a|i run|my)\b[\w\s-]{0,12}$")
+
+
 def brief_domain_words(brief: str) -> list[str]:
-    """Domain keywords read straight from the brief text, so search doesn't depend on the LLM's mood."""
+    """Domain keywords read straight from the brief text, so search doesn't depend on the LLM's mood.
+    Words describing the hiring company ("for our devtools co") are not candidate requirements, so skip them."""
     text = (brief or "").lower()
-    return [w for w in _DOMAIN_WORDS if re.search(rf"\b{re.escape(w)}s?\b", text)]
+    out = []
+    for w in _DOMAIN_WORDS:
+        for m in re.finditer(rf"\b{re.escape(w)}s?\b", text):
+            if not _HIRER_CONTEXT.search(text[max(0, m.start() - 24):m.start()]):
+                out.append(w)
+                break
+    return out
 
 
 def years_asked(brief: str) -> int | None:
@@ -95,6 +105,20 @@ _GENERIC_TITLES = {"software engineer", "software developer", "sde", "sde iii", 
 _LEVEL_WORDS = re.compile(r"\b(senior|sr\.?|staff|principal|lead|junior|jr\.?|head of|iii|ii|i)\b", re.I)
 
 
+# close aliases that still mean the same function; anything else must contain a function word
+_FUNCTION_ALIASES = {
+    "backend": ["backend", "back-end", "back end", "server", "api"],
+    "frontend": ["frontend", "front-end", "front end", "ui", "web"],
+    "full": ["full stack", "fullstack", "full-stack"],
+    "machine": ["machine learning", "ml", "applied scientist", "ai engineer"],
+    "ml": ["machine learning", "ml", "applied scientist", "ai engineer"],
+    "data": ["data"],
+    "mobile": ["mobile", "android", "ios"],
+    "devops": ["devops", "site reliability", "sre", "infrastructure", "platform"],
+    "site": ["site reliability", "sre", "devops"],
+}
+
+
 def keep_function(c: Criteria) -> Criteria:
     """Drop generic variants ("Staff Software Engineer") when the role names a function ("Backend"):
     otherwise the search fills up with people who don't do that function."""
@@ -102,10 +126,15 @@ def keep_function(c: Criteria) -> Criteria:
     function = [w for w in re.findall(r"[a-z+#./-]+", core) if w not in {"engineer", "developer", "software", "and", "&"}]
     if not function:
         return c
+    engineering = re.search(r"\b(engineer|developer|sde|programmer)\b", c.role, re.I)
+    allowed = [a for w in function for a in _FUNCTION_ALIASES.get(w, [w])]
     keep = []
     for v in c.title_variants:
         bare = re.sub(r"\s+", " ", _LEVEL_WORDS.sub(" ", v)).strip(" ,-").lower()
         if bare in _GENERIC_TITLES:
+            continue
+        # engineering roles: a variant must still name the function ("Platform Engineer" drifted to AI platform)
+        if engineering and not any(re.search(rf"(?<![a-z]){re.escape(a)}(?![a-z])", bare) for a in allowed):
             continue
         keep.append(v)
     c.title_variants = keep or [c.role]
