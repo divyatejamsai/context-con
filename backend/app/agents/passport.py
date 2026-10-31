@@ -162,7 +162,7 @@ SUBORDINATE = re.compile(
     r"\b(assistant|asst|assistente|asistente|assistante|secretary|secretaire|intern|internship|trainee|apprentice|stagiaire"
     r"|praktikant\w*|werkstudent\w*|student|graduate program|former|ex|retired|exited|aspiring|future|in training|shadowing"
     r"|mentee|supporting|working with|seeking|enthusiast|volunteer|chief of staff|office of|s office|office coordinator"
-    r"|s ea|to|non executive|board|advisor|adviser|advisory)\b"
+    r"|s ea|to|non executive|board)\b|\b(officer|founder|director|president) office\b"
     r"|\b(19|20)\d\d (19|20)\d\d\b|\b(19|20)\d\d present\b")
 
 
