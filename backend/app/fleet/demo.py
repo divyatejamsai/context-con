@@ -3,7 +3,7 @@
     async for ev in story(DemoOptions(...)):  ...     # scripts/run_fleet.py prints it, /api/demo/run streams it
 
 Beats (BEATS): onboard -> legit work -> sponsor left -> scope refusal -> stale claim -> tampering -> outside agent.
-Every agent call goes through the Countersign MCP server; every verdict carries its checks and their sources.
+Every agent call goes through the Agaxes MCP server; every verdict carries its checks and their sources.
 
 Events (all carry "n", the beat number, except start/done):
   start      {beats:[{n,id,title,narration}], modes:{crustdata,llm}, store}
@@ -66,7 +66,7 @@ BEATS = [
      "An agent edits its own passport to grant itself payments: the issuer signature breaks. Then someone edits "
      "one line of a copy of the ledger: the hash chain shows exactly where."),
     ("outside", "An outside agent: Claude Code",
-     "Claude Code, given only the Countersign MCP server, signs its own messages and asks before sending. A clean "
+     "Claude Code, given only the Agaxes MCP server, signs its own messages and asks before sending. A clean "
      "note clears; one with a false claim is blocked."),
 ]
 
@@ -136,7 +136,7 @@ def tamper_copy(store: Path) -> tuple[Path, int | None, str]:
 
 
 def claude_code_prompt(agent_id: str, sign: str) -> str:
-    return (f"You are an AI recruiter onboarded with Countersign as agent {agent_id}. Check two notes to Vinod Sonagara "
+    return (f"You are an AI recruiter onboarded with Agaxes as agent {agent_id}. Check two notes to Vinod Sonagara "
             f"(https://www.linkedin.com/in/vinod-sonagara), who you believe is at Fam:\n"
             f"1. \"Hi Vinod, your work at Fam caught our eye. Open to a chat about a backend role?\"\n"
             f"2. \"Hi Vinod, congrats on 5 years at Fam! Open to a chat about a backend role?\"\n"
@@ -220,7 +220,7 @@ async def story(opts: DemoOptions) -> AsyncIterator[dict]:
                       "status": ag["status"], "reason": ag.get("reason"), "new": new})
                 say(f"  {'onboarded' if new else 'on payroll'} #{ag['employee_no']} {ag['name']}: {ag['role']} for "
                     f"{p['sponsor']['name']} ({p['sponsor']['title']}, {p['sponsor']['company']}), scopes {', '.join(p['scopes'])}")
-            say(f"  Countersign MCP server {mcp.server.get('name')} {mcp.server.get('version')}, tools: {', '.join(mcp.tools)}")
+            say(f"  Agaxes MCP server {mcp.server.get('name')} {mcp.server.get('version')}, tools: {', '.join(mcp.tools)}")
             return True, f"{len(agents)} agents on the registry"
 
         if bid == "work":
@@ -315,7 +315,7 @@ async def story(opts: DemoOptions) -> AsyncIterator[dict]:
                     f"to drive it live, or run it by hand (docs/FLEET.md).")
                 return True, "skipped (Claude Code not enabled for this run)"
             before = len(ledger.entries(cc["agent_id"], "guard.verdict"))
-            say("  claude -p, with only the Countersign MCP server and a signing command:")
+            say("  claude -p, with only the Agaxes MCP server and a signing command:")
             t = time.time()
             code, out = await asyncio.to_thread(run_claude_code, cc, store)
             if code is None:

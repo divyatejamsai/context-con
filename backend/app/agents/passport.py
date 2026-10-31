@@ -1,6 +1,6 @@
 """Agent Passport (docs/COUNTERSIGN.md part 1).
 
-A passport says "agent X acts for this human, at this company, with these scopes". Countersign signs it
+A passport says "agent X acts for this human, at this company, with these scopes". Agaxes signs it
 (Ed25519). verify_passport() checks the signature, expiry and revocation, then checks the sponsor live
 against Crustdata: the person exists, still works at the company, the domain belongs to that employer,
 the claimed title is current, and that title can grant the scope. Anything it can't check is
@@ -46,7 +46,7 @@ def _issuer_key_path() -> Path:
 
 
 def issuer_key() -> Ed25519PrivateKey:
-    """Countersign's signing key. From ISSUER_PRIVATE_KEY (base64 raw 32 bytes) or a local file created on first use."""
+    """Agaxes's signing key. From ISSUER_PRIVATE_KEY (base64 raw 32 bytes) or a local file created on first use."""
     env = os.getenv("ISSUER_PRIVATE_KEY")
     if env:
         return Ed25519PrivateKey.from_private_bytes(_unb64(env))
@@ -405,7 +405,7 @@ async def verify_passport(p: Passport, client: Any = None, scope: Scope | None =
 
     cs = _src("countersign/issuer", f"key {p.issuer_key_id}")
     add("signature_valid", "pass" if signature_valid(p) else "fail",
-        "Passport signed by Countersign and unmodified" if signature_valid(p) else "Signature does not match: passport forged or edited", cs)
+        "Passport signed by Agaxes and unmodified" if signature_valid(p) else "Signature does not match: passport forged or edited", cs)
 
     try:
         exp = datetime.fromisoformat(p.expires_at).date()

@@ -34,5 +34,5 @@ FLEET: list[dict] = [
     {"key": "closer", "name": "Closer", "role": "sdr", "sponsor": SHIVANK, "scopes": ["outreach.sales", "data.read"],
      "job": closer.JOB, "runtime": "in-house"},
     {"key": "claude-code", "name": "Claude Code", "role": "recruiter", "sponsor": PANKAJ, "scopes": ["outreach.hiring", "data.read"],
-     "job": "An outside agent (Claude Code) that reaches Countersign only through the MCP server", "runtime": "external"},
+     "job": "An outside agent (Claude Code) that reaches Agaxes only through the MCP server", "runtime": "external"},
 ]

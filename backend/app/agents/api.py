@@ -1,4 +1,4 @@
-"""Countersign HTTP routes (docs/COUNTERSIGN.md). Mounted in main.py with app.include_router(router).
+"""Agaxes HTTP routes (docs/COUNTERSIGN.md). Mounted in main.py with app.include_router(router).
 
 WS6 owns /api/passport/* and /api/ledger. WS7 adds /api/guard/*, WS8 adds /api/agents* (in their own modules,
 included below when present so this file never blocks them).
@@ -35,7 +35,7 @@ def crustdata():
             from ..crustdata.client import CrustdataClient
             _client = CrustdataClient(mode=os.getenv("CRUSTDATA_MODE", "cache"))
         except Exception as e:  # noqa: BLE001
-            log.warning("Countersign running without Crustdata client: %s", e)
+            log.warning("Agaxes running without Crustdata client: %s", e)
     return _client
 
 

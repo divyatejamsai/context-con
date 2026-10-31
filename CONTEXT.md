@@ -5,6 +5,8 @@
 
 Last updated: 2026-10-31 ~10:35 IST (wall clock; earlier timestamps in this doc ran ahead and are approximate)
 
+> **NAME:** the agent-infra product is **Agaxes** ("agent access"). Older entries call it "Countersign".
+
 > **STANDING RULE (user, ~11:42 IST): this must be a real product, not a faked demo.** Agent management, tests and the demo all run on real data: live Crustdata, live Gemini, real signatures and real ledger entries. Mocks and fixtures are only for offline unit tests and as a fallback, never for what judges see. A gap audit ("Audit gaps for a real product" thread) is running.
 
 ---
@@ -94,6 +96,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
 | ~12:36 | **Company accounts: real sign-up, login and sessions** gate `/` and `/console`. Two-step self-serve sign-up (work email, then Crustdata-prefilled company), same-domain users join one workspace, one-click demo workspace for judges | User asked for a company login page with the required details, informed by real ATS products and their reviews (G2/Capterra: Greenhouse/Lever are sales-gated with no trial, Greenhouse and Ashby reviews cite setup complexity and learning curve, Workable wins on ease of setup) | dummyanaxes |
+| ~12:55 | **Countersign renamed to Agaxes ("agent access").** Docs, README, CLI and script output and code comments now say Agaxes. Code identifiers, routes, file and dir names (`docs/COUNTERSIGN.md`, `fixtures/countersign/`, `CountersignMCP`, `COUNTERSIGN_ADMIN_TOKEN`, MCP server name `countersign`) are unchanged for now. Older log rows still say Countersign and mean the same thing | User: "this will be used by companies, name it agaxes (like agent access)" | dummyanaxes |
 | ~12:25 | **Video story: "Sourced, run by Countersign".** The hiring agent runs as a governed AI employee: passport check, then cited shortlist, then Send Guard on drafts, then the ledger. The hiring-only close is dropped | User's pick on the story decision card | dummyanaxes |
 | ~11:42 | **Standing rule: real product, not a faked demo.** Agent management, tests and demo run on real data (live Crustdata + Gemini). Mocks only for offline unit tests and as a fallback | User: "i want the final product to actually be a product and not just a faked demo" | dummyanaxes |
 | ~11:37 | **Standing approval: push fixtures/recordings whenever** (incl. real-person data to the public repo); no need to ask again | User: "you can push whenever man" | dummyanaxes |

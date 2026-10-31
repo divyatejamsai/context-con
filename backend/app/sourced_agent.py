@@ -1,4 +1,4 @@
-"""Sourced as a Countersign AI employee: the hiring pipeline run under a passport, with ledger entries and Send Guard.
+"""Sourced as a Agaxes AI employee: the hiring pipeline run under a passport, with ledger entries and Send Guard.
 
     GET/POST /api/agents/{agent_id}/run?brief=...   same SSE stream as /api/run, plus:
         step "passport"  live verify_passport(data.read) before any Crustdata search; a block ends the run
@@ -43,7 +43,7 @@ SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connecti
 
 
 class AgentStep(BaseModel):
-    """StepEvent with Countersign step names (passport, guard). Same wire shape as schemas.StepEvent."""
+    """StepEvent with Agaxes step names (passport, guard). Same wire shape as schemas.StepEvent."""
     type: str = "step"
     step: str
     message: str
