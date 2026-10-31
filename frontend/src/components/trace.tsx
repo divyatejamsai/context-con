@@ -13,7 +13,7 @@ const META: Record<string, { label: string; todo: string; tool: string; what?: s
   verify: { todo: "Verify claims", label: "Verified claims", tool: "crustdata · enrich + web/fetch", what: "Compares every claim with those records and marks it verified, contradicted or unverifiable.", Icon: ShieldCheck },
   rank: { todo: "Rank candidates", label: "Ranked candidates", tool: "llm · rank (cites claim ids)", what: "Scores each person against the brief. Every reason points at a checked claim.", Icon: Trophy },
   outreach: { todo: "Draft outreach", label: "Drafted outreach", tool: "llm · draft", what: "Writes a first message using only verified facts.", Icon: Mail },
-  send: { todo: "Send emails", label: "Sent emails", tool: "outbound · guarded_send (Resend / SMTP)", what: "Emails every draft Send Guard cleared, with nobody at the keyboard. In test mode they go to your own inbox.", Icon: Mail },
+  send: { todo: "Send emails", label: "Sent emails", tool: "outbound · guarded_send (Resend / SMTP)", what: "Emails every draft Send Guard cleared, with nobody at the keyboard. They all go to your own test inbox, never to the candidates.", Icon: Mail },
   guard: { todo: "Send Guard", label: "Send Guard", tool: "countersign · check_send + person/enrich (contact)", what: "Re-checks each draft before it can be sent (the agent's passport, the recipient, every fact in the message) and finds each person's email on Crustdata.", Icon: ShieldCheck },
 };
 

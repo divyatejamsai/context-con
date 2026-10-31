@@ -7,12 +7,10 @@ Providers (OUTBOUND_PROVIDER, default: resend if RESEND_API_KEY is set, else smt
     smtp     any SMTP server, e.g. Gmail with an app password (smtp.gmail.com:465, SMTP_USER, SMTP_PASSWORD).
              Status is "sent" once the server accepts it; bounces and replies are read over IMAP (tracking.py).
 
-Policy (OUTBOUND_MODE)
-    test (default)  every email is delivered to OUTBOUND_TEST_TO (your own inbox), never to the candidate. The real
-                    address Crustdata found is kept on the record and shown in a banner at the top of the email.
-                    The event rule: agents contact only our own team.
-    live            emails go to the candidate's real address. Needs OUTBOUND_LIVE_CONFIRM=yes as well, so one
-                    stray env var can't start emailing real people.
+Policy: test only, enforced (user decision, 2026-10-31: no emails to real people)
+    Every outreach email is delivered to OUTBOUND_TEST_TO (our own inbox), never to the candidate. The real address
+    Crustdata found is kept on the record and shown in a banner at the top of the email. There is no live mode:
+    OUTBOUND_MODE is ignored, and nothing in this module addresses an email to a candidate.
 """
 from __future__ import annotations
 
@@ -61,7 +59,8 @@ class Delivery:
 
 
 def mode() -> str:
-    return (os.getenv("OUTBOUND_MODE") or "test").strip().lower()
+    """Always "test": outreach goes only to OUTBOUND_TEST_TO. Kept as a function so records and the UI can show it."""
+    return "test"
 
 
 def provider() -> str:
@@ -94,15 +93,11 @@ def config() -> dict:
     ready, why = True, ""
     if p == "none":
         ready, why = False, "No email provider set up: add RESEND_API_KEY, or SMTP_HOST/SMTP_USER/SMTP_PASSWORD, to backend/.env"
-    elif m == "test" and not test_to:
-        ready, why = False, "Test mode needs OUTBOUND_TEST_TO (your own inbox) in backend/.env"
-    elif m == "live" and os.getenv("OUTBOUND_LIVE_CONFIRM", "").lower() != "yes":
-        ready, why = False, "Live mode also needs OUTBOUND_LIVE_CONFIRM=yes"
-    elif m not in ("test", "live"):
-        ready, why = False, f"Unknown OUTBOUND_MODE {m!r} (use test or live)"
+    elif not test_to or "@" not in test_to:
+        ready, why = False, "Set OUTBOUND_TEST_TO (your own inbox) in backend/.env: every email goes there, never to candidates"
     elif not from_addr():
         ready, why = False, "No sender address: set MAIL_FROM"
-    return {"provider": p, "mode": m, "ready": ready, "reason": why, "test_to": test_to if m == "test" else None,
+    return {"provider": p, "mode": m, "ready": ready, "reason": why, "test_to": test_to or None,
             "from": from_addr() or None, "reply_to": reply_to()}
 
 
@@ -110,14 +105,13 @@ def _target(env: Envelope) -> str:
     c = config()
     if not c["ready"]:
         raise SendRefused(c["reason"])
-    return c["test_to"] if c["mode"] == "test" else env.intended_to
+    return c["test_to"]  # never env.intended_to: no email goes to a real candidate
 
 
 def _text(env: Envelope, to: str) -> str:
-    if to.lower() == env.intended_to.lower():
-        return env.body
     who = f"{env.to_name} <{env.intended_to}>" if env.to_name else env.intended_to
-    return (f"[Sourced test send. In live mode this goes to {who}, the address Crustdata has on record.]\n\n{env.body}")
+    return (f"[Sourced test send for {who}, the address Crustdata has on record. Sourced never emails candidates "
+            f"directly; this copy came to {to}.]\n\n{env.body}")
 
 
 def _msgid() -> str:
@@ -159,7 +153,7 @@ async def _send_resend(env: Envelope, to: str, text: str, msgid: str) -> Deliver
 def _send_smtp(env: Envelope, to: str, text: str, msgid: str) -> Delivery:
     m = EmailMessage()
     m["From"] = formataddr((env.from_name, from_addr())) if env.from_name else from_addr()
-    m["To"] = formataddr((env.to_name, to)) if env.to_name and to == env.intended_to else to
+    m["To"] = to
     m["Subject"] = env.subject
     m["Date"] = formatdate(localtime=False)
     m["Message-ID"] = msgid

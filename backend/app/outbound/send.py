@@ -126,8 +126,7 @@ async def guarded_send(agent_id: str, to: dict, subject: str, body: str, *, scop
         "delivered_to": d.delivered_to, "mode": d.mode, "provider": d.provider, "provider_id": d.provider_id,
         "message_id": d.message_id, "subject": subject, "body_sha256": _sha(body), "guard_entry": vd.get("ledger_entry"),
     }, [contact.source] if contact.source else [])
-    detail = (f"Sent to {d.delivered_to} (test mode; {contact.email} in live mode)" if d.mode == "test"
-              else f"Sent to {d.delivered_to}")
+    detail = f"Sent to your test inbox {d.delivered_to}, not to {contact.email}"
     m = messages.create({**base, "status": "sent", "detail": detail, "provider": d.provider, "provider_id": d.provider_id,
                          "message_id": d.message_id, "mode": d.mode, "intended_to": contact.email,
                          "delivered_to": d.delivered_to, "from": d.from_addr, "ledger_entry": entry})

@@ -208,9 +208,7 @@ export function Outreach({ candidate: c, draft, onDraft }: OutreachProps) {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
           <span className="text-[11.5px] text-muted-foreground">
             {why ||
-              (cfg?.mode === "test"
-                ? `Test mode: delivered to ${cfg.test_to}, not to ${c.name.split(" ")[0]}`
-                : `Sends from ${cfg?.from} via ${cfg?.provider}`)}
+`Goes to your test inbox ${cfg?.test_to}, never to ${c.name.split(" ")[0]}`}
           </span>
           <div className="flex items-center gap-1.5">
             {draft !== undefined && draft !== c.outreach_draft && (

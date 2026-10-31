@@ -546,8 +546,8 @@ function Hero({ brief, setBrief, onRun, briefRef, mode, autosend, setAutosend }:
             <span>
               <span className="font-[510]">Email the shortlist for me</span>
               <span className="block text-muted-foreground">
-                Sourced finds each person&apos;s email on Crustdata and sends every message Send Guard clears, with nobody at the keyboard. In test
-                mode they all go to your own inbox. Leave it off to review and send each one yourself.
+                Sourced finds each person&apos;s email on Crustdata and sends every message Send Guard clears, with nobody at the keyboard. They
+                all go to your own test inbox, never to the candidates. Leave it off to review and send each one yourself.
               </span>
             </span>
           </label>

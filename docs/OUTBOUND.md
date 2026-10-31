@@ -6,7 +6,7 @@ Code: `backend/app/outbound/`. Tests: `backend/tests/test_outbound.py`.
 shortlisted candidate
   -> contacts.find_emails     Crustdata Person Enrich, fields ["contact"] (deliverable work email > personal; never guessed)
   -> send.guarded_send        agent active? -> sign body -> Send Guard (passport, signature, recipient, every claim)
-  -> mailer.send              Resend API or SMTP; test mode redirects to your inbox
+  -> mailer.send              Resend API or SMTP; every email goes to OUTBOUND_TEST_TO, never to a candidate
   -> messages + ledger        message record (status history, replies) + message.sent entry
   -> tracking.refresh         Resend last_event; IMAP replies and bounces, threaded by Message-ID
 ```
@@ -34,11 +34,9 @@ OUTBOUND_TEST_TO=<the email you signed up to Resend with>   # without a verified
 # For replies, also set IMAP_HOST / IMAP_USER / IMAP_PASSWORD and MAIL_REPLY_TO to that mailbox.
 ```
 
-**Live mode (real candidates).** Only after the event, and only when you mean it:
-```
-OUTBOUND_MODE=live
-OUTBOUND_LIVE_CONFIRM=yes
-```
+**No emails to real people (enforced).** Every outreach email goes to `OUTBOUND_TEST_TO`, with a banner naming the
+candidate and the address Crustdata has for them. There is no live mode and no setting that turns one on
+(user decision, 2026-10-31).
 
 Check it: `curl localhost:8000/api/outbound/config` shows `ready: true`.
 

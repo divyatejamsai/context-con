@@ -110,13 +110,11 @@ def test_config_is_not_ready_without_provider_or_test_inbox(monkeypatch):
     assert mailer.config()["ready"] is False and "provider" in mailer.config()["reason"]
     monkeypatch.setenv("RESEND_API_KEY", "re_x")
     assert mailer.config()["ready"] is False and "OUTBOUND_TEST_TO" in mailer.config()["reason"]
-    monkeypatch.setenv("OUTBOUND_MODE", "live")
-    assert mailer.config()["ready"] is False and "CONFIRM" in mailer.config()["reason"]
-    monkeypatch.setenv("OUTBOUND_LIVE_CONFIRM", "yes")
-    assert mailer.config()["ready"] is True
+    monkeypatch.setenv("OUTBOUND_TEST_TO", "team@example.com")
+    assert mailer.config()["ready"] is True and mailer.config()["mode"] == "test"
 
 
-async def test_test_mode_redirects_to_own_inbox_with_banner(resend):
+async def test_every_email_goes_to_the_test_inbox_with_banner(resend):
     d = await mailer.send(mailer.Envelope(intended_to="cand@gmail.com", to_name="Cand", subject="Hi", body="Hello"))
     sent = json.loads(resend[0].content)
     assert sent["to"] == ["team@example.com"] and d.delivered_to == "team@example.com"
@@ -124,12 +122,13 @@ async def test_test_mode_redirects_to_own_inbox_with_banner(resend):
     assert sent["from"] == "onboarding@resend.dev" and d.provider_id == "em_1" and d.message_id.startswith("<")
 
 
-async def test_live_mode_sends_to_the_real_address(resend, monkeypatch):
+async def test_no_setting_sends_to_a_real_candidate(resend, monkeypatch):
+    """User decision: no emails to real people. The old live-mode switches do nothing."""
     monkeypatch.setenv("OUTBOUND_MODE", "live")
     monkeypatch.setenv("OUTBOUND_LIVE_CONFIRM", "yes")
-    await mailer.send(mailer.Envelope(intended_to="cand@gmail.com", to_name="Cand", subject="Hi", body="Hello"))
+    d = await mailer.send(mailer.Envelope(intended_to="cand@gmail.com", to_name="Cand", subject="Hi", body="Hello"))
     sent = json.loads(resend[0].content)
-    assert sent["to"] == ["cand@gmail.com"] and sent["text"] == "Hello"
+    assert sent["to"] == ["team@example.com"] and d.mode == "test"
 
 
 # ---- guarded send, end to end ----------------------------------------------------------------
