@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from . import llm
 from .schemas import Candidate, Criteria
@@ -26,7 +27,10 @@ VERIFIED FACTS:
 
 def template_draft(c: Candidate, criteria: Criteria) -> str:
     first_name = c.name.split()[0] if c.name else "there"
-    hook = next((r.text for r in c.reasons if r.claim_ids), None)
+    # hook from a verified fact (domain first), never from ranker/scoring text
+    facts = [k.claim.rstrip(".") for k in _domain_first(c, criteria)
+             if not re.search(r"\b(claims?|verified|score|matches the|crustdata)\b", k.claim, re.I)]
+    hook = facts[0] if facts else None
     at = f" at {c.company}" if c.company else ""
     lines = [f"Hi {first_name},", ""]
     lines.append(f"I came across your work as {c.title or 'an engineer'}{at}"

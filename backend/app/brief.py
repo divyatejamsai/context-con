@@ -61,11 +61,13 @@ _ROLE_WORDS = {
     "product manager": ("Product Manager", ["Senior Product Manager", "Product Owner"]),
     "pm": ("Product Manager", ["Senior Product Manager", "Product Owner"]),
     "designer": ("Product Designer", ["UX Designer", "UI/UX Designer"]),
-    "sales": ("Account Executive", ["Sales Manager", "Business Development Manager"]),
+    "sales": ("Account Executive", ["Founding Account Executive", "Enterprise Account Executive", "Sales Lead"]),
+    "account exec": ("Account Executive", ["Founding Account Executive", "Enterprise Account Executive", "Sales Lead"]),
+    "rust": ("Rust Engineer", ["Systems Engineer", "Backend Engineer", "Software Engineer"]),
     "marketing": ("Marketing Manager", ["Growth Manager", "Product Marketing Manager"]),
     "recruit": ("Technical Recruiter", ["Talent Acquisition Specialist", "Recruiter"]),
 }
-_SKILL_WORDS = ["payments", "python", "go", "golang", "java", "rust", "kubernetes", "aws", "gcp", "react", "node",
+_SKILL_WORDS = ["payments", "upi", "figma", "design systems", "python", "go", "golang", "java", "rust", "kubernetes", "aws", "gcp", "react", "node",
                 "typescript", "distributed systems", "fintech", "llm", "pytorch", "kafka", "postgres", "sql", "spark"]
 
 
@@ -174,6 +176,12 @@ def heuristic_parse(brief: str) -> Criteria:
     for alias, city in _CITY_ALIASES.items():
         if city and re.search(rf"\b{re.escape(alias)}\b", text) and city not in locations:
             locations.append(city)
+    country = re.search(r"\b(?:remote|anywhere in|across)\s+(india|us|usa|uk|europe)\b", text)
+    if country:
+        locations.append({"india": "India", "us": "United States", "usa": "United States", "uk": "United Kingdom",
+                          "europe": "Europe"}[country.group(1)])
+    if re.search(r"\b(us|usa)\s+east\s+coast\b|\beast coast\b", text) and "United States" not in locations:
+        locations.append("United States")
     skills = [s for s in _SKILL_WORDS if re.search(rf"\b{re.escape(s)}\b", text)]
     prefs = [p for p in ("startup", "fintech", "faang", "saas", "enterprise", "devtools", "consumer") if p in text]
     stage = re.search(r"\bser(?:ie|ei)s\s*([a-e](?:\s*[-/to]+\s*[a-e])?)\b", text)
@@ -254,7 +262,7 @@ def broaden_ladder(c: Criteria) -> list[tuple[str, dict]]:
     # de-duplicate identical steps (e.g. no seniority to strip)
     seen, out = set(), []
     for desc, f in ladder:
-        key = repr(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in f.items()))
+        key = repr(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in f.items() if k != "seniority"))
         if key not in seen:
             seen.add(key)
             out.append((desc, f))

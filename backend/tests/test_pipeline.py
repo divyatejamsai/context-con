@@ -261,3 +261,50 @@ def test_template_profile_fills_criteria_and_is_excluded():
     cands = [e.candidate for e in evs if e.type == "candidate"]
     assert all("karthik" not in (c.profile_url or "") for c in cands)
     assert evs[-1].type == "done"
+
+
+def test_qa_review_items():
+    from app.orchestrator import domain_terms
+    from app.outreach import template_draft
+    from app.schemas import Claim, Reason, Source
+    # 3: languages are not domain terms
+    c = Criteria(role="Backend Engineer", skills=["Payments", "Python", "Go"], must_haves=[])
+    assert domain_terms(c) == ["payments"]
+    # 2: seniority-only differences don't produce duplicate ladder steps
+    steps = broaden_ladder(Criteria(role="Staff Engineer", title_variants=["Staff Engineer"], seniority="staff", locations=["Pune"]))
+    keys = [json.dumps({k: v for k, v in f.items() if k != "seniority"}, sort_keys=True) for _, f in steps]
+    assert len(keys) == len(set(keys))
+    # 5: template hook never uses scoring text
+    cand = Candidate(id="c1", name="A B", title="Eng", company="X",
+                     reasons=[Reason(text="6 of 6 claims verified against Crustdata", claim_ids=["k1"])],
+                     claims=[Claim(id="k1", claim="Works at X since 2021", status="verified", evidence="e",
+                                   source=Source(endpoint="person/enrich"))])
+    d = template_draft(cand, Criteria(role="Eng"))
+    assert "claims verified" not in d and "works at X since 2021" in d
+
+
+def test_identify_fallback_uses_real_keys():
+    from app.orchestrator import enrich
+
+    class C(RealShaped):
+        def __init__(self):
+            super().__init__()
+            self.enriched_with = None
+
+        async def company_identify(self, name=None, domain=None):
+            return {"crustdata_company_id": 77, "basic_info": {"name": "Acme", "primary_domain": "acme.com"}}
+
+        async def company_enrich(self, company_id=None, domain=None, fields=None):
+            self.enriched_with = (company_id, domain)
+            return {"basic_info": {"name": "Acme"}}
+
+    client = C()
+    p = {"basic_profile": {"name": "X"}, "experience": {"employment_details": {"current": [{"title": "Eng", "name": "Acme"}]}}}
+    asyncio.run(enrich(client, p, pre={}))
+    assert client.enriched_with == (77, "acme.com")
+
+
+def test_heuristic_remote_country_and_new_roles():
+    c = heuristic_parse("need a senior backend eng, blr or remote india, payments, upi")
+    assert "Bangalore" in c.locations and "India" in c.locations and "upi" in c.skills
+    assert heuristic_parse("Staff Rust engineer in Pune").role.endswith("Rust Engineer")

@@ -109,12 +109,18 @@ async def person_search(client, simple: dict) -> list[dict]:
     return await client.person_search(to_crustdata_filters(simple), limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS)
 
 
+# languages/tools are matched by the verifier, not used as fuzzy domain search terms ("go" matches "Google")
+_NOT_DOMAIN = {"go", "golang", "python", "java", "javascript", "typescript", "js", "ts", "rust", "c", "c++", "c#", "ruby",
+               "php", "scala", "kotlin", "swift", "sql", "react", "node", "node.js", "aws", "gcp", "azure", "docker",
+               "kubernetes", "k8s", "git", "linux", "html", "css", "postgres", "mysql", "redis", "kafka", "spark"}
+
+
 def domain_terms(c: Criteria, n: int = 3) -> list[str]:
-    """Short domain keywords from must-haves + skills ("payments experience" -> "payments")."""
+    """Short domain keywords from must-haves + skills ("payments experience" -> "payments"), not languages/tools."""
     out: list[str] = []
     for raw in c.must_haves + c.skills:
         t = clean_term(raw)
-        if t and len(t) <= 30 and t not in out:
+        if t and 3 <= len(t) <= 30 and t not in _NOT_DOMAIN and t not in out:
             out.append(t)
     return out[:n]
 
@@ -258,8 +264,9 @@ async def enrich(client, p: dict, pre: dict | None = None) -> tuple[dict, dict |
         elif cname:
             ident = await client.company_identify(name=cname)
             if ident:
-                company = await client.company_enrich(company_id=people.first(ident, "company_id", "id"),
-                                                      domain=people.first(ident, "company_website_domain", "domain")) or ident
+                company = await client.company_enrich(
+                    company_id=people.first(ident, "crustdata_company_id", "company_id", "id"),
+                    domain=people.first(ident, "basic_info.primary_domain", "company_website_domain", "domain")) or ident
     except Exception as e:
         problems.append(f"Company Enrich failed ({type(e).__name__})")
     return person, company, problems
@@ -409,7 +416,10 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
             await asyncio.gather(*(one(i, p) for i, p in enumerate(chosen)))
             timings["candidates"] = _ms(t)
             summary.enriched = len(done)
-            ranked = sorted(done, key=lambda c: c.score, reverse=True)
+            pre_by_url = {people.profile_url(p): prescore(p, criteria) for p in chosen}
+            ranked = sorted(done, key=lambda c: (c.score, sum(k.status == "verified" for k in c.claims),
+                                                 -sum(k.status == "contradicted" for k in c.claims),
+                                                 pre_by_url.get(c.profile_url, 0)), reverse=True)
             shortlist = [c for c in ranked if c.score >= SHORTLIST_MIN]
             summary.shortlisted = len(shortlist)
             if ranked:
