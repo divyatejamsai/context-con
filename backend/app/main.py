@@ -7,6 +7,7 @@ GET  /api/health
 GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Agaxes AI employee (app/sourced_agent.py)
 POST /api/verify_resume                     -> check a resume's claims against Crustdata
 POST /api/auth/{lookup,signup,login,demo,logout}, GET /api/auth/me -> company accounts (app/accounts/)
+/api/workspace, /api/workspace/members      -> roles (viewer/member/admin/owner) that gate every Agaxes route (authz.py)
 GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
 /api/runtime/*                              -> the agent runtime: tasks, approvals, budgets, schedules (app/runtime/)
 /api/campaigns/*                            -> brief to signed offer, ~100 conversations over weeks (app/talent/api.py)
@@ -40,6 +41,7 @@ from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, 
 from .runtime import api as runtime_api  # noqa: E402  (agent runtime, docs/RUNTIME.md)
 from .outbound.api import router as outbound_router  # noqa: E402  (find emails, send through Send Guard, track replies)
 from .accounts.api import router as auth_router  # noqa: E402  (company sign-up, login and sessions)
+from .accounts.members_api import router as members_router  # noqa: E402  (workspace roles: app/accounts/authz.py)
 from .talent.api import router as talent_router  # noqa: E402  (brief -> signed offer, shift staffing: app/talent)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -52,6 +54,7 @@ app.include_router(demo_router)
 app.include_router(runtime_api.router)
 app.include_router(outbound_router)
 app.include_router(auth_router)
+app.include_router(members_router)
 app.include_router(talent_router)
 
 
@@ -86,8 +89,9 @@ async def _stream(brief: str):
 
 @app.get("/api/health")
 async def health():
+    from .accounts.authz import mode as auth_mode
     return {"ok": True, "llm_mode": llm.mode(), "crustdata_mode": os.getenv("CRUSTDATA_MODE", "live"),
-            "crustdata_key": bool(os.getenv("CRUSTDATA_API_KEY"))}
+            "crustdata_key": bool(os.getenv("CRUSTDATA_API_KEY")), "auth_mode": auth_mode()}
 
 
 @app.post("/api/run")

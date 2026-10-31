@@ -112,6 +112,41 @@ async def ledger_view(agent_id: str | None = None, kind: str | None = None, p=De
     return {"chain_ok": ok, "first_bad_seq": bad, "entries": rows}
 
 
+@router.get("/ledger/export")
+async def ledger_export(format: str = "jsonl", agent_id: str | None = None, kind: str | None = None,
+                        since: str | None = None, until: str | None = None, p=Depends(require_read)):
+    """Signed audit export (app/agents/audit.py). jsonl = evidence (manifest + entries); csv = for reading."""
+    from fastapi.responses import Response
+    from . import audit
+    if format not in ("jsonl", "csv"):
+        raise HTTPException(400, "format is jsonl or csv")
+    if agent_id:
+        authz.check_agent(agent_id, p)
+    ids = authz.visible_agent_ids(p)
+    filters = {"agent_id": agent_id, "kind": kind, "since": since, "until": until,
+               "workspace_id": p.workspace_id if p.scoped else None}
+    rows = audit.select(agent_id=agent_id, kind=kind, since=since, until=until,
+                        visible=lambda r: authz.entry_visible(r, ids, p.workspace_id))
+    manifest = audit.build(rows, filters=filters, generated_by=p.actor())
+    ledger.append("ledger.exported", {"format": format, "count": len(rows), "filters": manifest["filters"],
+                                      "entries_sha256": manifest["entries_sha256"]})
+    stamp = manifest["generated_at"].replace(":", "")[:15]
+    if format == "csv":
+        return Response(audit.to_csv(rows), media_type="text/csv", headers={
+            "Content-Disposition": f'attachment; filename="agaxes-ledger-{stamp}.csv"',
+            "X-Agaxes-Export-Sha256": manifest["entries_sha256"],
+            "X-Agaxes-Export-Signature": manifest["issuer_signature"]})
+    return Response(audit.to_jsonl(manifest, rows), media_type="application/x-ndjson", headers={
+        "Content-Disposition": f'attachment; filename="agaxes-ledger-{stamp}.jsonl"'})
+
+
+@router.post("/ledger/export/verify")
+async def ledger_export_verify(body: dict):
+    """Public, like receipt verification: paste {"export": "<jsonl text>"}; checks it against this issuer's key."""
+    from . import audit
+    return audit.verify_export(body.get("export") or "", issuer_public_key())
+
+
 # Other workstreams' routers, included when their modules exist.
 for _mod in ("guard_api", "enroll_api", "registry_api"):  # enroll_api first: /agents/enrollments is not an id
     try:

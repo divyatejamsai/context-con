@@ -118,12 +118,16 @@ async def rotate_key(agent_id: str, body: RotateBody):
         raise HTTPException(400, str(e))
     text = enroll.rotate_text(agent_id, body.ts, new_pk)
     try:
+        cur = registry.get_agent(agent_id)
+    except registry.RegistryError:
+        raise HTTPException(401, f"unknown agent {agent_id}")
+    probe = Passport(**{**cur["passport"], "public_key": new_pk})
+    if not verify_message_signature(probe, text, body.new_key_proof):  # before the old-key check burns the signature
+        raise HTTPException(401, "new_key_proof doesn't match the new key")
+    try:
         rec = authenticate("rotate_key", agent_id, None, body.ts, new_pk, body.signature)
     except AgentAuthError as e:
         raise HTTPException(401, str(e))
-    probe = Passport(**{**rec["passport"], "public_key": new_pk})
-    if not verify_message_signature(probe, text, body.new_key_proof):
-        raise HTTPException(401, "new_key_proof doesn't match the new key")
     authz.CURRENT.set(Principal(via="agent", role="viewer", extra={"agent_id": agent_id,
                                                                     "workspace_id": rec.get("workspace_id")}))
     try:
