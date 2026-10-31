@@ -91,7 +91,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
 
   if (!st) {
     return (
-      <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8">
         {err ? (
           <EmptyState icon={ShieldAlert} tone="bad" title="Can't reach the agent runtime">{err}</EmptyState>
         ) : (
@@ -107,7 +107,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
   const outside = st.agents.filter((a) => a.status !== "offboarded" && a.runtime === "external");
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHead title="Work" eyebrow="Live">
           Your AI employees and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
@@ -325,7 +325,7 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
             <p className="mt-1 truncate font-mono text-[10.5px] text-muted-foreground">{cur.last_step?.trim() || cur.progress.label}</p>
           </button>
         ) : a.status !== "active" ? (
-          <p className="text-[12px] text-contradicted">{a.reason || a.status}</p>
+          <p className="text-[12px] text-contradicted">{(a.reason || a.status).replace(/^([a-z_]+):\s*/, (_, k: string) => `${checkLabel(k)}: `)}</p>
         ) : a.policy.paused ? (
           <p className="text-[12px] text-muted-foreground">Paused: {a.policy.paused_reason}. {a.queued ? `${a.queued} task(s) held in the queue.` : ""}</p>
         ) : (
@@ -354,7 +354,7 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
-        <Button variant="primary" onClick={onAssign} disabled={!canWork}
+        <Button onClick={onAssign} disabled={!canWork}
           title={canWork ? `Jobs: ${a.kinds.map((k) => kinds.find((x) => x.kind === k)?.label ?? k).join(", ")}` : "Not active, or no job fits its passport"}>
           <Plus className="size-3.5" /> Assign
         </Button>
@@ -365,7 +365,7 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
             {b ? <Loader2 className="size-3.5 animate-spin" /> : <Pause className="size-3.5" />} Pause
           </Button>
         )}
-        <Button variant="danger" onClick={onSuspend} disabled={!!busy || a.status !== "active"} title="Stop now and revoke its passport">
+        <Button variant="ghost" className="text-contradicted hover:bg-contradicted/10 hover:text-contradicted" onClick={onSuspend} disabled={!!busy || a.status !== "active"} title="Stop now and revoke its passport">
           <Ban className="size-3.5" /> Suspend
         </Button>
         <Button variant="ghost" onClick={onSettings} className="ml-auto" title="Approvals and budgets"><Settings2 className="size-3.5" /></Button>
