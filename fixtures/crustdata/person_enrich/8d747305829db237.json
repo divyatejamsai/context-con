@@ -1,0 +1,413 @@
+{
+  "endpoint": "person/enrich",
+  "request": {
+    "professional_network_profile_urls": [
+      "https://www.linkedin.com/in/shivankverma"
+    ],
+    "fields": [
+      "basic_profile",
+      "experience",
+      "education",
+      "skills",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": [
+    {
+      "matched_on": "https://www.linkedin.com/in/shivankverma",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "VP Backend Engineer",
+              "first_name": "Shivank",
+              "headline": "Senior trading systems engineer with 10+ years building production trading infrastructure across crypto, fintech, and real-time systems | 2X Entrepreneur",
+              "languages": [
+                "English (Full professional proficiency)",
+                "Hindi (Native or bilingual proficiency)"
+              ],
+              "last_name": "Verma",
+              "location": {
+                "city": "Mumbai",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Mumbai, Maharashtra, India",
+                "state": "Maharashtra"
+              },
+              "name": "Shivank Verma",
+              "normalized_title": {
+                "confident": true,
+                "department": "Engineering & Technology",
+                "matched_title": "Senior Backend Engineer",
+                "similarity": 0.9925000071525574,
+                "sub_department": "Software Engineering"
+              },
+              "professional_network_name": "Shivank Verma",
+              "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/bf93a9b92baadf4c92f68360cca16b63e29d1be2528537c127f12a6b62324e32.jpg",
+              "summary": "Self-driven and motivated serial Tech Entrepreneur with a proven track record of success in building companies from scratch to PMF. Passion for building inspiring companies through industry-leading Tech, Design & Execution. \nInterest Fields : Crypto and Fintech"
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Technology (BTech)",
+                  "description": "",
+                  "end_year": 2015,
+                  "field_of_study": "Computer Science and Engineering",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e122754f4b7597af9664eb69ba5b10237889f207b26cf2819e4c263f8eb8087e.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQFtUoITUxojtQ/company-logo_400_400/company-logo_400_400/0/1631351239680?e=1781136000&v=beta&t=txrehAJX1SDYpx1J_8_bCNmmpC8HoiXrGZ1EzcZuXM0",
+                  "location": {
+                    "city": null,
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "Silchar",
+                    "state": "Assam"
+                  },
+                  "professional_network_id": "15097403",
+                  "school": "National Institute of Technology Silchar",
+                  "start_year": 2011
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "Galaxy is a digital assets and AI infrastructure company, building and investing across the two forces reshaping the economy: finance moving onchain, and the compute that powers AI.Our digital assets platform offers institutional access to trading, advisory, asset management, staking, self-custody, and tokenization technology. Alongside this, we develop and operate data center infrastructure that powers AI and high-performance computing, working to meet the growing demand for scalable energy and compute in the U.S.Galaxy is headquartered in New York City, with offices across North America, Europe, the Middle East and Asia.Additional information about Galaxy's businesses and products is available on www.galaxy.com Disclaimer: hubs.li/Q022Cvpy0",
+                    "company_headcount_latest": 2692,
+                    "company_headcount_range": "501-1000",
+                    "company_industries": [
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Financial Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/11275244",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ce2ff382aa338db69d34a64f721bfbc0941a720256431194e5cb24bdcd1434e1.jpg",
+                    "company_status": "active",
+                    "company_website": "http://galaxy.com",
+                    "company_website_domain": "galaxy.app",
+                    "crustdata_company_id": 631307,
+                    "description": "NASDAQ: GLXY",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Mumbai Metropolitan Region"
+                    },
+                    "name": "Galaxy",
+                    "position_id": 2886066095,
+                    "professional_network_id": "11275244",
+                    "seniority_level": "Vice President",
+                    "start_date": "2026-04-01T00:00:00+00:00",
+                    "title": "VP Backend Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "PulseTrader is a quant-first execution platform for on-chain derivatives traders.We enable independent and semi-professional quant traders to deploy, execute, and manage risk across perp DEXs from a single system.",
+                    "company_headcount_latest": null,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Financial Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/111383043",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3cc5819954f2b40124d462a752b12b9a824fca137f549f90930533fb08476439.jpg",
+                    "company_status": "active",
+                    "company_website": "https://pulsetrader.xyz",
+                    "company_website_domain": "pulsetrader.xyz",
+                    "crustdata_company_id": 32582484,
+                    "description": "Built and operate a production-grade quantitative trading cockpit focused on execution, automation, and risk controls.\n\nArchitected a real-time OMS and execution layer for leveraged crypto trading with embedded TP/SL, sizing logic, and portfolio controls\n\nImplemented strategy automation pipelines for market-neutral and hedged setups (basis, funding, stat-arb execution)\n\nDesigned wallet-connected trading flows for both retail and fund-style users\n\nIntegrated Hyperliquid APIs and on-chain venues with latency-aware execution logic\n\nBuilt execution safety systems: circuit breakers, exposure caps, and fail-safe shutdowns\n\nWorked closely with quants and traders to translate strategy logic into live systems\n\nRole focus: execution engineering, infra reliability, and capital protection",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Dubai, United Arab Emirates"
+                    },
+                    "name": "PulseTrader",
+                    "position_id": 2798698167,
+                    "professional_network_id": "111383043",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2025-01-01T00:00:00+00:00",
+                    "title": "Co-Founder",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": null,
+                    "company_headcount_latest": null,
+                    "company_headcount_range": null,
+                    "company_industries": null,
+                    "company_professional_network_industry": null,
+                    "company_professional_network_profile_url": null,
+                    "company_profile_picture_permalink": null,
+                    "company_status": null,
+                    "company_website": null,
+                    "company_website_domain": null,
+                    "crustdata_company_id": null,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Dubai, United Arab Emirates"
+                    },
+                    "name": "Diamond Hands Trading Desk",
+                    "position_id": 2346631702,
+                    "professional_network_id": null,
+                    "seniority_level": "Director",
+                    "start_date": "2023-11-01T00:00:00+00:00",
+                    "title": "Head of Engineering",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 2.0
+                  },
+                  {
+                    "company_description": "At KwikBiz, We're building better business Software for the enterprise which are easy to use, needs minimum or no Customization and don't burn the hole through your pocket.All this & world-class support guaranteed !",
+                    "company_headcount_latest": 1,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/75537874",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eec8d71433cdb34b974b48e9ad18f4ff5624f3f08de7307ce4906906463df331.jpg",
+                    "company_status": "active",
+                    "company_website": "https://kwikbiz.in/",
+                    "company_website_domain": "kwikbiz.in",
+                    "crustdata_company_id": 614715,
+                    "description": "• Built Kwikbiz, a full-fledged ERP solution for SMEs in India. Significantly increased efficiency & Transparency of running a business for Small and Medium-sized enterprises in Tier2 cities in India\n• Wrote Version 1.0 of the application single-handedly\n• Grew company from idea to 500+ customers within 1 year. Managed and trained a team of 6 Full Time employees.\n• Participated in all aspects of business development from market research and finance to operations and marketing.\n• Built and maintained professional relationships with potential investors and partners; attended various startup and business events all around the world.",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Delhi, India"
+                    },
+                    "name": "KwikBiz",
+                    "position_id": 1738698398,
+                    "professional_network_id": "75537874",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2020-08-01T00:00:00+00:00",
+                    "title": "Founder",
+                    "years_at_company": "6 to 10 years",
+                    "years_at_company_raw": 5.0
+                  },
+                  {
+                    "company_description": "3poch Labs is a $15M Liquid crypto fund and research lab.We're a group of crypto-native folks who believe that this is the next frontier of innovation. We don't work in crypto; we live in it.",
+                    "company_headcount_latest": 4,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Investment Management",
+                      "Capital Markets",
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Investment Management",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/101454171",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eccca1ee1617451f434a121c409ed33479bf4d13a0930f7766e7c67b6ccdf024.jpg",
+                    "company_status": "active",
+                    "company_website": "https://3poch.xyz/",
+                    "company_website_domain": "3poch.xyz",
+                    "crustdata_company_id": 4040628,
+                    "description": "• Lead Software Development Engineer at 3poch Labs, a trailblazer in crypto liquid funds.\n• Spearheaded the development of advanced trading algorithms and systems for market-making and other trading scenarios, significantly enhancing trading efficiency and profitability.\n•Architected robust, high-performance code, ensuring superior reliability and performance in fast-paced trading environments.\n•Expert in algorithmic trading and blockchain technology, with a deep understanding of the technical and financial dimensions of cryptocurrency markets.\n•Committed to innovation, constantly exploring new technologies and methodologies to stay at the forefront of the crypto finance industry.",
+                    "employment_type": "",
+                    "end_date": "2023-09-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Mumbai"
+                    },
+                    "name": "3poch Labs",
+                    "position_id": 2121519651,
+                    "professional_network_id": "101454171",
+                    "seniority_level": "Senior",
+                    "start_date": "2022-07-01T00:00:00+00:00",
+                    "title": "Founding Lead Software Development Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": "Greetings from Infocraft Solutions.We at infocraft Solutions build web and digital marketing solutions with fanatical attention to detail , and offer a range of other development services. We pride ourselves on using modern and industry best practices to craft modern solution to our client's problems that are as elegant as they are enjoyable to use.✅ Website Development✅ Digital Marketing✅ Social media marketing✅ Bulk SMS , Email , Whatsapp✅ Software development✅ Whatsapp BOT or Transactional WhatsApp API✅ Pre built software solutions✅ Bulk SMS , IVR , Bulk WhatsApp✅ Any type of Database , listsConnect with us :📩 sales@infocraft.co.in📲 wa.me/918646969697Contact 📞 : +91-9696123039Website 🌐 : www.infocraft.co.in",
+                    "company_headcount_latest": 3,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Information Technology & Services"
+                    ],
+                    "company_professional_network_industry": "Information Technology & Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13268008",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b76378ac573ed285ebfe160ef8accecf428476ba92c90e5859ed789c13731182.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.infocraft.co.in/",
+                    "company_website_domain": "infocraft.co.in",
+                    "crustdata_company_id": 15555059,
+                    "description": "• Founded an IT services company\n• Grew from 0 to 1000+ clients including some national and International Government Bodies\n• Designed and executed dissemination campaigns for various political parties in Assembly and General Elections 2019",
+                    "employment_type": "",
+                    "end_date": "2021-07-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Kanpur Area, India"
+                    },
+                    "name": "Infocraft Solutions",
+                    "position_id": 927656565,
+                    "professional_network_id": "13268008",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2017-02-01T00:00:00+00:00",
+                    "title": "Founder",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 4.0
+                  },
+                  {
+                    "company_description": "SOL Analytics has been incorporated with a vision to help businesses take well informed decisions through fact-based analysis and insights. Our consulting solution focuses on analyzing research and transactional data, provides the consumer with an insight and brings out customer needs by understanding their purchase history, perceptions, feedback and recommendations they provide on availing client services. We built our offerings in Business Intelligence, Market & Consumer Research and Business Analytics catering to the middle east, Asian subcontinent and North American region.We develop and implement information-based strategies that highlights the challenges faced by an enterprise. We use analytical solutions with the help of   qualified research and analytics professionals using latest technology and tools to collect customer feedback, Analyze the customers transactional history, understand different perceptions and provide valuable insights and recommendations to our valuable clients.Our mission is to assist organizations to make fact based and Data driven decisions, in order to achieve higher efficiencies in all areas of operation.Specialties: a. Business Analytics solution b. Business Intelligence solutionc. Market Research and Analytics d. Management consulting services",
+                    "company_headcount_latest": 10,
+                    "company_headcount_range": "11-50",
+                    "company_industries": [
+                      "Business Consulting and Services",
+                      "Professional Services"
+                    ],
+                    "company_professional_network_industry": "Business Consulting and Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13268948",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4e6deb21b5d80fb9ac27ac592dcadab1fce87e99f6322ee384175557be18b18f.jpg",
+                    "company_status": "active",
+                    "company_website": "http://www.solanalytics.com/",
+                    "company_website_domain": "solanalytics.com",
+                    "crustdata_company_id": 2225045,
+                    "description": "• Re-wrote CRM application for a client based in UAE",
+                    "employment_type": "",
+                    "end_date": "2018-11-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "SOL Analytics Business Solutions",
+                    "position_id": 1243926751,
+                    "professional_network_id": "13268948",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2018-03-01T00:00:00+00:00",
+                    "title": "Software Developer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "We help people grow their businesses by transforming DATA into information that is meaningful and actionable. If it’s data services you need, our database architects help companies collect, organize and export product selection and ordering data needed by their B2B trading partners. We are experts in the electrical manufacturing industry. Our focus is on data needed by customers to make selection and ordering decisions.We thank you for your request to connect with dataZen Engineering and invite you to follow our company updates at https://www.linkedin.com/company/datazen-engineering. For any product information, you could contact us at sales@dataZenEngineering.com.http://www.datazenengineering.com/",
+                    "company_headcount_latest": 14,
+                    "company_headcount_range": "11-50",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/2034400",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e438f08ed8fd925942dba06f3f46a9baac18c10539b38e854ef41ccf02f88d91.jpg",
+                    "company_status": "active",
+                    "company_website": "http://www.datazenengineering.com",
+                    "company_website_domain": "datazenengineering.com",
+                    "crustdata_company_id": 1779266,
+                    "description": "• Created a system for measuring performance of CNC Machines using MTConnect",
+                    "employment_type": "",
+                    "end_date": "2016-07-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": ""
+                    },
+                    "name": "dataZen Engineering",
+                    "position_id": 1355225241,
+                    "professional_network_id": "2034400",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2016-01-01T00:00:00+00:00",
+                    "title": "Software Developer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "DronaHQ is an agentic application platform that helps engineering teams build AI agents capable of executing real operational workflows across enterprise systems.Deploying production-grade agents that can safely query databases, retrieve knowledge from documents, and trigger downstream workflows remains complex. Most teams end up stitching together LLMs, vector databases, orchestration frameworks, and internal APIs.DronaHQ provides the orchestration layer that bridges this integration gap.The platform combines managed RAG pipelines, schema-aware SQL agents, and secure API integrations so agents can reason over data and take actions across internal tools.With DronaHQ, teams can build agents that:• Retrieve knowledge from large document repositories• Query structured data across enterprise databases• Trigger workflows across CRMs, ERPs, and internal APIs• Power internal copilots and operational automationEngineering teams use DronaHQ to deploy agents for support triage, finance automation, internal operations, CRM workflows, and data assistants.Today, organizations use DronaHQ to build operational applications, internal tools, and autonomous AI agents that integrate deeply with their existing systems.DronaHQ is trusted by engineering teams building scalable operational infrastructure across SaaS, fintech, and digital businesses.Learn more: www.dronahq.com/agentsStart building: https://agents.dronahq.com#agenticAI #AIagents #agenticAgents #AI #internaltools #nocode #automation #AIapps",
+                    "company_headcount_latest": 56,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/225531",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7e17ff92bda8b83ad36336684b1122e4f07c4aca7e423bc44cb0b340bf835bce.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.DronaHQ.com",
+                    "company_website_domain": "dronahq.com",
+                    "crustdata_company_id": 6781,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2015-10-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Mumbai Area, India"
+                    },
+                    "name": "DronaHQ",
+                    "position_id": 697827168,
+                    "professional_network_id": "225531",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2015-07-01T00:00:00+00:00",
+                    "title": "Software Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Apache Kafka",
+                "Redis",
+                "NestJS",
+                "Large Scale Development",
+                "Engineering",
+                "Quantitative Research",
+                "Next.js",
+                "Docker",
+                "Exchange Connectivity",
+                "Order Management",
+                "Engineering Management",
+                "Go (Programming Language)",
+                "Systems Design",
+                "Algorithmic Trading",
+                "Communication",
+                "Problem Solving",
+                "Design Patterns",
+                "Containerization",
+                "Microservices",
+                "Product Development"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/shivankverma"
+              },
+              "twitter_identifier": {
+                "slug": "i_am_Shivank"
+              }
+            },
+            "crustdata_person_id": 646211
+          }
+        }
+      ]
+    }
+  ],
+  "fetched_at": "2026-10-31T06:03:02+00:00"
+}
