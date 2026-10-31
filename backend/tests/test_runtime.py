@@ -369,3 +369,99 @@ def test_outside_agent_is_governed_end_to_end(monkeypatch, tmp_path):
         assert call(c, "progress", t2["task_id"], "hello?").json()["stop"]
         kinds_on_ledger = [e["kind"] for e in ledger.entries()]
         assert kinds_on_ledger.count("task.started") >= 2 and "task.cancelled" in kinds_on_ledger
+
+
+def test_hire_scheduler_and_schedule_interviews_from_a_shortlist(monkeypatch, tmp_path):
+    monkeypatch.setenv("RUNTIME_ENABLED", "1")
+    from app.main import app
+    fleet()
+    people = ("Vinod Sonagara | https://www.linkedin.com/in/vinod-sonagara | Fam\n"
+              "Shivank Verma | https://www.linkedin.com/in/shivankverma | PulseTrader")  # stale: he left PulseTrader
+    with TestClient(app) as c:
+        tpl = c.get("/api/runtime/templates").json()
+        assert tpl[0]["name"] == "Scheduler" and not tpl[0]["hired"]
+        h = c.post("/api/runtime/hire", json={"key": "scheduler"}).json()
+        assert h["decision"] == "allow"
+        assert c.post("/api/runtime/hire", json={"key": "scheduler"}).status_code == 409
+        sid = h["agent"]["agent_id"]
+        t = c.post("/api/runtime/tasks", json={"agent_id": sid, "kind": "interview_scheduling", "input": {
+            "candidates": people, "slots": "Tue 4 Nov, 10:00 IST\nTue 4 Nov, 15:00 IST\nWed 5 Nov, 11:30 IST",
+            "role": "Senior Backend Engineer", "interviewer": "Pankaj Savaliya"}}).json()
+        for _ in range(400):
+            tj = c.get(f"/api/runtime/tasks/{t['task_id']}").json()
+            if tj["status"] not in ("queued", "running"):
+                break
+            asyncio.run(asyncio.sleep(0.05))
+        assert tj["status"] == "done", (tj["error"], tj["steps"][-5:])
+        plan = {p["candidate"]: p for p in tj["output"]["schedule"]}
+        assert plan["Vinod Sonagara"]["invite"] == "waiting for your approval"
+        assert plan["Shivank Verma"]["invite"] == "blocked"  # Send Guard: no longer at PulseTrader
+        assert plan["Vinod Sonagara"]["slots"] != plan["Shivank Verma"]["slots"]
+        assert "BEGIN:VCALENDAR" in tj["output"]["artifacts"][0]["content"]
+        assert not (tmp_path / "outbox.jsonl").exists()
+
+
+@pytest.mark.asyncio
+async def test_transient_failure_is_retried_once(monkeypatch):
+    calls = {"n": 0}
+
+    async def flaky(ctx, inp):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ConnectionError("Crustdata reset the connection")
+        return {"ok": True, "summary": "second try worked"}
+
+    monkeypatch.setitem(kinds.KINDS, "flaky", {"label": "Flaky", "scope": "data.read", "fields": [], "handler": flaky,
+                                               "description": "", "agent_hint": None})
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["diligence"]["agent_id"], "flaky", {}, by="test")
+        await until(lambda: status(t["task_id"]) == "done")
+        tt = store.get_task(t["task_id"])
+        assert tt["attempts"] == 2 and tt["result"] == "second try worked"
+        assert "task.retry" in [e["kind"] for e in ledger.entries()]
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_launched_agent_that_cannot_start_fails_the_task(monkeypatch, tmp_path):
+    fake = tmp_path / "bin" / "claude"
+    fake.parent.mkdir()
+    fake.write_text("#!/bin/sh\necho 'Failed to authenticate: OAuth session expired'\nexit 1\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{fake.parent}:{__import__('os').environ['PATH']}")
+    monkeypatch.setenv("AGAXES_LAUNCH_CLAUDE", "1")
+    ags = {k: a for k, a, _ in onboard(["claude-code"])}
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["claude-code"]["agent_id"], "assignment", {"instructions": "say hi"}, by="test")
+        await until(lambda: status(t["task_id"]) == "failed", 20)
+        assert "OAuth session expired" in store.get_task(t["task_id"])["error"]
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_edit_then_approve_resigns_and_reguards(tmp_path):
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["pipeline"]["agent_id"], "sales_outreach", {}, by="test")
+        await until(lambda: status(t["task_id"]) == "done", 120)
+        a, b = store.approvals("pending")[:2]
+        first = a["to"]["name"].split()[0]
+        ok = await rt.approve(a["approval_id"], "Pankaj", body=f"Hi {first}, quick question: open to a 15-minute call this week?\n\nPipeline")
+        assert ok["status"] == "sent" and ok["edited_by"] == "Pankaj" and ok["original_body"] != ok["body"]
+        bad = await rt.approve(b["approval_id"], "Pankaj", body=f"Hi {b['to']['name'].split()[0]}, congrats on 9 years at {b['to']['company']}!")
+        assert bad["status"] == "blocked_at_send"  # the guard checks the edited text from scratch
+        outbox = [json.loads(x) for x in (tmp_path / "outbox.jsonl").read_text().splitlines()]
+        assert len(outbox) == 1 and "quick question" in outbox[0]["body"]
+        e = [x for x in ledger.entries() if x["kind"] == "runtime.approval"]
+        assert e[0]["payload"]["edited"] is True
+    finally:
+        await rt.stop()

@@ -221,8 +221,16 @@ def _add_send(task_id: str, rec: dict) -> None:
     store.task_mutate(task_id, lambda t: t["output"].setdefault("sends", []).append(rec))
 
 
-async def execute_approval(approval_id: str, by: str, mcp: Any = None) -> dict:
-    """A person approved a held draft: re-run the guard at send time and, only if it still clears, write the outbox."""
+async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str | None = None) -> dict:
+    """A person approved a held draft: re-run the guard at send time and, only if it still clears, write the outbox.
+    With `body`, the person edited the draft first: an in-house agent re-signs the edited text with its own key (an
+    outside agent's key never leaves its machine, so its drafts can only be approved or rejected as written), and
+    Send Guard checks the edited text from scratch."""
+    edited = body is not None and body.strip() and body.strip() != (store.get_approval(approval_id) or {}).get("body", "").strip()
+    if edited:
+        cur = store.get_approval(approval_id)
+        if cur and registry.get_agent(cur["agent_id"]).get("runtime") == "external":
+            raise ValueError("an outside agent's draft can't be edited here: reject it and ask the agent for a new one")
     a = store.claim_approval(approval_id, by)
     if a is None:
         cur = store.get_approval(approval_id)
@@ -233,6 +241,12 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None) -> dict:
         pol = store.policy(a["agent_id"])["budget"]
         if store.usage(a["agent_id"])["sends"] >= pol["sends_per_day"]:
             raise BudgetExceeded(f"daily sends budget reached ({pol['sends_per_day']})")
+        if edited:
+            from ..agents.models import Passport
+            original = a["body"]
+            a["body"] = body.strip()
+            a["signature"] = sign_message(Passport.model_validate(rec["passport"]), registry.private_key(a["agent_id"]), a["body"])
+            store.update_approval(approval_id, body=a["body"], signature=a["signature"], edited_by=by, original_body=original)
         args = {"agent_id": a["agent_id"], "signature": a["signature"], "to": a["to"], "body": a["body"],
                 "scope": a["scope"]}
         if a.get("today"):
@@ -250,7 +264,7 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None) -> dict:
         log.exception("approval %s failed", approval_id)
         status, result = "blocked_at_send", {"sent": False, "error": f"{type(e).__name__}: {e}"}
     entry = ledger.append("runtime.approval", {"agent_id": a["agent_id"], "approval_id": approval_id, "task_id": a["task_id"],
-                                                "decision": "approved", "by": by, "outcome": status,
+                                                "decision": "approved", "by": by, "outcome": status, "edited": bool(edited),
                                                 "to": a["to"], "guard_entry": result.get("ledger_entry")})
     out = store.update_approval(approval_id, status=status, result={**result, "approval_entry": entry})
     _sync_send(a["task_id"], approval_id, status)
@@ -270,8 +284,12 @@ def reject_approval(approval_id: str, by: str, note: str | None = None) -> dict:
 
 
 def _sync_send(task_id: str, approval_id: str, state: str) -> None:
+    body = (store.get_approval(approval_id) or {}).get("body")
+
     def fn(t):
         for s in t["output"].get("sends", []):
             if s.get("approval_id") == approval_id:
                 s["state"] = state
+                if body and s.get("body") != body:
+                    s["body"], s["edited"] = body, True
     store.task_mutate(task_id, fn)

@@ -263,6 +263,9 @@ def make_cases(people: dict[str, dict], today: date, rng: random.Random) -> list
             "facts about the sender's team")
         add("sender", "sender_role_you", f"Hi {first}, we think you'd make a great Senior Engineer on our platform team.", "allow",
             "a pitch, not a claim")
+        add("sender", "sender_stack", f"Hi {first}, you understand the complexities of building robust infrastructure. "
+            "Grewon Technologies specializes in building and running backend and cloud infrastructure "
+            "(Python, Django, AWS, Terraform, Kubernetes) for product teams.", "allow", "sender's stack (live regression)")
         add("sender", "sender_office_you", f"Hi {first}, our office is in Bengaluru, and you could work from there or remotely.", "allow",
             "facts about the sender")
 

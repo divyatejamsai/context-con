@@ -31,6 +31,8 @@ Facts about {first} (from Crustdata; state nothing else about them or their comp
 Rules:
 - Address them at {company} (the account you are working). Mention {company} once, as "your team at {company}".
 - No claims about their title, tenure, seniority, location or company size. No adjectives about their company.
+- Say nothing about what they know, use or work with: never "As a <title>, you...". Grewon's stack goes only in a
+  sentence that starts with "We" or "Grewon".
 - One direct question asking for a 15-minute call this week.
 - No subject line, no placeholders. End with exactly this line:
 {signoff}

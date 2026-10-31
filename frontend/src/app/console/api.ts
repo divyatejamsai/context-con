@@ -255,6 +255,7 @@ export interface Task {
     findings?: { candidate: string; profile_url?: string; verified: number; total: number; contradicted: { claim: string; evidence: string; source?: Source | null }[] }[];
     artifacts?: { kind: string; title: string; path?: string; content?: string }[];
     filed?: { kind: string; summary: string; ledger_entry: string }[];
+    schedule?: { candidate: string; company: string; slots: string[]; interviewer: string; minutes: number; invite: string; drafted_by: string }[];
   };
   approvals?: Approval[];
 }
@@ -365,14 +366,18 @@ export interface RuntimeState {
 
 export const receiptUrl = (hash: string) => `${API_URL}/api/runtime/receipts/${hash}`;
 
+export interface Template { key: string; name: string; role: string; scopes: Scope[]; job: string; hired: boolean; jobs: string[] }
+
 export const runtime = {
+  templates: () => req<Template[]>("/runtime/templates"),
+  hire: (key: string) => post<{ agent: Agent; decision: "allow" | "block"; failed: Check[] }>("/runtime/hire", { key }),
   state: () => req<RuntimeState>("/runtime/state"),
   kinds: () => req<TaskKind[]>("/runtime/kinds"),
   task: (id: string) => req<Task>(`/runtime/tasks/${id}`),
   assign: (b: { agent_id: string; kind: string; input: Record<string, string>; by?: string }) => post<Task>("/runtime/tasks", b),
   cancel: (id: string) => post<Task>(`/runtime/tasks/${id}/cancel`, { by: "employer" }),
   retry: (id: string) => post<Task>(`/runtime/tasks/${id}/retry`, { by: "employer" }),
-  approve: (id: string) => post<Approval>(`/runtime/approvals/${id}/approve`, { by: "employer" }),
+  approve: (id: string, body?: string) => post<Approval>(`/runtime/approvals/${id}/approve`, { by: "employer", body }),
   reject: (id: string, note?: string) => post<Approval>(`/runtime/approvals/${id}/reject`, { by: "employer", note }),
   pause: (id: string, reason?: string) => post<Policy>(`/runtime/agents/${id}/pause`, { by: "employer", reason }),
   resume: (id: string) => post<Policy>(`/runtime/agents/${id}/resume`, { by: "employer" }),

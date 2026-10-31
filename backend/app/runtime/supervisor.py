@@ -67,6 +67,8 @@ class Runtime:
         self.started_at: str | None = None
         self.last_tick: float = 0.0
         self._wake: asyncio.Event | None = None
+        self.max_attempts = int(os.getenv("RUNTIME_MAX_ATTEMPTS", "2"))
+        self.lease_s = float(os.getenv("AGAXES_AGENT_LEASE_S", "600"))
         self.launch_claude = os.getenv("AGAXES_LAUNCH_CLAUDE", "0") == "1" and bool(shutil.which("claude"))
         self.launches: dict[str, asyncio.subprocess.Process] = {}   # task_id -> Claude Code started for it
 
@@ -146,6 +148,12 @@ class Runtime:
                 why = f"{ag['name']} was {ag['status']}" + (f": {ag['reason']}" if ag.get("reason") else "") if ag else "agent removed"
                 store.task_step(t["task_id"], f"Stopped by Agaxes: {why}. The agent is refused on its next call.", "control")
                 self._finish(t["task_id"], "cancelled", error=why)
+                self._kill_launch(t["task_id"])
+            elif _parse(t["steps"][-1]["ts"] if t["steps"] else t.get("started_at")) and \
+                    (_utcnow() - _parse(t["steps"][-1]["ts"] if t["steps"] else t["started_at"])).total_seconds() > self.lease_s:
+                store.task_step(t["task_id"], f"{ag['name']} went silent for {int(self.lease_s)}s: back in the queue", "control")
+                store.update_task(t["task_id"], status="queued", waiting_on=f"{ag['name']} went silent; waiting for it to claim again")
+                ledger.append("task.interrupted", {"agent_id": ag["agent_id"], "task_id": t["task_id"], "why": "agent went silent"})
                 self._kill_launch(t["task_id"])
             elif store.policy(ag["agent_id"])["paused"]:
                 store.task_step(t["task_id"], "Stopped by Agaxes: agent paused. The agent is told to stop on its next call.", "control")
@@ -281,7 +289,9 @@ class Runtime:
                 store.task_step(t["task_id"], f"{ag['name']} said: {text[-1500:]}", "agent")
             cur = store.get_task(t["task_id"])
             if cur and cur["status"] in ("queued", "running") and proc.returncode not in (None, 0, -15, 143):
-                store.task_step(t["task_id"], f"{ag['name']} exited with code {proc.returncode}", "system")
+                last = (text.splitlines() or [""])[-1][:300]
+                self._finish(t["task_id"], "failed", error=f"{ag['name']} could not run (exit {proc.returncode}): {last}")
+                self.launches.pop(t["task_id"], None)
 
         self.launches[t["task_id"]] = None  # type: ignore[assignment]  # reserved: don't launch twice
         asyncio.create_task(go())
@@ -330,7 +340,13 @@ class Runtime:
             self._finish(task_id, "failed", error=f"timed out after {int(self.task_timeout)}s", seconds=time.time() - t0)
         except Exception as e:  # noqa: BLE001 - one task failing never takes the runtime down
             log.exception("task %s failed", task_id)
-            self._finish(task_id, "failed", error=f"{type(e).__name__}: {e}", seconds=time.time() - t0)
+            err = f"{type(e).__name__}: {e}"
+            if isinstance(e, ValueError) or (store.get_task(task_id) or {}).get("attempts", 9) >= self.max_attempts:
+                self._finish(task_id, "failed", error=err, seconds=time.time() - t0)
+            else:  # a transient failure (network, model, timeout inside a call): one more try
+                store.task_step(task_id, f"Failed ({err}); Agaxes will retry it once", "system")
+                store.update_task(task_id, status="queued", waiting_on=f"retrying after: {err[:160]}")
+                ledger.append("task.retry", {"agent_id": agent["agent_id"], "task_id": task_id, "error": err[:300]})
         finally:
             self.running.pop(task_id, None)
             self.stop_reason.pop(task_id, None)
@@ -420,8 +436,8 @@ class Runtime:
         self.wake()
         return rec
 
-    async def approve(self, approval_id: str, by: str) -> dict:
-        return await execute_approval(approval_id, by, self.mcp)
+    async def approve(self, approval_id: str, by: str, body: str | None = None) -> dict:
+        return await execute_approval(approval_id, by, self.mcp, body)
 
     def reject(self, approval_id: str, by: str, note: str | None = None) -> dict:
         return reject_approval(approval_id, by, note)

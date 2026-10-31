@@ -20,6 +20,16 @@ manages them.
 | **Audit trail** | `task.assigned/started/done/failed/refused/cancelled/interrupted`, `agent.paused/resumed`, `runtime.policy`, `runtime.approval`, `runtime.schedule` and `runtime.payroll` all go on the hash-chained ledger, alongside the agents' own `guard.verdict` and `work.*` entries. |
 | **Crash safety** | State is written to `backend/data/runtime.json` atomically (or to `RUNTIME_PATH`). On restart, tasks that were running go back in the queue, and half-sent approvals go back to pending. Approving re-checks the guard, so retrying is safe. |
 
+## Scheduler (interview scheduling) and hiring from templates
+- **Hire Scheduler** in the Work tab onboards a new AI employee from a template. It gets a passport sponsored by Sourced's sponsor, and the sponsor is checked live right away (`GET /api/runtime/templates`, `POST /api/runtime/hire`).
+- `interview_scheduling` checks each candidate on Crustdata and proposes two slots per candidate from the list you give, spreading candidates across the slots. It drafts the invite (Gemini when live) and sends it through Send Guard and the approval inbox. It returns tentative calendar holds as an .ics artifact and files the plan on the ledger. A candidate who has left the company on file gets blocked by the guard.
+- When a sourcing task finishes, its drawer shows **Schedule interviews**, which pre-fills the Scheduler task with the shortlist.
+
+## Reliability
+- A transient failure (network, model) is retried once (`RUNTIME_MAX_ATTEMPTS`, default 2). Bad input fails immediately.
+- An outside agent that goes silent for `AGAXES_AGENT_LEASE_S` (600s) loses its claim, and the task goes back in the queue.
+- If a launched Claude Code exits with an error before finishing (for example, an expired login), the task fails with the reason instead of sitting in the queue.
+
 ## Outside agents (Claude Code), governed the same way
 Agents that run on their own machine get tasks too (kind `assignment`: written instructions). They hold their own key,
 and every call is signed `agaxes|action|agent_id|task_id|ts|text`. Replays are refused after 5 minutes.
