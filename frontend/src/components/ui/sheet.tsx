@@ -21,7 +21,7 @@ export function SheetContent({ className, children, ...props }: React.ComponentP
         {...props}
       >
         {children}
-        <Dialog.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:bg-muted" aria-label="Close">
+        <Dialog.Close className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg border-2 border-[#111] bg-white text-[#111] shadow-[2px_2px_0_0_#111]" aria-label="Close">
           <X className="size-4" />
         </Dialog.Close>
       </Dialog.Content>

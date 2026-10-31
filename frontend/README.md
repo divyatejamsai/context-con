@@ -19,6 +19,8 @@ Event handling (contract in CONTEXT.md section 6):
 - Accepts both SSE `data:` frames and plain NDJSON lines; unknown event types are ignored.
 
 ## What's in the UI
+- **Shortlist tiers:** if the final `rank` step carries `data.shortlist` / `data.near_miss`, the shortlist is the main list, near misses sit in a collapsed section, and everyone else goes in a greyed "Below the bar" section. Without those fields, everyone is shortlisted.
+- **Stat tiles:** searched, shortlisted, verified and contradicted counts, which count up as events arrive.
 - **Hero** with a big brief box and example briefs (including a deliberately messy one). ⌘↵ runs it.
 - **Three panes on wide screens:** the agent trace on the left (pipeline stepper with per-step timings, counts, warnings, and a timestamped log), the ranked shortlist in the middle, and the selected candidate's dossier on the right. Below 1280px the dossier opens as a drawer.
 - **Dossier:** fit score, flags, reasons with footnote citations that jump to the claim, an evidence ledger where each claim has a stamp (verified, contradicted or unverifiable) and its Crustdata source, and an editable outreach draft marked "not sent".
