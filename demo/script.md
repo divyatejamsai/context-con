@@ -1,6 +1,6 @@
 # 2-minute demo video script (v3: Sourced, run by Agaxes)
 
-> **Name:** the product is **Agaxes** (agent access), which companies use to manage their AI employees. The code, the MCP server name (`countersign`) and the `COUNTERSIGN_*` env vars still use the old working name. If any screen still says "Agaxes" when you record, say "Agaxes" anyway, or wait for the UI rename to merge.
+> **Name:** the product is **Agaxes** (agent access), which companies use to manage their AI employees. The code, the MCP server name (`countersign`) and the `COUNTERSIGN_*` env vars still use the old working name. If any screen still says "Countersign" when you record, say "Agaxes" anyway, or wait for the UI rename to merge.
 
 **Story (chosen by the user):** Sourced is a hiring agent and **AI employee #1**. Agaxes is what makes it safe to
 let it work alone. Its passport ties it to a real human sponsor checked live on Crustdata. Send Guard stops a wrong
