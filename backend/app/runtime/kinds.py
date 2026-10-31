@@ -200,6 +200,9 @@ def title_for(kind: str, inp: dict) -> str:
         return f"Diligence on {inp.get('domain')}"
     if kind == "sales_outreach":
         return "Work the CRM lead list" if not (inp.get("leads") or "").strip() else "Work a custom lead list"
+    if kind == "interview_scheduling":
+        n = len(parse_people(inp.get("candidates")))
+        return f"Schedule {n} interview(s)" + (f": {inp['role']}" if inp.get("role") else "")
     if kind == "assignment":
         return (inp.get("instructions") or "Task").strip().splitlines()[0][:80]
     if kind == "reference_check":
@@ -224,3 +227,120 @@ def can_do(agent: dict, kind: str) -> str | None:
 
 def agent_or_raise(agent_id: str) -> dict:
     return registry.get_agent(agent_id)
+
+
+# ---- interview scheduling (Scheduler) -------------------------------------------------------------
+
+SCHED_PROMPT = """You are {agent}, an AI recruiting coordinator acting for {sponsor} ({title}, {company}). Write a short
+interview invitation (max 70 words) to {name}.
+
+Facts you may use about {first} (from Crustdata; state nothing else about them): {facts}
+Role: {role}. Interviewer: {interviewer}. Length: {minutes} minutes.
+Offer exactly these times and ask them to reply with the one that works: {slots}
+
+Rules: no claims about their tenure, seniority, skills, current title or current company. Start with "Hi {first}," on its own line, then a sentence
+starting "We'd like to invite you to interview for our {role} opening". No subject line, no placeholders.
+End with exactly this line:
+{signoff}
+"""
+
+
+def parse_people(text: str | None) -> list[dict]:
+    rows = []
+    for line in (text or "").splitlines():
+        parts = [p.strip() for p in re.split(r"\s*[|\t]\s*", line.strip()) if p.strip()]
+        if len(parts) >= 3 and "linkedin.com" in parts[1]:
+            rows.append({"name": parts[0], "profile_url": parts[1], "company": parts[2]})
+    return rows
+
+
+def parse_slots(text: str | None) -> list[str]:
+    return [s.strip(" -•") for s in (text or "").splitlines() if s.strip(" -•")]
+
+
+async def interview_scheduling(ctx: RuntimeCtx, inp: dict) -> dict:
+    from .. import llm
+    from ..fleet.base import llm_live
+    from ..verify.profile import load_person, same_company
+    people = parse_people(inp.get("candidates"))
+    slots = parse_slots(inp.get("slots"))
+    if not people:
+        raise ValueError("no candidates understood: one per line as 'Name | LinkedIn URL | Company'")
+    if len(slots) < 2:
+        raise ValueError("give at least two interview slots, one per line")
+    role = (inp.get("role") or "the open role").strip()
+    interviewer = (inp.get("interviewer") or ctx.passport.sponsor.name).strip()
+    minutes = int(re.sub(r"\D", "", str(inp.get("minutes") or "45")) or 45)
+    progress(ctx, 0, len(people), "proposing slots")
+    if not await ctx.clock_in("outreach.hiring"):
+        return {"ok": False, "refused": True, "summary": "Refused at clock-in: the passport did not pass"}
+    sp = ctx.passport.sponsor
+    signoff = f"{ctx.agent['name']} (AI recruiting coordinator for {sp.name}, {sp.company})"
+    plan, sources = [], []
+    for i, who in enumerate(people):
+        offer = [slots[(2 * i) % len(slots)], slots[(2 * i + 1) % len(slots)]]
+        person = await ctx.graph.person(who["profile_url"])
+        facts = "none"
+        if person:
+            pr = load_person(person)
+            cur = [j for j in pr.current if j.title and j.company]
+            if cur:
+                facts = f"currently {cur[0].title} at {cur[0].company}"
+            moved = not any(same_company(j.company, who["company"]) for j in pr.current)
+            sources.append({"endpoint": "person/enrich", "field": "experience.employment_details.current", "url": who["profile_url"]})
+            ctx.log(f"  check     {who['name']}: {facts}" + (" (not at the company on file: Send Guard will decide)" if moved else ""))
+        else:
+            ctx.log(f"  check     {who['name']}: no Crustdata record")
+        first = who["name"].split()[0]
+        body = (f"Hi {first},\n\nWe'd like to invite you to interview for our {role} opening at {sp.company}. Could you do a "
+                f"{minutes}-minute call with {interviewer}? Options: {offer[0]} or {offer[1]}. Reply with the one that works "
+                f"for you.\n\n{signoff}")
+        by = "template"
+        if llm_live():
+            try:
+                text = await llm.generate_text(SCHED_PROMPT.format(
+                    agent=ctx.agent["name"], sponsor=sp.name, title=sp.title, company=sp.company, name=who["name"], first=first,
+                    facts=facts, role=role, interviewer=interviewer, minutes=minutes, slots=" or ".join(offer), signoff=signoff))
+                if text and all(o.split()[0] in text for o in offer):
+                    body, by = f"{text.rsplit(signoff, 1)[0].rstrip()}\n\n{signoff}", "gemini"
+            except llm.LLMError:
+                pass
+        v = await ctx.send({"name": who["name"], "profile_url": who["profile_url"], "company": who["company"]}, body, "outreach.hiring")
+        state = "waiting for your approval" if v.get("pending_approval") else ("sent" if v.get("sent") else "blocked")
+        plan.append({"candidate": who["name"], "company": who["company"], "slots": offer, "interviewer": interviewer,
+                     "minutes": minutes, "invite": state, "drafted_by": by})
+    store.task_mutate(ctx.task_id, lambda t: t["output"].__setitem__("schedule", plan))
+    ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Agaxes//Scheduler//EN"]
+    for p in plan:
+        for s in p["slots"]:
+            ics += ["BEGIN:VEVENT", f"SUMMARY:HOLD {role} interview: {p['candidate']} with {interviewer}",
+                    f"DESCRIPTION:Proposed slot ({s}), {p['minutes']} min. Invite {p['invite']}.", "STATUS:TENTATIVE", "END:VEVENT"]
+    ics.append("END:VCALENDAR")
+    store.task_mutate(ctx.task_id, lambda t: t["output"].setdefault("artifacts", []).append(
+        {"kind": "interview_holds", "title": "Proposed interview holds (.ics)", "content": "\n".join(ics)}))
+    held = sum(p["invite"] != "blocked" for p in plan)
+    await ctx.file("interview_schedule", f"{held} of {len(plan)} interview invites cleared; slots proposed to each",
+                   {"role": role, "interviewer": interviewer, "plan": plan}, sources)
+    return {"ok": True, "summary": f"Proposed slots to {len(plan)} candidate(s): {held} invite(s) cleared by Send Guard, "
+                                   f"{len(plan) - held} blocked"}
+
+
+KINDS["interview_scheduling"] = {
+    "label": "Schedule interviews", "scope": "outreach.hiring", "agent_hint": "Scheduler",
+    "description": "Checks each candidate on Crustdata, proposes two interview slots each, and drafts the invites. "
+                   "Invites go through Send Guard and wait for your approval; holds come back as a calendar file.",
+    "fields": [
+        {"name": "candidates", "label": "Candidates", "type": "textarea", "required": True,
+         "placeholder": "Name | LinkedIn URL | Company (one per line; 'Schedule interviews' on a sourcing task fills this)"},
+        {"name": "slots", "label": "Interview slots", "type": "textarea", "required": True,
+         "placeholder": "Tue 4 Nov, 10:00 IST\nTue 4 Nov, 15:00 IST\nWed 5 Nov, 11:30 IST"},
+        {"name": "role", "label": "Role", "type": "text", "required": False, "placeholder": "Senior Backend Engineer"},
+        {"name": "interviewer", "label": "Interviewer", "type": "text", "required": False, "placeholder": "the sponsor"},
+    ],
+    "handler": interview_scheduling}
+
+TEMPLATES = [
+    {"key": "scheduler", "name": "Scheduler", "role": "recruiter", "scopes": ["outreach.hiring", "data.read"],
+     "job": "Schedules interviews: checks candidates on Crustdata, proposes slots, drafts invites for approval",
+     "sponsor_from": "Sourced"},
+]
