@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextvars
+import inspect
 import glob
 import json
 import math
@@ -54,6 +56,7 @@ from app.agents.guard import check_send  # noqa: E402
 from app.agents.models import Sponsor  # noqa: E402
 from app.agents.passport import issue_passport, revoke, sign_message  # noqa: E402
 from app.crustdata.client import extract_list  # noqa: E402
+from app.verify.verifier import _STUDENT_TITLE  # noqa: E402
 from app.verify.profile import Profile, load_person, seniority_rank, unwrap_record  # noqa: E402
 
 SPONSORS = {s["id"]: s for s in json.loads((ROOT / "fixtures/countersign/sponsors.json").read_text())["scenarios"]}
@@ -86,6 +89,7 @@ class Case:
     scope: str = "outreach.hiring"
     sponsor: str = "authorised_founder"
     got: str | None = None
+    infra: list[str] = field(default_factory=list)  # Crustdata errors (429s, timeouts) seen while checking this case
     failing: list[str] = field(default_factory=list)
     checks: list[dict] = field(default_factory=list)
     ms: int = 0
@@ -220,7 +224,8 @@ def make_cases(people: dict[str, dict], today: date, rng: random.Random) -> list
             if near and near.lower() not in pr.location.lower():
                 add("subtle", "city_nearby", f"Hi {first}, you're based in {near}, right? We have an office there.", "block",
                     f"location {pr.location}")
-        starts = [j.start for j in pr.current + pr.past if j.start]
+        # Same definition as the verifier: internships and student roles don't count as experience.
+        starts = [j.start for j in pr.current + pr.past if j.start and not _STUDENT_TITLE.search(j.title or "")]
         if starts:
             e = _yrs(min(starts), today)
             if e >= 2:
@@ -361,6 +366,34 @@ async def sourced_cases(people: dict[str, dict], today: date, client, sem: async
     return [c for c in await asyncio.gather(*(one(u, r) for u, r in people.items())) if c]
 
 
+_infra: contextvars.ContextVar[list | None] = contextvars.ContextVar("guard_eval_infra", default=None)
+
+
+class RecordingClient:
+    """Passes everything to the real client, and notes any API error against the case that triggered it, so rate
+    limits and timeouts are reported as infrastructure failures, not as guard verdicts."""
+
+    def __init__(self, inner):
+        self._inner = inner
+
+    def __getattr__(self, name):
+        attr = getattr(self._inner, name)
+        if not inspect.iscoroutinefunction(attr):
+            return attr
+
+        async def call(*a, **kw):
+            try:
+                return await attr(*a, **kw)
+            except Exception as e:
+                seen = _infra.get()
+                if seen is not None:
+                    st = getattr(e, "status", None)
+                    seen.append(f"{name}: {type(e).__name__}" + (f" HTTP {st}" if st else ""))
+                raise
+
+        return call
+
+
 class EvalGraph(Graph):
     """Serves the eval's records by URL (so labels and the guard read the same data), else the normal path."""
 
@@ -394,14 +427,23 @@ async def run_case(c: Case, graph: Graph, today: date, sem: asyncio.Semaphore) -
         sig = sign_message(p, key, signed_body)
     async with sem:
         t0 = time.perf_counter()
-        v = await check_send(p, sig, c.to, c.body, c.scope, today=today, graph=graph)
+        token = _infra.set(c.infra)
+        try:
+            v = await check_send(p, sig, c.to, c.body, c.scope, today=today, graph=graph)
+        finally:
+            _infra.reset(token)
         c.ms = int((time.perf_counter() - t0) * 1000)
     c.got = v.decision
     c.failing = [f"{k.name}:{k.status}" for k in v.checks if k.status != "pass"]
     c.checks = [{"name": k.name, "status": k.status, "detail": k.detail} for k in v.checks if k.id.startswith("g")]
 
 
-def report(cases: list[Case], meta: dict) -> str:
+def report(all_cases: list[Case], meta: dict) -> str:
+    # A wrong verdict on a case that hit a Crustdata error (429, timeout) is an infrastructure failure, not a guard
+    # verdict: it's listed separately and left out of the rates.
+    infra = [c for c in all_cases if c.infra and c.got != c.expect]
+    cases = [c for c in all_cases if c not in infra]
+
     def rate(xs: list[Case], want: str) -> str:
         pool = [c for c in xs if c.expect == want]
         bad = [c for c in pool if c.got != want]
@@ -409,9 +451,11 @@ def report(cases: list[Case], meta: dict) -> str:
 
     lines = [f"# Send Guard eval ({meta['when']})", "",
              f"People: {meta['people']}  Cases: {len(cases)}  LLM_MODE={meta['llm']}  CRUSTDATA_MODE={meta['crust']}  "
-             f"median {sorted(c.ms for c in cases)[len(cases) // 2]} ms/case", "",
+             f"median {sorted(c.ms for c in all_cases)[len(all_cases) // 2]} ms/case", "",
              f"**False-allow** (should block, allowed): {rate(cases, 'block')}  ",
-             f"**False-block** (should allow, blocked): {rate(cases, 'allow')}", "",
+             f"**False-block** (should allow, blocked): {rate(cases, 'allow')}  ",
+             f"Excluded, wrong only because Crustdata failed: {len(infra)} "
+             f"({', '.join(f'{k} x{n}' for k, n in Counter(e for c in infra for e in c.infra).most_common(4)) or 'none'})", "",
              "| Category | Cases | False-allow | False-block |", "|---|---|---|---|"]
     for cat in ("sourced", "true", "sender", "false", "stale", "subtle", "tamper", "paraphrase"):
         xs = [c for c in cases if c.category == cat]
@@ -424,6 +468,9 @@ def report(cases: list[Case], meta: dict) -> str:
     for (t, e), xs in sorted(by_t.items()):
         wrong = sum(c.got != c.expect for c in xs)
         lines.append(f"| {t} | {e} | {len(xs)} | {wrong}{' ⚠' if wrong else ''} |")
+    if infra:
+        lines += ["", f"## Excluded for Crustdata errors ({len(infra)})", ""]
+        lines += [f"- {c.id} [{c.category}/{c.template}] expect {c.expect}, got {c.got}: {'; '.join(dict.fromkeys(c.infra))}" for c in infra]
     wrong = [c for c in cases if c.got != c.expect]
     lines += ["", f"## Mismatches ({len(wrong)})", ""]
     for c in wrong:
@@ -464,7 +511,7 @@ async def main() -> None:
     sem = asyncio.Semaphore(a.concurrency)
     cases = make_cases(people, today, rng) + tamper_cases(people) + await sourced_cases(people, today, client, sem)
     print(f"{len(cases)} cases over {len(people)} people", flush=True)
-    graph = EvalGraph(people, client, mode="replay" if client is None else None)
+    graph = EvalGraph(people, RecordingClient(client) if client else None, mode="replay" if client is None else None)
     t0 = time.perf_counter()
     done = 0
 

@@ -66,7 +66,8 @@ async def _safe(coro, what: str):
     try:
         return await asyncio.wait_for(coro, timeout=CALL_TIMEOUT_S)
     except Exception as e:  # CrustdataError, timeout, anything: the claim just stays unverifiable
-        log.warning("verify: %s failed: %s", what, e)
+        log.warning("verify: %s failed: %s%s %s", what, type(e).__name__,
+                    f" (HTTP {e.status})" if getattr(e, "status", None) else "", e)
         return None
 
 

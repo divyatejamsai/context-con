@@ -391,7 +391,10 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
     claimed = {k: getattr(stated, k) for k in rest}
     claimed["_source"] = "the draft message"
     try:
-        found, _ = await verify_candidate({**rec, "claimed": claimed}, None, Criteria(), client, today=today)
+        # Company Enrich is only needed for stage claims and industry evidence for skills; skip it otherwise
+        # ({} = "no company record", so the verifier doesn't fetch one). Saves a rate-limited call per draft.
+        need_company = bool({"company_stage", "skills"} & set(rest))
+        found, _ = await verify_candidate({**rec, "claimed": claimed}, None if need_company else {}, Criteria(), client, today=today)
     except Exception as e:  # noqa: BLE001 - verify_candidate shouldn't raise, but fail closed if it does
         found = []
         log.warning("guard: verify_candidate raised: %s", e)
