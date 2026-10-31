@@ -114,6 +114,7 @@ class Engine:
 
     # ---- sending, always through Send Guard ----
     async def _send(self, conv: dict, kind: str, body: str, scope: str = "outreach.hiring", **meta: Any) -> bool:
+        conv["sending_kind"] = kind
         try:
             v = await self.sender(conv, body, scope, self.now)
         except Exception as e:  # noqa: BLE001 - a guard failure blocks, it never allows

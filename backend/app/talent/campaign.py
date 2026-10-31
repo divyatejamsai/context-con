@@ -134,6 +134,67 @@ class GuardSender:
         return {"decision": v.decision, "checks": [c.model_dump() for c in v.checks], "ledger_entry": v.ledger_entry}
 
 
+SUBJECTS = {"offer": "Your offer", "offer_revised": "Revised offer", "offer_final": "Best and final offer",
+            "sign_request": "Your offer", "welcome": "Welcome aboard"}
+
+
+class EmailSender:
+    """Live campaigns: real email through the outbound layer (app/outbound, PR #21). guarded_send runs Send Guard on
+    the exact body, finds the address on Crustdata and threads every message of a conversation by thread_key, so
+    replies come back to this conversation (see register_replies). Anything but "sent" counts as blocked here."""
+
+    def __init__(self, camp: dict):
+        self.camp = camp
+
+    async def __call__(self, conv: dict, body: str, scope: str, now: datetime) -> dict:
+        from ..outbound.send import guarded_send  # imported lazily: optional until the outbound layer is merged
+
+        kind = conv.get("sending_kind")
+        subject = SUBJECTS.get(kind or "", f"{self.camp['job']['role']} at {self.camp['job'].get('company') or 'our team'}")
+        to = {"name": conv["name"], "profile_url": conv["profile_url"], "company": conv.get("company")}
+        res = await guarded_send(self.camp["agent_id"], to, subject, body, scope=scope,
+                                 thread_key=f"{self.camp['id']}:{conv['id']}")
+        v = dict(res.verdict or {})
+        checks = list(v.get("checks") or [])
+        if not res.ok:
+            checks.append({"name": f"outbound_{res.status}", "status": "fail", "detail": res.detail or res.status})
+        return {"decision": "allow" if res.ok else "block", "checks": checks, "ledger_entry": v.get("ledger_entry")}
+
+
+_registered = False
+
+
+def register_replies() -> bool:
+    """Route real email replies (polled by the outbound layer) into the right live campaign conversation."""
+    global _registered
+    if _registered:
+        return True
+    try:
+        from ..outbound.tracking import register_reply_handler
+    except ImportError:
+        return False
+
+    async def on_reply(msg: dict, reply: dict) -> None:
+        key = (msg or {}).get("thread_key") or ""
+        if ":" not in key or not key.startswith("cmp_"):
+            return
+        cid, conv_id = key.split(":", 1)
+        try:
+            camp = load(cid)
+        except KeyError:
+            return
+        if camp.get("mode") != "live" or conv_id not in camp["conversations"]:
+            return
+        eng = engine_for(camp)
+        eng.now = max(eng.now, datetime.now())
+        await eng.receive(conv_id, reply.get("text") or "")
+        save(camp)
+
+    register_reply_handler(on_reply)
+    _registered = True
+    return True
+
+
 def _path(cid: str) -> Path:
     if not re.fullmatch(r"cmp_[a-f0-9]{10}", cid):
         raise KeyError(cid)
@@ -171,6 +232,9 @@ def new(brief: str, job: dict, criteria: Criteria, agent_id: str, *, mode: str =
 
 def engine_for(camp: dict, client: Any = None, emit=None, sender=None) -> Engine:
     graph = PoolGraph(camp.get("records") or [], client)
+    if sender is None and camp.get("mode") == "live":
+        sender = EmailSender(camp)
+        register_replies()
     sender = sender or GuardSender(camp["agent_id"], graph, client)
     sim = Sim(camp) if camp.get("mode") == "sim" else None
     kw = {"emit": emit} if emit else {}

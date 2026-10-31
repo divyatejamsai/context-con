@@ -330,3 +330,38 @@ def test_staffing_api_uses_recorded_pool(monkeypatch):
     assert cl.get("/api/staffing/last").json()["report"]["shifts"] == 200
     j = cl.post("/api/staffing/run", json={"shifts": 100, "today": "2026-10-31"}).json()
     assert j["report"]["filled"] > 0 and all(f["outcome"] == "flagged" for f in j["flagged"])
+
+
+@pytest.mark.asyncio
+async def test_live_campaign_sends_real_mail_through_outbound_and_routes_replies(monkeypatch):
+    import sys
+    import types
+    sent, handlers = [], []
+
+    class Res:
+        def __init__(self, ok, status):
+            self.ok, self.status, self.detail = ok, status, None if ok else "no email on record"
+            self.verdict = {"decision": "allow", "checks": [], "ledger_entry": "led1"}
+
+    async def guarded_send(agent_id, to, subject, body, *, scope="outreach.hiring", thread_key=None):
+        sent.append((to["name"], subject, scope, thread_key))
+        return Res(to["name"] != "Asha Rao 1", "sent" if to["name"] != "Asha Rao 1" else "no_email")
+    send_mod = types.ModuleType("app.outbound.send")
+    send_mod.guarded_send = guarded_send
+    track_mod = types.ModuleType("app.outbound.tracking")
+    track_mod.register_reply_handler = handlers.append
+    monkeypatch.setitem(sys.modules, "app.outbound", types.ModuleType("app.outbound"))
+    monkeypatch.setitem(sys.modules, "app.outbound.send", send_mod)
+    monkeypatch.setitem(sys.modules, "app.outbound.tracking", track_mod)
+    monkeypatch.setattr(C, "_registered", False)
+
+    camp, ranked = bare_campaign(2)
+    eng = C.engine_for(camp)
+    await eng.open(ranked)
+    C.save(camp)
+    assert [s[3] for s in sent] == [f"{camp['id']}:c001", f"{camp['id']}:c002", f"{camp['id']}:c002"]
+    assert camp["conversations"]["c002"]["stage"] == "blocked"   # no email found: never "sent"
+    assert handlers, "reply handler registered"
+    await handlers[0]({"thread_key": f"{camp['id']}:c001"}, {"text": "yes, interested"})
+    again = C.load(camp["id"])
+    assert again["conversations"]["c001"]["stage"] == "screening"

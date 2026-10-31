@@ -7,7 +7,8 @@ Conversation engine (brief -> signed offer)
     GET  /api/campaigns                        summaries, newest last
     GET  /api/campaigns/{id}                   summary + one row per conversation (stage, last message, timer)
     GET  /api/campaigns/{id}/conversations/{cid}   full transcript with the guard verdict on each outbound message
-    POST /api/campaigns/{id}/advance           {days} moves the clock: timers fire, (sim) candidates reply
+    POST /api/campaigns/{id}/advance           {days} sim: moves the clock, timers fire and candidates reply;
+                                               live: catches up to the real clock (call it on a schedule)
     GET  /api/campaigns/{id}/stream?days=28    text/event-stream: the same, one day at a time, with every event and a
                                                daily {"type":"day"} funnel snapshot; stops early once filled
     POST /api/campaigns/{id}/conversations/{cid}/reply     {text}  a real candidate's reply (live mode)
@@ -137,14 +138,13 @@ async def advance(cid: str, req: AdvanceRequest, x_admin_token: str | None = Hea
     _admin(x_admin_token)
     async with _lock(cid):
         camp = _load(cid)
-        if camp.get("mode") != "sim":
-            raise HTTPException(409, "live campaigns run on the real clock; only sim campaigns can be advanced")
         events: list[dict] = []
 
         async def keep(ev: dict) -> None:
             events.append(ev)
         eng = C.engine_for(camp, crustdata(), keep)
-        await eng.advance(eng.now + timedelta(days=req.days))
+        # sim: move the simulated clock; live: catch up to the real clock (fires due follow-ups, nudges, expiries)
+        await eng.advance(eng.now + timedelta(days=req.days) if camp.get("mode") == "sim" else max(eng.now, datetime.now()))
         C.save(camp)
         return {"summary": eng.summary(), "events": events[-500:]}
 
