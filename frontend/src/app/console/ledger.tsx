@@ -1,4 +1,5 @@
 "use client";
+import { brandText } from "@/lib/brand";
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, FileClock, Loader2, Plus, RefreshCw, ShieldAlert, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -209,7 +210,7 @@ export function LedgerExplorer({
           <EmptyState icon={FileClock} title="No entries match these filters" action={<Button onClick={() => { setAgentId(""); setKind(""); }}>Clear filters</Button>} />
         ) : (
           <EmptyState icon={FileClock} title="The ledger is empty" action={<Button variant="primary" onClick={onOnboard}><Plus className="size-3.5" /> Onboard an agent</Button>}>
-            Onboarding an AI employee writes the first entry: its passport being issued.
+            Connecting an agent writes the first entry: its passport being issued.
           </EmptyState>
         )}
       </div>
@@ -271,7 +272,7 @@ export function LedgerTimeline({
             {p.notes && <p className="mt-0.5 text-[12.5px] text-secondary">{p.notes}</p>}
             {e.kind.startsWith("work.") && p.summary && (
               <p className="mt-0.5 text-[12.5px] text-secondary">
-                {p.summary}
+                {brandText(p.summary)}
                 {p.signed && <span className="ml-2 font-mono text-[10.5px] text-faint">signed by the agent</span>}
               </p>
             )}

@@ -1,4 +1,5 @@
 "use client";
+import { brandText } from "@/lib/brand";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft, Ban, FileClock, IdCard, Loader2, Plus, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck, UserMinus, X,
@@ -10,7 +11,7 @@ import {
 } from "./api";
 import {
   AgentMark, Button, DecisionBadge, EmptyState, Field, RuntimeBadge, ScopeChip, ScopeToggle, SectionHead, StatusPill, VerdictList, ago, cardCls,
-  checkLabel, day, inputCls,
+  checkLabel, day, inputCls, plain
 } from "./parts";
 import { LedgerTimeline } from "./ledger";
 import { GuardView } from "./guard";
@@ -22,7 +23,7 @@ export type Act = <T>(key: string, fn: () => Promise<T>, ok?: (r: T) => Flash) =
 const ALL_SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
 /** Suspension reasons arrive as "check_name: detail"; show the check's plain name instead of its id. */
-export const reasonText = (r?: string | null) => (r ?? "").replace(/^([a-z_]+):\s*/, (_, k: string) => `${checkLabel(k)}: `);
+export const reasonText = (r?: string | null) => plain(r);
 
 export function FlashBar({ flash, onClose }: { flash: NonNullable<Flash>; onClose: () => void }) {
   return (
@@ -257,7 +258,7 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
       <section>
         <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
           <Fact k="Vouched for by" v={s.name} sub={[s.title, s.company].filter(Boolean).join(", ")} />
-          <Fact k="Its job" v={a.job || a.role} sub={a.role} />
+          <Fact k="Its job" v={brandText(a.job) || a.role} sub={a.role} />
           <Fact k="Passport valid until" v={day(a.passport.expires_at)} sub={`Issued ${day(a.passport.issued_at)}`} />
           <div className="sm:col-span-2">
             <dt className="text-[11.5px] text-faint">May do</dt>

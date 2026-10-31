@@ -1,6 +1,7 @@
 "use client";
 // The Work view: the employer's live control plane over running AI employees (backend/app/runtime).
 // Everything here is read from /api/runtime/state every 1.5s; every button changes the real runtime.
+import { brandText } from "@/lib/brand";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity as ActivityIcon, Ban, Check as CheckIcon, Clock, ExternalLink, Gauge, Loader2, Pause, Play, Plus, Receipt,
@@ -120,7 +121,7 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
     <Wrap className={wrapCls}>
       <div className={cn("flex flex-wrap items-start justify-between gap-4", agentId && "hidden")}>
         <PageHead title="Live work">
-          Your AI employees and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
+          Your agents and the tasks they&apos;re running. Give them work, approve what they want to send, pause or stop
           them mid-task, and set their budgets. Every change is written to the ledger.
         </PageHead>
         <div className="flex items-center gap-2">
@@ -179,9 +180,9 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
       </section>
 
       <section className={cn("mt-8", agentId && "max-w-[460px]")}>
-        <SectionHead title={agentId ? "Right now" : "AI employees"}>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
+        <SectionHead title={agentId ? "Right now" : "Agents"}>Each one&apos;s live status, what it&apos;s doing now, its report card, and today&apos;s budget.</SectionHead>
         {live.length ? (
-          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className={cn("mt-3 grid grid-cols-1 gap-3", !agentId && "md:grid-cols-2 xl:grid-cols-3")}>
             {live.map((a) => (
               <AgentCard key={a.agent_id} a={a} busy={busy} kinds={kinds}
                 onAssign={() => setAssignFor(a.agent_id)}
@@ -196,11 +197,11 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
             ))}
           </div>
         ) : (
-          <EmptyState title="No AI employees yet">Onboard one in AI employees (or run the guided demo), then give it work here.</EmptyState>
+          <EmptyState title="No agents yet">Connect one from Agents (or run the guided demo), then give it work here.</EmptyState>
         )}
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0">
           <SectionHead title="Tasks">Newest first. Open one to see every step, its output, and a receipt for each ledger entry.</SectionHead>
           <div className={cn(cardCls, "mt-3 divide-y divide-border overflow-hidden")}>
@@ -337,7 +338,7 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
           <p className="text-[12px] text-muted-foreground">Paused: {a.policy.paused_reason}. {a.queued ? `${a.queued} task(s) held in the queue.` : ""}</p>
         ) : (
           <p className="text-[12px] text-muted-foreground">
-            {a.queued ? `${a.queued} task(s) queued.` : "No task right now."} {a.job}
+            {a.queued ? `${a.queued} task(s) queued.` : "No task right now."} {brandText(a.job)}
           </p>
         )}
       </div>

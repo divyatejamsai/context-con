@@ -24,7 +24,7 @@ import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } 
 import { WorkView } from "./work";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
-import { BRAND } from "@/lib/brand";
+import { BRAND, brandText } from "@/lib/brand";
 
 type Mode = "loading" | "live" | "offline";
 type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
@@ -535,7 +535,7 @@ function AgentTable({ agents, onPick }: { agents: Agent[]; onPick: (id: string) 
                       {a.status !== "active" && a.reason ? (
                         <span className={a.status === "suspended" ? "text-contradicted" : undefined}>{reasonText(a.reason)}</span>
                       ) : (
-                        a.job || a.role
+                        brandText(a.job) || a.role
                       )}
                     </p>
                   </div>

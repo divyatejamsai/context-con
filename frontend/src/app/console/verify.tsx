@@ -4,7 +4,7 @@ import { ClipboardPaste, IdCard, Loader2, Pencil, Plus, ShieldCheck } from "luci
 import { cn } from "@/lib/utils";
 import { ApiError, SCOPE_INFO, api, type Agent, type Passport, type Scenario, type Scope, type Verdict } from "./api";
 import { AgentMark, Button, DecisionBadge, EmptyState, PageHead, SectionHead, TERMS, Term, VerdictList, cardCls, day, inputCls } from "./parts";
-import { BRAND } from "@/lib/brand";
+import { BRAND, brandText } from "@/lib/brand";
 
 const SCOPES = Object.keys(SCOPE_INFO) as Scope[];
 
@@ -70,18 +70,18 @@ export function VerifyView({ agents, scenarios, onOnboard }: { agents: Agent[]; 
         can hand it this kind of work. To check one of your own agents, open it from Agents.
       </PageHead>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="min-w-0 space-y-6">
           <div>
             <SectionHead title="1. Whose passport?">Pick a sample, or paste the passport text an agent sent you.</SectionHead>
-            <div className="mt-3 grid gap-1.5">
+            <div className="mt-3 grid grid-cols-1 gap-1.5">
               {agents.map((a) => (
                 <button key={a.agent_id} onClick={() => reset(a.agent_id)}
                   className={cn("flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition", source === a.agent_id ? "border-foreground/40 bg-elevated" : "border-border-strong hover:bg-hover")}>
                   <AgentMark agent={a} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-[510]">{a.name} <span className="font-normal text-muted-foreground">· for {a.passport.sponsor.name}, {a.passport.sponsor.company}</span></span>
-                    <span className="block truncate text-[11.5px] text-muted-foreground">{story(a) ?? a.job ?? a.role}</span>
+                    <span className="block truncate text-[11.5px] text-muted-foreground">{story(a) ?? (brandText(a.job) || a.role)}</span>
                   </span>
                 </button>
               ))}

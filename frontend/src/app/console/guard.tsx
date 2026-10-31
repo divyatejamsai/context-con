@@ -94,7 +94,7 @@ export function GuardView({ agents, onSent, onOnboard, lockedAgentId }: { agents
               className="py-6"
               action={<Button variant="primary" onClick={onOnboard}><Plus className="size-3.5" /> Onboard an agent</Button>}
             >
-              Only an onboarded AI employee with a passport can sign a draft.
+              Only a connected agent with a passport can sign a draft.
             </EmptyState>
           )}
           <div className={cn("grid gap-3", !embedded && "sm:grid-cols-[minmax(0,1fr)_200px]")}>
