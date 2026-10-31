@@ -215,7 +215,7 @@ async def test_domain_skill_not_invented_and_concurrent_roles_deduped():
     cur.append(dict(cur[0], name="Razorpay", crustdata_company_id=1, company_professional_network_industry="Financial Services"))
     claims, flags = await verify_candidate(p, None, CRIT, FakeClient(), today=TODAY)
     assert any(f.startswith("Holds 2 concurrent roles: Wipro, Razorpay") for f in flags)
-    assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "current employer Razorpay is in Financial Services"
+    assert [c for c in claims if c.claim == "Skill: Payments"][0].evidence == "likely, from industry: current employer Razorpay is in Financial Services"
 
 
 @pytest.mark.asyncio
@@ -226,3 +226,51 @@ async def test_scores_spread_out_and_bonuses_cite_claims():
     assert scores["clean"] > scores["nested"] > scores["sparse"] and scores["fake"] == 0
     _, _, _, reasons = await run("clean")
     assert any(r.text.startswith("+") and r.claim_ids for r in reasons)
+
+
+def _person_at(headcount, claimed=None):
+    p = json.loads(json.dumps(PEOPLE["live_job_facts"]))
+    p["experience"]["employment_details"]["current"][0]["company_headcount_latest"] = headcount
+    if claimed:
+        p["claimed"] = claimed
+    return p
+
+
+@pytest.mark.asyncio
+async def test_size_based_startup_needs_founding_year():
+    crit = CRIT.model_copy(update={"company_preferences": ["startup"], "skills": []})
+    old_fund = {"_source": {"endpoint": "company/enrich"}, "basic_info": {"name": "Acme Pay", "year_founded": 2005}, "headcount": {"total": 1129}}
+    young = {"_source": {"endpoint": "company/enrich"}, "basic_info": {"name": "Acme Pay", "year_founded": 2019}, "headcount": {"total": 1503},
+             "funding": {"last_round_type": "secondary_market"}}
+    for company, expect in ((old_fund, None), (young, "young company")):
+        p = _person_at(100)
+        claims, _ = await verify_candidate(p, company, crit, FakeClient(), today=TODAY)
+        stage = [c for c in claims if c.claim.startswith("Acme Pay:")][0]
+        assert "by size" in stage.claim and stage.source.field == "headcount.total"
+        _, reasons = await rank_candidate(p, claims, crit)
+        texts = " | ".join(r.text for r in reasons)
+        if expect:
+            assert expect in texts
+        else:
+            assert "startup" not in texts.replace("doesn't match preference: startup", "")
+
+
+@pytest.mark.asyncio
+async def test_years_asked_in_brief_are_enforced():
+    crit = CRIT.model_copy(update={"raw_brief": "senior backend eng, 5+ yrs, payments", "seniority": None})
+    p = json.loads(json.dumps(PEOPLE["nested"]))
+    p["experience"]["employment_details"]["past"] = []  # 3.8 yrs total
+    claims, _ = await verify_candidate(p, None, crit, FakeClient(), today=TODAY)
+    _, reasons = await rank_candidate(p, claims, crit)
+    assert any("below the 5+ yrs asked" in r.text for r in reasons)
+
+
+@pytest.mark.asyncio
+async def test_claimed_stage_checked_against_employment_record_size():
+    claims, flags = await verify_candidate(_person_at(108, {"company_stage": "Series D"}), None, CRIT, FakeClient(), today=TODAY)
+    bad = [c for c in claims if c.claim == "Acme Pay is Series D"][0]
+    assert bad.status == "contradicted" and "implausible" in bad.evidence
+    claims, _ = await verify_candidate(_person_at(2500, {"company_stage": "Seed-stage startup"}), None, CRIT, FakeClient(), today=TODAY)
+    assert [c for c in claims if c.claim == "Acme Pay is Seed-stage startup"][0].status == "contradicted"
+    claims, _ = await verify_candidate(_person_at(400, {"company_stage": "Series B"}), None, CRIT, FakeClient(), today=TODAY)
+    assert not by_status(claims, "contradicted")  # size alone can't refute a nearby stage

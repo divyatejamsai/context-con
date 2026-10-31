@@ -361,3 +361,8 @@ DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
 def domain_terms(skill: str) -> tuple[str, ...]:
     k = norm(skill)
     return DOMAIN_KEYWORDS.get(k) or DOMAIN_KEYWORDS.get(k.rstrip("s")) or ()
+
+
+def funding_stage_known(c: CompanyFacts | None) -> bool:
+    """True when the stage comes from an actual funding round or listing, not from headcount."""
+    return bool(c and re.search(r"series [a-j]\b|seed|angel|ipo|public", norm(c.stage)))
