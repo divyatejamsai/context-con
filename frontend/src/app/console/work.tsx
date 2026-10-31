@@ -146,7 +146,21 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
       </section>
 
       <section className="mt-7">
-        <SectionHead title={`Waiting on you (${st.approvals.pending.length})`}>
+        <SectionHead title={`Waiting on you (${st.approvals.pending.length})`} aside={st.approvals.pending.length > 1 ? (
+          <Button disabled={!!busy} onClick={() => {
+            if (!window.confirm(`Approve all ${st.approvals.pending.length} messages? Each is re-checked by Send Guard before it goes out.`)) return;
+            act("apv:all", async () => {
+              let sent = 0;
+              for (const x of st.approvals.pending) {
+                const r = await runtime.approve(x.approval_id).catch(() => null);
+                if (r?.status === "sent") sent++;
+              }
+              return sent;
+            }, "Approved all: each one was re-checked by Send Guard");
+          }}>
+            {busy === "apv:all" ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} Approve all
+          </Button>
+        ) : undefined}>
           Messages Send Guard has already cleared. Nothing leaves until you approve it, and approving runs the guard again
           at send time.
         </SectionHead>
@@ -154,7 +168,11 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {(allPending ? st.approvals.pending : st.approvals.pending.slice(0, 4)).map((a) => (
               <ApprovalCard key={a.approval_id} a={a} busy={busy}
-                onApprove={() => act(`apv:${a.approval_id}`, () => runtime.approve(a.approval_id), `Approved: message to ${a.to.name}`)}
+                outside={st.agents.find((x) => x.agent_id === a.agent_id)?.runtime === "external"}
+                onApprove={(body) => act(`apv:${a.approval_id}`, async () => {
+                  const r = await runtime.approve(a.approval_id, body);
+                  if (r.status !== "sent") throw new Error(`Not sent: Send Guard blocked it at send time${r.result?.checks?.find((c) => c.status !== "pass") ? ` (${checkLabel(r.result.checks.find((c) => c.status !== "pass")!.name)})` : ""}`);
+                }, `${body ? "Edited and sent" : "Approved"}: message to ${a.to.name} (written to the outbox, never emailed)`)}
                 onReject={() => act(`apv:${a.approval_id}`, () => runtime.reject(a.approval_id), `Rejected: message to ${a.to.name}`)} />
             ))}
             {st.approvals.pending.length > 4 && (
@@ -273,8 +291,12 @@ function Kpi({ label, value, tone }: { label: string; value: React.ReactNode; to
   );
 }
 
-function ApprovalCard({ a, busy, onApprove, onReject }: { a: Approval; busy: string | null; onApprove: () => void; onReject: () => void }) {
+function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
+  a: Approval; busy: string | null; outside?: boolean; onApprove: (body?: string) => void; onReject: () => void;
+}) {
   const [why, setWhy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(a.body);
   const passed = a.preview.checks.filter((c) => c.status === "pass").length;
   const b = busy === `apv:${a.approval_id}`;
   return (
@@ -286,13 +308,24 @@ function ApprovalCard({ a, busy, onApprove, onReject }: { a: Approval; busy: str
         <span className="text-muted-foreground">at {a.to.company}</span>
         <span className="ml-auto"><ScopeChip scope={a.scope} muted /></span>
       </div>
-      <pre className="mt-2.5 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-elevated px-3 py-2 font-sans text-[12.5px] leading-relaxed">{a.body}</pre>
+      {editing ? (
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Edit the message"
+          className={cn(inputCls, "mt-2.5 h-40 py-2 font-sans leading-relaxed")} />
+      ) : (
+        <pre className="mt-2.5 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-elevated px-3 py-2 font-sans text-[12.5px] leading-relaxed">{a.body}</pre>
+      )}
+      {editing && <p className="mt-1 text-[11px] text-muted-foreground">The agent re-signs your edited text and Send Guard checks it again from scratch before it goes out.</p>}
       <button onClick={() => setWhy(!why)} className="mt-2 inline-flex items-center gap-1 text-[11.5px] text-verified hover:underline">
         <CheckIcon className="size-3" /> Send Guard: {passed}/{a.preview.checks.length} checks passed {why ? "(hide)" : "(show)"}
       </button>
       {why && <VerdictList verdict={{ subject: a.approval_id, decision: a.preview.decision, checks: a.preview.checks }} className="mt-2" />}
       <div className="mt-3 flex items-center gap-2">
-        <Button variant="primary" onClick={onApprove} disabled={!!busy}>{b ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} Approve and send</Button>
+        <Button variant="primary" onClick={() => onApprove(editing && draft.trim() !== a.body.trim() ? draft : undefined)} disabled={!!busy || (editing && !draft.trim())}>
+          {b ? <Loader2 className="size-3.5 animate-spin" /> : <CheckIcon className="size-3.5" />} {editing ? "Send edited" : "Approve and send"}
+        </Button>
+        {!outside && (
+          <Button variant="ghost" onClick={() => { setEditing(!editing); setDraft(a.body); }} disabled={!!busy}>{editing ? "Cancel edit" : "Edit"}</Button>
+        )}
         <Button variant="secondary" onClick={onReject} disabled={!!busy}><X className="size-3.5" /> Reject</Button>
         <span className="ml-auto text-[11px] text-faint">{ago(a.created_at)}</span>
       </div>

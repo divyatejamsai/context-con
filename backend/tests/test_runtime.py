@@ -443,3 +443,25 @@ async def test_launched_agent_that_cannot_start_fails_the_task(monkeypatch, tmp_
         assert "OAuth session expired" in store.get_task(t["task_id"])["error"]
     finally:
         await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_edit_then_approve_resigns_and_reguards(tmp_path):
+    ags = fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(ags["pipeline"]["agent_id"], "sales_outreach", {}, by="test")
+        await until(lambda: status(t["task_id"]) == "done", 120)
+        a, b = store.approvals("pending")[:2]
+        first = a["to"]["name"].split()[0]
+        ok = await rt.approve(a["approval_id"], "Pankaj", body=f"Hi {first}, quick question: open to a 15-minute call this week?\n\nPipeline")
+        assert ok["status"] == "sent" and ok["edited_by"] == "Pankaj" and ok["original_body"] != ok["body"]
+        bad = await rt.approve(b["approval_id"], "Pankaj", body=f"Hi {b['to']['name'].split()[0]}, congrats on 9 years at {b['to']['company']}!")
+        assert bad["status"] == "blocked_at_send"  # the guard checks the edited text from scratch
+        outbox = [json.loads(x) for x in (tmp_path / "outbox.jsonl").read_text().splitlines()]
+        assert len(outbox) == 1 and "quick question" in outbox[0]["body"]
+        e = [x for x in ledger.entries() if x["kind"] == "runtime.approval"]
+        assert e[0]["payload"]["edited"] is True
+    finally:
+        await rt.stop()

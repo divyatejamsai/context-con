@@ -436,8 +436,8 @@ class Runtime:
         self.wake()
         return rec
 
-    async def approve(self, approval_id: str, by: str) -> dict:
-        return await execute_approval(approval_id, by, self.mcp)
+    async def approve(self, approval_id: str, by: str, body: str | None = None) -> dict:
+        return await execute_approval(approval_id, by, self.mcp, body)
 
     def reject(self, approval_id: str, by: str, note: str | None = None) -> dict:
         return reject_approval(approval_id, by, note)

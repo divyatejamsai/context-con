@@ -45,6 +45,7 @@ class By(BaseModel):
     by: str = "employer"
     reason: str | None = None
     note: str | None = None
+    body: str | None = None  # approve: the draft as the person edited it
 
 
 class AssignRequest(BaseModel):
@@ -126,7 +127,8 @@ async def retry(task_id: str, req: By | None = None):
 @router.post("/approvals/{approval_id}/approve", dependencies=admin)
 async def approve(approval_id: str, req: By | None = None):
     try:
-        return await rt().approve(approval_id, (req or By()).by)
+        req = req or By()
+        return await rt().approve(approval_id, req.by, req.body)
     except ValueError as e:
         raise HTTPException(409, str(e))
 
