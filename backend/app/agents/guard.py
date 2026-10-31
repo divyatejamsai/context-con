@@ -78,26 +78,40 @@ _WORD = r"(?:[A-Z0-9]|[a-z]+[A-Z])[\w&\-]*(?:(?<=Pvt)\.|(?<=Ltd)\.|(?<=Inc)\.|(?
 _CO_GREEDY = rf"({_WORD}(?:\s+(?:{_WORD}|&)){{0,4}})"
 _NUM = r"(\d+(?:\.\d+)?)\+?\s*(?i:years?|yrs?)"
 _TITLE = r"([A-Z][\w.&/()\-]*(?:\s+[\w.&/()\-|]+){0,7}?)"
-_PATTERNS: list[tuple[str, tuple[str, ...]]] = [
-    (rf"{_NUM}\s+(?i:at|with)\s+{_CO_GREEDY}", ("tenure_years", "employer")),
-    (rf"\b(?i:at|with)\s+{_CO_GREEDY}\s+(?i:for)\s+(?i:(?:almost|nearly|over|about|around)\s+)?{_NUM}", ("employer", "tenure_years")),
-    (rf"{_NUM}\s+(?:of\s+)?(?:experience|exp\b|in the industry)", ("years_experience",)),
-    (rf"\b(?i:you(?:'re| are)|your role as|as)\s+(?i:an?\s+|the\s+)?{_TITLE}\s+at\s+{_CO_GREEDY}", ("title", "employer")),
-    (rf"\b(?i:at|with|joined)\s+{_CO_GREEDY}\s+(?i:since|in)\s+((?:19|20)\d\d(?:-\d\d)?)", ("employer", "start_date")),
-    (rf"\b(?i:your\s+(?:work|time|role|team|journey|tenure)\s+at)\s+{_CO_GREEDY}", ("employer",)),
-    (rf"\b(?i:you(?:'ve| have)\s+been\s+(?:building|working)\s+at)\s+{_CO_GREEDY}", ("employer",)),
-    (rf"\b(?i:you(?:'re| are)\s+(?:now\s+)?(?:at|with))\s+{_CO_GREEDY}", ("employer",)),
-    (rf"\b(?i:you(?:'re| are)\s+(?:based\s+)?in)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", ("location",)),
-    (rf"\b{_CO_GREEDY}\s+(?:is|being)\s+(?:a\s+|an\s+)?((?i:(?:pre-?)?seed|series [a-j]|public|ipo'?d))\b", ("employer", "company_stage")),
-]
+def _build_patterns(co: str, title: str) -> tuple[list[tuple[str, tuple[str, ...]]], str]:
+    """Regexes for second-person facts. co / title are capturing groups for a company name and a job title."""
+    _CO_GREEDY, _TITLE = co, title  # noqa: N806 - names kept so the patterns read as before
+    patterns: list[tuple[str, tuple[str, ...]]] = [
+        (rf"{_NUM}\s+(?i:at|with)\s+{_CO_GREEDY}", ("tenure_years", "employer")),
+        (rf"\b(?i:at|with)\s+{_CO_GREEDY}\s+(?i:for)\s+(?i:(?:almost|nearly|over|about|around)\s+)?{_NUM}", ("employer", "tenure_years")),
+        (rf"{_NUM}\s+(?:of\s+)?(?:experience|exp\b|in the industry)", ("years_experience",)),
+        (rf"\b(?i:you(?:'re| are)|your role as|as)\s+(?i:an?\s+|the\s+)?{_TITLE}\s+at\s+{_CO_GREEDY}", ("title", "employer")),
+        (rf"\b(?i:at|with|joined)\s+{_CO_GREEDY}\s+(?i:since|in)\s+((?:19|20)\d\d(?:-\d\d)?)", ("employer", "start_date")),
+        (rf"\b(?i:your\s+(?:work|time|role|team|journey|tenure)\s+at)\s+{_CO_GREEDY}", ("employer",)),
+        (rf"\b(?i:you(?:'ve| have)\s+been\s+(?:building|working)\s+at)\s+{_CO_GREEDY}", ("employer",)),
+        (rf"\b(?i:you(?:'re| are)\s+(?:now\s+)?(?:at|with))\s+{_CO_GREEDY}", ("employer",)),
+        (rf"\b(?i:you(?:'re| are)\s+(?:based\s+)?in)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", ("location",)),
+        (rf"\b{_CO_GREEDY}\s+(?:is|being)\s+(?:a\s+|an\s+)?((?i:(?:pre-?)?seed|series [a-j]|public|ipo'?d))\b", ("employer", "company_stage")),
+    ]
+    past_role = (rf"\b(?i:you were|you'd been|you worked as|you served as|previously|formerly|back when you were|"
+                 rf"your (?:time|stint|days|years) as|your (?:earlier|previous|past|former) (?:work|time|stint|role|days|experience))"
+                 rf"\s+(?i:an?\s+|the\s+)?(?:(?P<title>(?:{_TITLE[1:-1]}))\s+)?(?i:at|with)\s+(?P<co>(?:{_CO_GREEDY[1:-1]}))")
+    return patterns, past_role
+
+
+def _known(names, generic: str) -> str:
+    """A capturing group that tries the record's own names first (any case, any punctuation), then the generic shape."""
+    alts = sorted({n.strip() for n in names if n and len(n.strip()) >= 2}, key=len, reverse=True)
+    if not alts:
+        return generic
+    return "((?i:" + "|".join(re.escape(n) for n in alts) + r")(?![\w'])|" + generic[1:-1] + ")"
+
+
+_PATTERNS, _PAST_ROLE_RE = _build_patterns(_CO_GREEDY, _TITLE)
 
 _SKILL_RE = (r"\b(?:(?i:experience (?:with|in)|expertise in|background in|skilled in|depth in|knowledge of)\s+"
              r"(?!(?:a|an|the|this|that|our|your|their|building|working|leading)\b)([A-Za-z][\w+#./\-]*(?:\s+[A-Z][\w+#./\-]*){0,2})"
              r"|(?i:work(?:ing)? (?:with|on|in))\s+([A-Z][\w+#./\-]*(?:\s+[A-Z][\w+#./\-]*){0,2}))")
-_PAST_ROLE_RE = (rf"\b(?i:you were|you'd been|you worked as|you served as|previously|formerly|back when you were|"
-                 rf"your (?:time|stint|days|years) as)\s+(?i:an?\s+|the\s+)?(?:(?P<title>[A-Z][\w.&/()\-]*(?:\s+[\w.&/()\-|]+){{0,7}}?)\s+)?"
-                 rf"(?i:at|with)\s+(?P<co>{_CO_GREEDY[1:-1]})")
-
 # Same city, different spelling: the claim is rewritten to the record's spelling before checking.
 CITY_ALIASES = [
     {"bengaluru", "bangalore", "blr"}, {"mumbai", "bombay"}, {"gurugram", "gurgaon"}, {"chennai", "madras"},
@@ -129,7 +143,8 @@ _SIGNALS: list[tuple[str, tuple[str, ...], str]] = [
     (r"\b(?:director|vp|vice president|head of|chief|cto|ceo|cfo|coo|founder|principal|staff|senior|lead|manager)\b",
      ("title",), "a job title"),
     (r"\b(?:live|living|based|located|relocated|moved)\s+(?:in|to)\b|\byou(?:'re| are) (?:from|in)\b", ("location",), "a location"),
-    (r"\b(?:joined|started at|founded|work(?:ing)? at|over at|been at|role at|team at)\b", ("employer", "start_date", "tenure_years"),
+    (r"\b(?:joined|started at|founded|work(?:ing|ed)? at|over at|been at|role at|team at|(?:previously|formerly|were) at)\b",
+     ("employer", "start_date", "tenure_years"),
      "an employer"),
 ]
 _SECOND_PERSON = re.compile(r"\b(?:you|your|you're|you've|yours)\b", re.I)
@@ -141,7 +156,7 @@ _FIRST_PERSON_LEAD = re.compile(r"^\s*(?:i|i'm|i've|we|we're|we've|our|my)\b", r
 
 def missed_claims(body: str, stated: BodyClaims) -> list[str]:
     """Kinds of fact a second-person sentence seems to state that the extractor did not return."""
-    got = set(stated.facts())
+    got = set(stated.facts()) - {"skills"}
     if stated.past_roles:
         got |= {"employer", "title"}
     out: list[str] = []
@@ -156,11 +171,14 @@ def missed_claims(body: str, stated: BodyClaims) -> list[str]:
     return list(dict.fromkeys(out))
 
 
-def extract_claims_rules(body: str) -> BodyClaims:
-    """Deterministic extractor for second-person facts. Used alone in LLM_MODE=mock, and to fill LLM gaps."""
+def extract_claims_rules(body: str, companies: list[str] = (), titles: list[str] = ()) -> BodyClaims:
+    """Deterministic extractor for second-person facts. Used alone in LLM_MODE=mock, and to fill LLM gaps.
+    companies / titles: names from the recipient's record, matched as-is ("ept AI", "Lowe's India", odd titles)."""
     found: dict[str, Any] = {}
     body = _NUM_WORDS_RE.sub(lambda m: f"{_NUM_WORDS[m.group(1).lower()]} {m.group(2)}", body)
-    for pat, keys in _PATTERNS:
+    patterns, past_role_re = (_build_patterns(_known(companies, _CO_GREEDY), _known(titles, _TITLE))
+                              if companies or titles else (_PATTERNS, _PAST_ROLE_RE))
+    for pat, keys in patterns:
         m = re.search(pat, body, re.I if keys == ("years_experience",) else 0)
         if not m:
             continue
@@ -171,7 +189,7 @@ def extract_claims_rules(body: str) -> BodyClaims:
             found[k] = float(v) if k in ("tenure_years", "years_experience") else v
     skills = [(m.group(1) or m.group(2)).strip() for m in re.finditer(_SKILL_RE, body)]
     past = []
-    for m in re.finditer(_PAST_ROLE_RE, body):
+    for m in re.finditer(past_role_re, body):
         title, co = (m.group("title") or "").strip() or None, re.sub(r"\s+(?:and|&)$", "", m.group("co").strip().rstrip(".!,"))
         if found.get("employer") == co and found.get("title") == title:
             found.pop("employer", None), found.pop("title", None)  # "as a X at Y" inside a past-tense phrase
@@ -181,6 +199,9 @@ def extract_claims_rules(body: str) -> BodyClaims:
 
 _EXTRACT_PROMPT = """Extract the factual claims this outbound message makes ABOUT ITS RECIPIENT ({name}).
 Ignore anything the sender says about themselves or their own company, opinions, and questions.
+A skill, technology or domain counts only if the message says THE RECIPIENT has it or works in it. Services, stack or
+products of the sender's company ("Acme builds infra on AWS and Kubernetes", "we specialize in Django") are NOT about the
+recipient and must not appear in skills.
 Only fill a field when the message states it; leave the rest null.
   employer: the company the message says the recipient works at NOW. A company mentioned as past goes in past_roles.
   title: the recipient's CURRENT job title as stated
@@ -199,9 +220,10 @@ Message:
 \"\"\"{body}\"\"\""""
 
 
-async def extract_claims(body: str, recipient_name: str = "the recipient") -> tuple[BodyClaims, bool]:
+async def extract_claims(body: str, recipient_name: str = "the recipient", pr: Profile | None = None) -> tuple[BodyClaims, bool]:
     """(claims, used_llm). Gemini when available, with the rule extractor filling gaps; rules alone otherwise."""
-    rules = extract_claims_rules(body)
+    jobs = (pr.current + pr.past) if pr else []
+    rules = extract_claims_rules(body, [j.company for j in jobs if j.company], [j.title for j in jobs if j.title])
     if llm.is_mock():
         return rules, False
     try:
@@ -211,9 +233,26 @@ async def extract_claims(body: str, recipient_name: str = "the recipient") -> tu
         return rules, False
     merged = got.model_dump()
     for k, v in rules.model_dump(exclude={"other"}).items():
-        if merged.get(k) in (None, "") and v is not None:
+        if merged.get(k) in (None, "", []) and v not in (None, []):
             merged[k] = v
-    return BodyClaims(**merged), True
+    out = BodyClaims(**merged)
+    # The model sometimes attributes the sender's stack to the recipient; keep list items only when a sentence that
+    # names them is about the recipient (your / you've / you're...). Items it can't locate in the text are kept.
+    out.skills = [x for x in out.skills if _about_recipient(body, x)]
+    out.past_roles = [r for r in out.past_roles if _about_recipient(body, r.employer)]
+    out.other = [x for x in out.other if _about_recipient(body, x)]
+    return out, True
+
+
+def _about_recipient(body: str, term: str) -> bool:
+    words = [w for w in re.findall(r"[\w+#.\-]+", term or "") if len(w) > 2][:3]
+    if not words:
+        return True
+    pat = re.compile(r"\b" + r"\W+".join(re.escape(w) for w in words) + r"\b", re.I)
+    sents = [x for x in re.split(r"(?<=[.!?])\s+|\n+", body) if pat.search(x)]
+    if not sents:
+        return True  # paraphrased by the model: can't place it, so check it (fail closed)
+    return any(_FACTUAL_YOU.search(x) and not _FIRST_PERSON_LEAD.search(x) for x in sents)
 
 
 def _describe(k: str, c: BodyClaims) -> str:
@@ -301,7 +340,7 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
             detail += f"; now {now.title + ' at ' if now.title else 'at '}{now.company}"
         checks.append(Check(id=cid, name=cname, status="fail", detail=detail, source=_src(rec, fld, url)))
 
-    stated, used_llm = await extract_claims(body, who)
+    stated, used_llm = await extract_claims(body, who, pr)
     keys = stated.facts()
     named = {r.employer for r in stated.past_roles}
     stale = _former_employers_named(body, pr, stated.employer, named)
@@ -396,9 +435,9 @@ def _former_employers_named(body: str, pr: Profile, claimed_employer: str | None
         if (claimed_employer and _co_match(claimed_employer, j.company)) or any(_co_match(n, j.company) for n in past_named):
             continue
         key = re.sub(r"\s+(?:pvt|private|ltd|limited|inc|llc|technologies|technology|solutions|software)\b.*$", "", j.company, flags=re.I).strip()
-        if len(key) < 3:
+        if len(key) < 2:
             continue
-        pat = re.compile(rf"(?<![\w-]){re.escape(key)}(?![\w-])", re.I)
+        pat = re.compile(rf"(?<![\w-]){re.escape(key)}(?![\w-])", re.I if len(key) >= 4 else 0)
         sents = [x for x in re.split(r"(?<=[.!?])\s+|\n+", body) if pat.search(x)]
         if sents and not all(_PAST_TENSE.search(x) for x in sents) and j not in out:
             out.append(j)
