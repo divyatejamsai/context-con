@@ -14,3 +14,6 @@ cache/
 # live eval reports contain real people's names
 eval_live*.md
 evals_out*.md
+
+# Countersign runtime state (ledger, issuer key, agents)
+backend/data/

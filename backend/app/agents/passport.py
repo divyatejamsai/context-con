@@ -1,0 +1,296 @@
+"""Agent Passport (docs/COUNTERSIGN.md part 1).
+
+A passport says "agent X acts for this human, at this company, with these scopes". Countersign signs it
+(Ed25519). verify_passport() checks the signature, expiry and revocation, then checks the sponsor live
+against Crustdata: the person exists, still works at the company, the domain belongs to that employer,
+the claimed title is current, and that title can grant the scope. Anything it can't check is
+"unverifiable", and an unverifiable check blocks (fail closed).
+"""
+from __future__ import annotations
+
+import asyncio
+import base64
+import os
+import re
+import uuid
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
+from ..schemas import Source
+from ..verify.profile import Job, load_person, norm, same_company, title_similarity, tokens, expand_title
+from . import ledger
+from .graph import Graph
+from .models import Check, Passport, Scope, Sponsor, Verdict
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+LOOKUP_TIMEOUT_S = float(os.getenv("PASSPORT_LOOKUP_TIMEOUT_S", "10"))
+
+# ----------------------------------------------------------------------------- keys
+
+
+def _b64(b: bytes) -> str:
+    return base64.b64encode(b).decode()
+
+
+def _unb64(s: str) -> bytes:
+    return base64.b64decode(s.encode())
+
+
+def _issuer_key_path() -> Path:
+    return Path(os.getenv("ISSUER_KEY_PATH", REPO_ROOT / "backend" / "data" / "issuer_ed25519.key"))
+
+
+def issuer_key() -> Ed25519PrivateKey:
+    """Countersign's signing key. From ISSUER_PRIVATE_KEY (base64 raw 32 bytes) or a local file created on first use."""
+    env = os.getenv("ISSUER_PRIVATE_KEY")
+    if env:
+        return Ed25519PrivateKey.from_private_bytes(_unb64(env))
+    p = _issuer_key_path()
+    if p.exists():
+        return Ed25519PrivateKey.from_private_bytes(_unb64(p.read_text().strip()))
+    key = Ed25519PrivateKey.generate()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(_b64(key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())))
+    try:
+        p.chmod(0o600)
+    except OSError:
+        pass
+    return key
+
+
+def _pub_raw(k: Ed25519PrivateKey) -> bytes:
+    return k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+
+
+def issuer_key_id() -> str:
+    return _pub_raw(issuer_key()).hex()[:16]
+
+
+def issuer_public_key() -> str:
+    return _b64(_pub_raw(issuer_key()))
+
+
+def signing_bytes(p: Passport) -> bytes:
+    return ledger.canonical(p.model_dump(exclude={"issuer_signature"})).encode()
+
+
+# ----------------------------------------------------------------------------- issue / sign
+
+
+def issue_passport(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope], days: int = 30,
+                   *, agent_id: str | None = None, now: datetime | None = None, record: bool = True) -> tuple[Passport, bytes]:
+    """Returns (passport, agent private key raw bytes). The private key is shown once and never stored here."""
+    now = now or datetime.now(timezone.utc)
+    agent_key = Ed25519PrivateKey.generate()
+    p = Passport(
+        agent_id=agent_id or f"agt_{uuid.uuid4().hex[:12]}",
+        agent_name=agent_name, role=role, sponsor=sponsor, scopes=list(dict.fromkeys(scopes)),
+        issued_at=now.isoformat(timespec="seconds"),
+        expires_at=(now + timedelta(days=days)).isoformat(timespec="seconds"),
+        public_key=_b64(_pub_raw(agent_key)),
+        issuer_key_id=issuer_key_id(),
+    )
+    p.issuer_signature = _b64(issuer_key().sign(signing_bytes(p)))
+    if record:
+        ledger.append("passport.issued", {"agent_id": p.agent_id, "passport": p.model_dump(exclude={"issuer_signature"})})
+    raw = agent_key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
+    return p, raw
+
+
+def sign_message(passport: Passport, agent_private_key: bytes, body: str) -> str:
+    """The agent signs what it sends, binding the message to its passport."""
+    key = Ed25519PrivateKey.from_private_bytes(agent_private_key)
+    if _b64(_pub_raw(key)) != passport.public_key:
+        raise ValueError("private key does not belong to this passport")
+    return _b64(key.sign(_message_bytes(passport, body)))
+
+
+def _message_bytes(passport: Passport, body: str) -> bytes:
+    return ledger.canonical({"agent_id": passport.agent_id, "body": body}).encode()
+
+
+def verify_message_signature(passport: Passport, body: str, signature: str) -> bool:
+    try:
+        Ed25519PublicKey.from_public_bytes(_unb64(passport.public_key)).verify(_unb64(signature), _message_bytes(passport, body))
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+
+
+def signature_valid(p: Passport) -> bool:
+    try:
+        Ed25519PublicKey.from_public_bytes(_unb64(issuer_public_key())).verify(_unb64(p.issuer_signature), signing_bytes(p))
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+
+
+# ----------------------------------------------------------------------------- authority rules
+
+# Which current titles may delegate which scope. Matched on expanded title tokens / phrases.
+_FOUNDER = r"\b(founder|co ?founder|ceo|chief executive|owner|managing director|partner)\b"
+SCOPE_RULES: dict[str, tuple[str, str]] = {
+    "outreach.hiring": (_FOUNDER + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)|cto|chief technology"
+                        r"|vice president|director|head|engineering manager)\b",
+                        "talent/HR, an engineering manager or above, or a founder"),
+    "outreach.sales": (_FOUNDER + r"|\b(sales|business development|growth|revenue|marketing|account executive|partnerships"
+                       r"|vice president|director|head|chief)\b", "sales/BD/marketing, a director or above, or a founder"),
+    "data.read": (r".", "any current employee"),
+    "contract.sign": (_FOUNDER + r"|\b(chief \w+ officer|cto|cfo|coo|vice president|director|head|general counsel|legal)\b",
+                      "a founder, CXO, VP, director/head or legal"),
+    "payment.send": (_FOUNDER + r"|\b(cfo|chief financial|finance|controller|treasur\w*)\b", "a founder, the CFO or finance"),
+}
+
+
+def can_grant(title: str | None, scope: str) -> bool:
+    if not title or scope not in SCOPE_RULES:
+        return False
+    t = expand_title(title)  # keeps word order so phrases like "chief financial" match
+    return re.search(SCOPE_RULES[scope][0], t) is not None
+
+
+# ----------------------------------------------------------------------------- verify
+
+
+def _root(domain: str | None) -> str:
+    d = (domain or "").lower().strip().removeprefix("https://").removeprefix("http://").removeprefix("www.").split("/")[0]
+    return d
+
+
+def _domains_match(a: str | None, b: str | None) -> bool:
+    ra, rb = _root(a), _root(b)
+    return bool(ra and rb) and (ra == rb or ra.endswith("." + rb) or rb.endswith("." + ra))
+
+
+def _job_for(jobs: list[Job], sponsor: Sponsor) -> Job | None:
+    for j in jobs:
+        if same_company(j.company, sponsor.company) or (sponsor.company_domain and _domains_match(j.domain, sponsor.company_domain)):
+            return j
+    return None
+
+
+def _src(endpoint: str, field: str | None, url: str | None = None) -> Source:
+    return Source(endpoint=endpoint, field=field, url=url)
+
+
+async def verify_passport(p: Passport, client: Any = None, scope: Scope | None = None, *, today: date | None = None,
+                          graph: Graph | None = None, record: bool = True) -> Verdict:
+    """Never raises. Every check is pass / fail / unverifiable with a source; allow only if all pass."""
+    today = today or datetime.now(timezone.utc).date()
+    graph = graph or Graph(client)
+    checks: list[Check] = []
+
+    def add(name: str, status: str, detail: str, source: Source | None = None) -> None:
+        checks.append(Check(id=f"p{len(checks) + 1}", name=name, status=status, detail=detail, source=source))
+
+    cs = _src("countersign/issuer", f"key {p.issuer_key_id}")
+    add("signature_valid", "pass" if signature_valid(p) else "fail",
+        "Passport signed by Countersign and unmodified" if signature_valid(p) else "Signature does not match: passport forged or edited", cs)
+
+    try:
+        exp = datetime.fromisoformat(p.expires_at).date()
+        add("not_expired", "pass" if exp >= today else "fail", f"Expires {exp.isoformat()}", _src("passport", "expires_at"))
+    except ValueError:
+        add("not_expired", "fail", f"Unreadable expiry {p.expires_at!r}", _src("passport", "expires_at"))
+
+    rev = ledger.is_revoked(p.agent_id)
+    add("not_revoked", "fail" if rev else "pass",
+        f"Revoked at ledger entry #{rev['seq']}: {(rev.get('payload') or {}).get('reason', 'no reason given')}" if rev else "No revocation on the ledger",
+        _src("countersign/ledger", f"seq {rev['seq']}" if rev else None))
+
+    if scope is not None:
+        ok = scope in p.scopes
+        add("scope_in_passport", "pass" if ok else "fail",
+            f"Passport grants {scope}" if ok else f"Passport does not grant {scope} (has: {', '.join(p.scopes) or 'none'})", _src("passport", "scopes"))
+
+    s = p.sponsor
+    person = None
+    try:
+        person = await asyncio.wait_for(graph.person(s.profile_url), LOOKUP_TIMEOUT_S)
+    except Exception as e:  # noqa: BLE001 - fail closed
+        add("sponsor_exists", "unverifiable", f"Crustdata lookup failed ({type(e).__name__}); cannot confirm the sponsor", _src("person/enrich", None, s.profile_url))
+
+    if person is None and not any(c.name == "sponsor_exists" for c in checks):
+        add("sponsor_exists", "unverifiable" if graph.offline else "fail",
+            f"No Crustdata record for {s.profile_url}", _src("person/enrich", None, s.profile_url))
+
+    if person is not None:
+        pr = load_person(person)
+        name_ok = bool(pr.name) and (norm(pr.name) == norm(s.name) or tokens(pr.name) >= tokens(s.name) or tokens(s.name) >= tokens(pr.name))
+        add("sponsor_exists", "pass" if name_ok else "fail",
+            f"{pr.name} found in Crustdata" if name_ok else f"Profile belongs to {pr.name!r}, not {s.name!r}",
+            _src(pr.endpoint, pr.name_field or "basic_profile.name", s.profile_url))
+
+        cur = _job_for(pr.current, s)
+        past = _job_for(pr.past, s)
+        if cur:
+            since = f" since {cur.start.isoformat()}" if cur.start else ""
+            add("sponsor_still_employed", "pass", f"Currently {cur.title or 'employed'} at {cur.company}{since}", _src(pr.endpoint, cur.path, s.profile_url))
+        elif past:
+            when = f" on {past.end.isoformat()} ({(today - past.end).days} days ago)" if past.end else ""
+            now_at = f"; now at {pr.current[0].company}" if pr.current else ""
+            add("sponsor_still_employed", "fail", f"Left {past.company}{when}{now_at}. Their authority ended when they left.",
+                _src(pr.endpoint, past.path, s.profile_url))
+        else:
+            add("sponsor_still_employed", "fail", f"No record of {s.name} working at {s.company}", _src(pr.endpoint, "experience.employment_details", s.profile_url))
+
+        job = cur
+        if s.company_domain and job:  # only meaningful for a current employer; a departed sponsor already fails above
+            if job.domain:
+                ok = _domains_match(job.domain, s.company_domain)
+                add("domain_matches_company", "pass" if ok else "fail",
+                    f"{s.company_domain} is {job.company}'s domain" if ok else f"{s.company_domain} is not {job.company}'s domain ({job.domain})",
+                    _src(pr.endpoint, f"{job.path}.employer_company_website_domain", s.profile_url))
+            else:
+                await _domain_via_identify(graph, s, add)
+        if job:
+            if s.title:
+                sim = title_similarity(s.title, job.title)
+                ok = sim >= 0.5 or norm(s.title) in norm(job.title) or norm(job.title) in norm(s.title)
+                add("sponsor_title_current", "pass" if ok else "fail",
+                    f"Title confirmed: {job.title}" if ok else f"Passport says {s.title!r}; Crustdata says {job.title!r}",
+                    _src(pr.endpoint, f"{job.path}.title", s.profile_url))
+            for sc in ([scope] if scope else p.scopes):
+                ok = can_grant(job.title, sc)
+                add("sponsor_can_grant_scope", "pass" if ok else "fail",
+                    f"{job.title} can delegate {sc}" if ok else f"{job.title} cannot delegate {sc} (needs {SCOPE_RULES.get(sc, ('', 'a known scope'))[1]})",
+                    _src(pr.endpoint, f"{job.path}.title", s.profile_url))
+
+    decision = "allow" if checks and all(c.status == "pass" for c in checks) else "block"
+    v = Verdict(subject=p.agent_id, decision=decision, checks=checks)
+    if record:
+        v.ledger_entry = ledger.append(
+            "passport.verified",
+            {"agent_id": p.agent_id, "scope": scope, "decision": decision, "checks": [c.model_dump(exclude={"source"}) for c in checks]},
+            [c.source for c in checks if c.source],
+        )
+    return v
+
+
+async def _domain_via_identify(graph: Graph, s: Sponsor, add) -> None:
+    try:
+        co = await asyncio.wait_for(graph.company_by_domain(s.company_domain), LOOKUP_TIMEOUT_S)
+    except Exception as e:  # noqa: BLE001
+        add("domain_matches_company", "unverifiable", f"Company Identify failed ({type(e).__name__})", _src("company/identify", None))
+        return
+    info = (co or {}).get("basic_info") or {}
+    if not co:
+        add("domain_matches_company", "unverifiable", f"Crustdata has no company for {s.company_domain}", _src("company/identify", "domains"))
+        return
+    ok = same_company(info.get("name"), s.company)
+    add("domain_matches_company", "pass" if ok else "fail",
+        f"{s.company_domain} belongs to {info.get('name')}" if ok else f"{s.company_domain} belongs to {info.get('name')}, not {s.company}",
+        _src("company/identify", "basic_info.name"))
+
+
+def revoke(agent_id: str, reason: str, sources: list[Source] | None = None) -> str:
+    return ledger.append("passport.revoked", {"agent_id": agent_id, "reason": reason}, sources)
+
+
+def reinstate(agent_id: str, reason: str = "") -> str:
+    return ledger.append("passport.reinstated", {"agent_id": agent_id, "reason": reason})

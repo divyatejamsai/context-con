@@ -1,0 +1,2041 @@
+{
+ "agents": [
+  {
+   "agent_id": "agt_e84cf4ef30d9",
+   "employee_no": 1,
+   "name": "Sourced",
+   "role": "AI Recruiter",
+   "status": "active",
+   "reason": null,
+   "suspended_by": null,
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
+   "last_verdict": {
+    "subject": "agt_e84cf4ef30d9",
+    "decision": "allow",
+    "checks": [
+     {
+      "id": "p1",
+      "name": "signature_valid",
+      "status": "pass",
+      "detail": "Passport signed by Countersign and unmodified",
+      "source": {
+       "endpoint": "countersign/issuer",
+       "field": "key 017cd0d57ed34ee9",
+       "url": null
+      }
+     },
+     {
+      "id": "p2",
+      "name": "not_expired",
+      "status": "pass",
+      "detail": "Expires 2026-11-30",
+      "source": {
+       "endpoint": "passport",
+       "field": "expires_at",
+       "url": null
+      }
+     },
+     {
+      "id": "p3",
+      "name": "not_revoked",
+      "status": "pass",
+      "detail": "No revocation on the ledger",
+      "source": {
+       "endpoint": "countersign/ledger",
+       "field": null,
+       "url": null
+      }
+     },
+     {
+      "id": "p4",
+      "name": "sponsor_exists",
+      "status": "pass",
+      "detail": "Pankaj Savaliya found in Crustdata",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "basic_profile.name",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     },
+     {
+      "id": "p5",
+      "name": "sponsor_still_employed",
+      "status": "pass",
+      "detail": "Currently Co-Founder | Backend Engineer at Grewon Technologies Pvt. Ltd. since 2019-01-01",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0]",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     },
+     {
+      "id": "p6",
+      "name": "domain_matches_company",
+      "status": "pass",
+      "detail": "grewon.com is Grewon Technologies Pvt. Ltd.'s domain",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].employer_company_website_domain",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     },
+     {
+      "id": "p7",
+      "name": "sponsor_title_current",
+      "status": "pass",
+      "detail": "Title confirmed: Co-Founder | Backend Engineer",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].title",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     },
+     {
+      "id": "p8",
+      "name": "sponsor_can_grant_scope",
+      "status": "pass",
+      "detail": "Co-Founder | Backend Engineer can delegate outreach.hiring",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].title",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     },
+     {
+      "id": "p9",
+      "name": "sponsor_can_grant_scope",
+      "status": "pass",
+      "detail": "Co-Founder | Backend Engineer can delegate data.read",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].title",
+       "url": "https://www.linkedin.com/in/pankajsavaliya"
+      }
+     }
+    ],
+    "ledger_entry": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649"
+   },
+   "passport": {
+    "agent_id": "agt_e84cf4ef30d9",
+    "agent_name": "Sourced",
+    "role": "AI Recruiter",
+    "sponsor": {
+     "name": "Pankaj Savaliya",
+     "profile_url": "https://www.linkedin.com/in/pankajsavaliya",
+     "company": "Grewon Technologies",
+     "company_domain": "grewon.com",
+     "title": "Co-Founder"
+    },
+    "scopes": [
+     "outreach.hiring",
+     "data.read"
+    ],
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "BKpNaCn9wrjuYjkTzIA+TfQrDYj35zAPb4QibiMPgo0=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "Sqke+FacMZqfy7Qjq83YUA0J5rF24sAFNVBiD541xlWAmkAMKr2mFfg9H3yiChJu5Gr/uN+tGxFBm0JoCyjpAQ=="
+   },
+   "reviews": [
+    {
+     "id": "9610224fab",
+     "at": "2026-10-31T06:09:56+00:00",
+     "reviewer": "Pankaj Savaliya",
+     "decision": "keep",
+     "notes": "First week: sponsor checks green, outreach stays within hiring.",
+     "scopes": null,
+     "scorecard": {
+      "messages_checked": 0,
+      "allowed": 0,
+      "blocked": 0,
+      "block_reasons": [],
+      "sponsor_checks": 1,
+      "sponsor_checks_failed": 0,
+      "ledger_entries": 3,
+      "last_activity": "2026-10-31T06:09:56+00:00"
+     },
+     "ledger_entry": "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f"
+    }
+   ],
+   "ledger_entries": [
+    "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
+    "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
+    "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f"
+   ],
+   "scorecard": {
+    "messages_checked": 0,
+    "allowed": 0,
+    "blocked": 0,
+    "block_reasons": [],
+    "sponsor_checks": 1,
+    "sponsor_checks_failed": 0,
+    "ledger_entries": 4,
+    "last_activity": "2026-10-31T06:09:56+00:00"
+   }
+  },
+  {
+   "agent_id": "agt_ea68231b151b",
+   "employee_no": 2,
+   "name": "Scout",
+   "role": "AI Recruiter",
+   "status": "suspended",
+   "reason": "sponsor_still_employed: Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left.",
+   "suspended_by": "payroll",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
+   "last_verdict": {
+    "subject": "agt_ea68231b151b",
+    "decision": "block",
+    "checks": [
+     {
+      "id": "p1",
+      "name": "signature_valid",
+      "status": "pass",
+      "detail": "Passport signed by Countersign and unmodified",
+      "source": {
+       "endpoint": "countersign/issuer",
+       "field": "key 017cd0d57ed34ee9",
+       "url": null
+      }
+     },
+     {
+      "id": "p2",
+      "name": "not_expired",
+      "status": "pass",
+      "detail": "Expires 2026-11-30",
+      "source": {
+       "endpoint": "passport",
+       "field": "expires_at",
+       "url": null
+      }
+     },
+     {
+      "id": "p3",
+      "name": "not_revoked",
+      "status": "pass",
+      "detail": "No revocation on the ledger",
+      "source": {
+       "endpoint": "countersign/ledger",
+       "field": null,
+       "url": null
+      }
+     },
+     {
+      "id": "p4",
+      "name": "sponsor_exists",
+      "status": "pass",
+      "detail": "Shivank Verma found in Crustdata",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "basic_profile.name",
+       "url": "https://www.linkedin.com/in/shivankverma"
+      }
+     },
+     {
+      "id": "p5",
+      "name": "sponsor_still_employed",
+      "status": "fail",
+      "detail": "Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left.",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.past[0]",
+       "url": "https://www.linkedin.com/in/shivankverma"
+      }
+     }
+    ],
+    "ledger_entry": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97"
+   },
+   "passport": {
+    "agent_id": "agt_ea68231b151b",
+    "agent_name": "Scout",
+    "role": "AI Recruiter",
+    "sponsor": {
+     "name": "Shivank Verma",
+     "profile_url": "https://www.linkedin.com/in/shivankverma",
+     "company": "PulseTrader",
+     "company_domain": "pulsetrader.xyz",
+     "title": "Co-Founder"
+    },
+    "scopes": [
+     "outreach.hiring"
+    ],
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "0bid1jcdkRW6zhLRXQYFs1uTh/PJpNrjBhtSQhSnNI8=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "lNpIxuNKA2L0kZhmn8sVkMybqoooQE9tvdnds5WNWhYsPERyS4Jqsl1ms9yrfFa/ufu2WfPgfibC6c5SoyWnBg=="
+   },
+   "reviews": [],
+   "ledger_entries": [
+    "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
+    "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
+    "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486"
+   ],
+   "scorecard": {
+    "messages_checked": 0,
+    "allowed": 0,
+    "blocked": 0,
+    "block_reasons": [],
+    "sponsor_checks": 1,
+    "sponsor_checks_failed": 1,
+    "ledger_entries": 4,
+    "last_activity": "2026-10-31T06:09:56+00:00"
+   }
+  },
+  {
+   "agent_id": "agt_9035585b2681",
+   "employee_no": 3,
+   "name": "Quill",
+   "role": "AI Procurement Agent",
+   "status": "active",
+   "reason": null,
+   "suspended_by": null,
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
+   "last_verdict": {
+    "subject": "agt_9035585b2681",
+    "decision": "block",
+    "checks": [
+     {
+      "id": "p1",
+      "name": "signature_valid",
+      "status": "pass",
+      "detail": "Passport signed by Countersign and unmodified",
+      "source": {
+       "endpoint": "countersign/issuer",
+       "field": "key 017cd0d57ed34ee9",
+       "url": null
+      }
+     },
+     {
+      "id": "p2",
+      "name": "not_expired",
+      "status": "pass",
+      "detail": "Expires 2026-11-29",
+      "source": {
+       "endpoint": "passport",
+       "field": "expires_at",
+       "url": null
+      }
+     },
+     {
+      "id": "p3",
+      "name": "not_revoked",
+      "status": "pass",
+      "detail": "No revocation on the ledger",
+      "source": {
+       "endpoint": "countersign/ledger",
+       "field": null,
+       "url": null
+      }
+     },
+     {
+      "id": "p4",
+      "name": "scope_in_passport",
+      "status": "pass",
+      "detail": "Passport grants contract.sign",
+      "source": {
+       "endpoint": "passport",
+       "field": "scopes",
+       "url": null
+      }
+     },
+     {
+      "id": "p5",
+      "name": "sponsor_exists",
+      "status": "pass",
+      "detail": "Charish Anumukonda found in Crustdata",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "basic_profile.name",
+       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+      }
+     },
+     {
+      "id": "p6",
+      "name": "sponsor_still_employed",
+      "status": "pass",
+      "detail": "Currently Backend Engineer at SpotDraft since 2020-04-01",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0]",
+       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+      }
+     },
+     {
+      "id": "p7",
+      "name": "domain_matches_company",
+      "status": "pass",
+      "detail": "spotdraft.com is SpotDraft's domain",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].employer_company_website_domain",
+       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+      }
+     },
+     {
+      "id": "p8",
+      "name": "sponsor_title_current",
+      "status": "pass",
+      "detail": "Title confirmed: Backend Engineer",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].title",
+       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+      }
+     },
+     {
+      "id": "p9",
+      "name": "sponsor_can_grant_scope",
+      "status": "fail",
+      "detail": "Backend Engineer cannot delegate contract.sign (needs a founder, CXO, VP, director/head or legal)",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[0].title",
+       "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+      }
+     }
+    ],
+    "ledger_entry": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179"
+   },
+   "passport": {
+    "agent_id": "agt_9035585b2681",
+    "agent_name": "Quill",
+    "role": "AI Procurement Agent",
+    "sponsor": {
+     "name": "Charish Anumukonda",
+     "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+     "company": "SpotDraft",
+     "company_domain": "spotdraft.com",
+     "title": "Backend Engineer"
+    },
+    "scopes": [
+     "data.read"
+    ],
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "bP40pknFWGhZ++JoiPD7KKevaZQe+x2nCLZmd/sMVHU=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "UKamSLB1JscNJPu1hmVeUu4dNwlazjM1AXq4GIRJfSrwNVwJS6ComQZTq/ACLAEqa+6oRCpxCCIAsMT9dmKvCA=="
+   },
+   "reviews": [],
+   "ledger_entries": [
+    "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
+    "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
+    "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179"
+   ],
+   "scorecard": {
+    "messages_checked": 0,
+    "allowed": 0,
+    "blocked": 0,
+    "block_reasons": [],
+    "sponsor_checks": 2,
+    "sponsor_checks_failed": 1,
+    "ledger_entries": 5,
+    "last_activity": "2026-10-31T06:09:56+00:00"
+   }
+  },
+  {
+   "agent_id": "agt_cbab2b0c8b80",
+   "employee_no": 4,
+   "name": "Atlas",
+   "role": "AI Research Analyst",
+   "status": "suspended",
+   "reason": "sponsor_title_current: Passport says 'Co-Founder'; Crustdata says 'Advisor'",
+   "suspended_by": "payroll",
+   "onboarded_at": "2026-10-31T06:09:56+00:00",
+   "last_checked": "2026-10-31T06:09:56+00:00",
+   "last_verdict": {
+    "subject": "agt_cbab2b0c8b80",
+    "decision": "block",
+    "checks": [
+     {
+      "id": "p1",
+      "name": "signature_valid",
+      "status": "pass",
+      "detail": "Passport signed by Countersign and unmodified",
+      "source": {
+       "endpoint": "countersign/issuer",
+       "field": "key 017cd0d57ed34ee9",
+       "url": null
+      }
+     },
+     {
+      "id": "p2",
+      "name": "not_expired",
+      "status": "pass",
+      "detail": "Expires 2026-11-30",
+      "source": {
+       "endpoint": "passport",
+       "field": "expires_at",
+       "url": null
+      }
+     },
+     {
+      "id": "p3",
+      "name": "not_revoked",
+      "status": "pass",
+      "detail": "No revocation on the ledger",
+      "source": {
+       "endpoint": "countersign/ledger",
+       "field": null,
+       "url": null
+      }
+     },
+     {
+      "id": "p4",
+      "name": "sponsor_exists",
+      "status": "pass",
+      "detail": "Vinod Sonagara found in Crustdata",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "basic_profile.name",
+       "url": "https://www.linkedin.com/in/vinod-sonagara"
+      }
+     },
+     {
+      "id": "p5",
+      "name": "sponsor_still_employed",
+      "status": "pass",
+      "detail": "Currently Advisor at Newtral since 2025-04-01",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[1]",
+       "url": "https://www.linkedin.com/in/vinod-sonagara"
+      }
+     },
+     {
+      "id": "p6",
+      "name": "domain_matches_company",
+      "status": "pass",
+      "detail": "newtral.io is Newtral's domain",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[1].employer_company_website_domain",
+       "url": "https://www.linkedin.com/in/vinod-sonagara"
+      }
+     },
+     {
+      "id": "p7",
+      "name": "sponsor_title_current",
+      "status": "fail",
+      "detail": "Passport says 'Co-Founder'; Crustdata says 'Advisor'",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[1].title",
+       "url": "https://www.linkedin.com/in/vinod-sonagara"
+      }
+     },
+     {
+      "id": "p8",
+      "name": "sponsor_can_grant_scope",
+      "status": "pass",
+      "detail": "Advisor can delegate data.read",
+      "source": {
+       "endpoint": "person/enrich",
+       "field": "experience.employment_details.current[1].title",
+       "url": "https://www.linkedin.com/in/vinod-sonagara"
+      }
+     }
+    ],
+    "ledger_entry": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404"
+   },
+   "passport": {
+    "agent_id": "agt_cbab2b0c8b80",
+    "agent_name": "Atlas",
+    "role": "AI Research Analyst",
+    "sponsor": {
+     "name": "Vinod Sonagara",
+     "profile_url": "https://www.linkedin.com/in/vinod-sonagara",
+     "company": "Newtral",
+     "company_domain": "newtral.io",
+     "title": "Co-Founder"
+    },
+    "scopes": [
+     "data.read"
+    ],
+    "issued_at": "2026-10-31T06:09:56+00:00",
+    "expires_at": "2026-11-30T06:09:56+00:00",
+    "public_key": "QY7LiSfupiibltXT+pXBTuMnLCSQZr1MjtNw/+cNoqE=",
+    "issuer_key_id": "017cd0d57ed34ee9",
+    "issuer_signature": "f7jovYDd403XTVs0N2YhZzo4CI7lsYusyL4uZ6lqXztA1GeqxWSi306QFH75h9e4rAgXLiWkawyZJ3F8VCLfAw=="
+   },
+   "reviews": [],
+   "ledger_entries": [
+    "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
+    "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
+    "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71"
+   ],
+   "scorecard": {
+    "messages_checked": 0,
+    "allowed": 0,
+    "blocked": 0,
+    "block_reasons": [],
+    "sponsor_checks": 1,
+    "sponsor_checks_failed": 1,
+    "ledger_entries": 4,
+    "last_activity": "2026-10-31T06:09:56+00:00"
+   }
+  }
+ ],
+ "roles": [
+  {
+   "key": "recruiter",
+   "title": "AI Recruiter",
+   "summary": "Sources candidates and drafts hiring outreach. Sourced is the first one.",
+   "default_scopes": [
+    "outreach.hiring",
+    "data.read"
+   ],
+   "ceiling": [
+    "outreach.hiring",
+    "data.read"
+   ]
+  },
+  {
+   "key": "sdr",
+   "title": "AI Sales Rep",
+   "summary": "Researches accounts and drafts sales outreach.",
+   "default_scopes": [
+    "outreach.sales",
+    "data.read"
+   ],
+   "ceiling": [
+    "outreach.sales",
+    "data.read"
+   ]
+  },
+  {
+   "key": "analyst",
+   "title": "AI Research Analyst",
+   "summary": "Reads company and people data, never contacts anyone.",
+   "default_scopes": [
+    "data.read"
+   ],
+   "ceiling": [
+    "data.read"
+   ]
+  },
+  {
+   "key": "procurement",
+   "title": "AI Procurement Agent",
+   "summary": "Negotiates vendor terms. Signing and paying need a senior sponsor.",
+   "default_scopes": [
+    "data.read"
+   ],
+   "ceiling": [
+    "data.read",
+    "contract.sign",
+    "payment.send"
+   ]
+  }
+ ],
+ "scenarios": [
+  {
+   "id": "authorised_founder",
+   "story": "Founder sponsors an AI recruiter. Everything checks out.",
+   "sponsor": {
+    "name": "Pankaj Savaliya",
+    "profile_url": "https://www.linkedin.com/in/pankajsavaliya",
+    "company": "Grewon Technologies",
+    "company_domain": "grewon.com",
+    "title": "Co-Founder"
+   },
+   "scopes": [
+    "outreach.hiring",
+    "contract.sign"
+   ],
+   "expect": "allow"
+  },
+  {
+   "id": "sponsor_left",
+   "story": "Agent still claims to act for a co-founder who left PulseTrader in April 2026.",
+   "sponsor": {
+    "name": "Shivank Verma",
+    "profile_url": "https://www.linkedin.com/in/shivankverma",
+    "company": "PulseTrader",
+    "company_domain": "pulsetrader.xyz",
+    "title": "Co-Founder"
+   },
+   "scopes": [
+    "outreach.hiring"
+   ],
+   "expect": "block",
+   "failing_check": "sponsor_still_employed"
+  },
+  {
+   "id": "title_changed",
+   "story": "Passport says Co-Founder of Newtral; Crustdata says they are now an Advisor, who can't sign contracts.",
+   "sponsor": {
+    "name": "Vinod Sonagara",
+    "profile_url": "https://www.linkedin.com/in/vinod-sonagara",
+    "company": "Newtral",
+    "company_domain": "newtral.io",
+    "title": "Co-Founder"
+   },
+   "scopes": [
+    "contract.sign"
+   ],
+   "expect": "block",
+   "failing_check": "sponsor_title_current"
+  },
+  {
+   "id": "junior_sponsor",
+   "story": "A backend engineer tries to authorise an agent to sign contracts.",
+   "sponsor": {
+    "name": "Charish Anumukonda",
+    "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+    "company": "SpotDraft",
+    "company_domain": "spotdraft.com",
+    "title": "Backend Engineer"
+   },
+   "scopes": [
+    "contract.sign"
+   ],
+   "expect": "block",
+   "failing_check": "sponsor_can_grant_scope"
+  },
+  {
+   "id": "spoofed_domain",
+   "story": "Real, current employee, but the agent sends from a lookalike domain.",
+   "sponsor": {
+    "name": "Vinayak Kalushe",
+    "profile_url": "https://www.linkedin.com/in/vinayakkalushe",
+    "company": "KIoT",
+    "company_domain": "kiot-hr.com",
+    "title": "Backend & DevOps Engineer"
+   },
+   "scopes": [
+    "data.read"
+   ],
+   "expect": "block",
+   "failing_check": "domain_matches_company"
+  }
+ ],
+ "ledger": {
+  "chain_ok": true,
+  "first_bad_seq": null,
+  "entries": [
+   {
+    "hash": "6829e2c9ee3bb6f91ba41b13b3ee658ba47c87d15abc9de709ddad03202e7e2d",
+    "kind": "passport.issued",
+    "payload": {
+     "agent_id": "agt_e84cf4ef30d9",
+     "passport": {
+      "agent_id": "agt_e84cf4ef30d9",
+      "agent_name": "Sourced",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "BKpNaCn9wrjuYjkTzIA+TfQrDYj35zAPb4QibiMPgo0=",
+      "role": "AI Recruiter",
+      "scopes": [
+       "outreach.hiring",
+       "data.read"
+      ],
+      "sponsor": {
+       "company": "Grewon Technologies",
+       "company_domain": "grewon.com",
+       "name": "Pankaj Savaliya",
+       "profile_url": "https://www.linkedin.com/in/pankajsavaliya",
+       "title": "Co-Founder"
+      }
+     }
+    },
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "seq": 0,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
+    "kind": "agent.onboarded",
+    "payload": {
+     "agent_id": "agt_e84cf4ef30d9",
+     "agent_name": "Sourced",
+     "expires_at": "2026-11-30T06:09:56+00:00",
+     "role": "AI Recruiter",
+     "scopes": [
+      "outreach.hiring",
+      "data.read"
+     ],
+     "sponsor": {
+      "company": "Grewon Technologies",
+      "company_domain": "grewon.com",
+      "name": "Pankaj Savaliya",
+      "profile_url": "https://www.linkedin.com/in/pankajsavaliya",
+      "title": "Co-Founder"
+     }
+    },
+    "prev_hash": "6829e2c9ee3bb6f91ba41b13b3ee658ba47c87d15abc9de709ddad03202e7e2d",
+    "seq": 1,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "bda670614124fc4e00070a6381cad717354c4f6b7200aded139211d82db76563",
+    "kind": "passport.issued",
+    "payload": {
+     "agent_id": "agt_ea68231b151b",
+     "passport": {
+      "agent_id": "agt_ea68231b151b",
+      "agent_name": "Scout",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "0bid1jcdkRW6zhLRXQYFs1uTh/PJpNrjBhtSQhSnNI8=",
+      "role": "AI Recruiter",
+      "scopes": [
+       "outreach.hiring"
+      ],
+      "sponsor": {
+       "company": "PulseTrader",
+       "company_domain": "pulsetrader.xyz",
+       "name": "Shivank Verma",
+       "profile_url": "https://www.linkedin.com/in/shivankverma",
+       "title": "Co-Founder"
+      }
+     }
+    },
+    "prev_hash": "7e38b529392965c46b485852e47810ba5ecd46bd5440299cc320f79c69c4e8e6",
+    "seq": 2,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
+    "kind": "agent.onboarded",
+    "payload": {
+     "agent_id": "agt_ea68231b151b",
+     "agent_name": "Scout",
+     "expires_at": "2026-11-30T06:09:56+00:00",
+     "role": "AI Recruiter",
+     "scopes": [
+      "outreach.hiring"
+     ],
+     "sponsor": {
+      "company": "PulseTrader",
+      "company_domain": "pulsetrader.xyz",
+      "name": "Shivank Verma",
+      "profile_url": "https://www.linkedin.com/in/shivankverma",
+      "title": "Co-Founder"
+     }
+    },
+    "prev_hash": "bda670614124fc4e00070a6381cad717354c4f6b7200aded139211d82db76563",
+    "seq": 3,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "ddb0725d6278ddefc696081431a422345327da53ec572c6c29f7ede0f090ed11",
+    "kind": "passport.issued",
+    "payload": {
+     "agent_id": "agt_9035585b2681",
+     "passport": {
+      "agent_id": "agt_9035585b2681",
+      "agent_name": "Quill",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "bP40pknFWGhZ++JoiPD7KKevaZQe+x2nCLZmd/sMVHU=",
+      "role": "AI Procurement Agent",
+      "scopes": [
+       "data.read"
+      ],
+      "sponsor": {
+       "company": "SpotDraft",
+       "company_domain": "spotdraft.com",
+       "name": "Charish Anumukonda",
+       "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+       "title": "Backend Engineer"
+      }
+     }
+    },
+    "prev_hash": "f60d446b752e27b2710461247a903945c9efa17947f68e131f8d284a20ddd799",
+    "seq": 4,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
+    "kind": "agent.onboarded",
+    "payload": {
+     "agent_id": "agt_9035585b2681",
+     "agent_name": "Quill",
+     "expires_at": "2026-11-30T06:09:56+00:00",
+     "role": "AI Procurement Agent",
+     "scopes": [
+      "data.read"
+     ],
+     "sponsor": {
+      "company": "SpotDraft",
+      "company_domain": "spotdraft.com",
+      "name": "Charish Anumukonda",
+      "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+      "title": "Backend Engineer"
+     }
+    },
+    "prev_hash": "ddb0725d6278ddefc696081431a422345327da53ec572c6c29f7ede0f090ed11",
+    "seq": 5,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "3a45cc77cf86be740935954210e0b98e1388469b41ae74006fbfa0a10cfaecc3",
+    "kind": "passport.issued",
+    "payload": {
+     "agent_id": "agt_cbab2b0c8b80",
+     "passport": {
+      "agent_id": "agt_cbab2b0c8b80",
+      "agent_name": "Atlas",
+      "expires_at": "2026-11-30T06:09:56+00:00",
+      "issued_at": "2026-10-31T06:09:56+00:00",
+      "issuer_key_id": "017cd0d57ed34ee9",
+      "public_key": "QY7LiSfupiibltXT+pXBTuMnLCSQZr1MjtNw/+cNoqE=",
+      "role": "AI Research Analyst",
+      "scopes": [
+       "data.read"
+      ],
+      "sponsor": {
+       "company": "Newtral",
+       "company_domain": "newtral.io",
+       "name": "Vinod Sonagara",
+       "profile_url": "https://www.linkedin.com/in/vinod-sonagara",
+       "title": "Co-Founder"
+      }
+     }
+    },
+    "prev_hash": "57907db0ab776fa320943830889e76bad70a44b0230debd7acc12ea0e0292023",
+    "seq": 6,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
+    "kind": "agent.onboarded",
+    "payload": {
+     "agent_id": "agt_cbab2b0c8b80",
+     "agent_name": "Atlas",
+     "expires_at": "2026-11-30T06:09:56+00:00",
+     "role": "AI Research Analyst",
+     "scopes": [
+      "data.read"
+     ],
+     "sponsor": {
+      "company": "Newtral",
+      "company_domain": "newtral.io",
+      "name": "Vinod Sonagara",
+      "profile_url": "https://www.linkedin.com/in/vinod-sonagara",
+      "title": "Co-Founder"
+     }
+    },
+    "prev_hash": "3a45cc77cf86be740935954210e0b98e1388469b41ae74006fbfa0a10cfaecc3",
+    "seq": 7,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
+    "kind": "passport.verified",
+    "payload": {
+     "agent_id": "agt_e84cf4ef30d9",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-30",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Pankaj Savaliya found in Crustdata",
+       "id": "p4",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Currently Co-Founder | Backend Engineer at Grewon Technologies Pvt. Ltd. since 2019-01-01",
+       "id": "p5",
+       "name": "sponsor_still_employed",
+       "status": "pass"
+      },
+      {
+       "detail": "grewon.com is Grewon Technologies Pvt. Ltd.'s domain",
+       "id": "p6",
+       "name": "domain_matches_company",
+       "status": "pass"
+      },
+      {
+       "detail": "Title confirmed: Co-Founder | Backend Engineer",
+       "id": "p7",
+       "name": "sponsor_title_current",
+       "status": "pass"
+      },
+      {
+       "detail": "Co-Founder | Backend Engineer can delegate outreach.hiring",
+       "id": "p8",
+       "name": "sponsor_can_grant_scope",
+       "status": "pass"
+      },
+      {
+       "detail": "Co-Founder | Backend Engineer can delegate data.read",
+       "id": "p9",
+       "name": "sponsor_can_grant_scope",
+       "status": "pass"
+      }
+     ],
+     "decision": "allow",
+     "scope": null
+    },
+    "prev_hash": "6be795026874203c2269a4c22afa5c37d0d2d6a38e5ad044a0880cb17d60f337",
+    "seq": 8,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
+    "kind": "passport.verified",
+    "payload": {
+     "agent_id": "agt_ea68231b151b",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-30",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Shivank Verma found in Crustdata",
+       "id": "p4",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left.",
+       "id": "p5",
+       "name": "sponsor_still_employed",
+       "status": "fail"
+      }
+     ],
+     "decision": "block",
+     "scope": null
+    },
+    "prev_hash": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649",
+    "seq": 9,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.past[0]",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486",
+    "kind": "passport.revoked",
+    "payload": {
+     "agent_id": "agt_ea68231b151b",
+     "reason": "suspended by payroll: sponsor_still_employed: Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left."
+    },
+    "prev_hash": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97",
+    "seq": 10,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.past[0]",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
+    "kind": "passport.verified",
+    "payload": {
+     "agent_id": "agt_9035585b2681",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-30",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Charish Anumukonda found in Crustdata",
+       "id": "p4",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Currently Backend Engineer at SpotDraft since 2020-04-01",
+       "id": "p5",
+       "name": "sponsor_still_employed",
+       "status": "pass"
+      },
+      {
+       "detail": "spotdraft.com is SpotDraft's domain",
+       "id": "p6",
+       "name": "domain_matches_company",
+       "status": "pass"
+      },
+      {
+       "detail": "Title confirmed: Backend Engineer",
+       "id": "p7",
+       "name": "sponsor_title_current",
+       "status": "pass"
+      },
+      {
+       "detail": "Backend Engineer can delegate data.read",
+       "id": "p8",
+       "name": "sponsor_can_grant_scope",
+       "status": "pass"
+      }
+     ],
+     "decision": "allow",
+     "scope": null
+    },
+    "prev_hash": "c1e36be6207fb6af0628a1958da7de0a88e0494d9e8a584a514fdfe8a4271486",
+    "seq": 11,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
+    "kind": "passport.verified",
+    "payload": {
+     "agent_id": "agt_cbab2b0c8b80",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-30",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Vinod Sonagara found in Crustdata",
+       "id": "p4",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Currently Advisor at Newtral since 2025-04-01",
+       "id": "p5",
+       "name": "sponsor_still_employed",
+       "status": "pass"
+      },
+      {
+       "detail": "newtral.io is Newtral's domain",
+       "id": "p6",
+       "name": "domain_matches_company",
+       "status": "pass"
+      },
+      {
+       "detail": "Passport says 'Co-Founder'; Crustdata says 'Advisor'",
+       "id": "p7",
+       "name": "sponsor_title_current",
+       "status": "fail"
+      },
+      {
+       "detail": "Advisor can delegate data.read",
+       "id": "p8",
+       "name": "sponsor_can_grant_scope",
+       "status": "pass"
+      }
+     ],
+     "decision": "block",
+     "scope": null
+    },
+    "prev_hash": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4",
+    "seq": 12,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1]",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71",
+    "kind": "passport.revoked",
+    "payload": {
+     "agent_id": "agt_cbab2b0c8b80",
+     "reason": "suspended by payroll: sponsor_title_current: Passport says 'Co-Founder'; Crustdata says 'Advisor'"
+    },
+    "prev_hash": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404",
+    "seq": 13,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1]",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "8113f49beb6c8b04a09f715715b993849a63f680deb4658be3f352800219b749",
+    "kind": "passport.verified",
+    "payload": {
+     "agent_id": "agt_9035585b2681",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-29",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Passport grants contract.sign",
+       "id": "p4",
+       "name": "scope_in_passport",
+       "status": "pass"
+      },
+      {
+       "detail": "Charish Anumukonda found in Crustdata",
+       "id": "p5",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Currently Backend Engineer at SpotDraft since 2020-04-01",
+       "id": "p6",
+       "name": "sponsor_still_employed",
+       "status": "pass"
+      },
+      {
+       "detail": "spotdraft.com is SpotDraft's domain",
+       "id": "p7",
+       "name": "domain_matches_company",
+       "status": "pass"
+      },
+      {
+       "detail": "Title confirmed: Backend Engineer",
+       "id": "p8",
+       "name": "sponsor_title_current",
+       "status": "pass"
+      },
+      {
+       "detail": "Backend Engineer cannot delegate contract.sign (needs a founder, CXO, VP, director/head or legal)",
+       "id": "p9",
+       "name": "sponsor_can_grant_scope",
+       "status": "fail"
+      }
+     ],
+     "decision": "block",
+     "scope": "contract.sign"
+    },
+    "prev_hash": "0e2b126b039418ef313be6f400b5769ec5456aebb3eb807ea32997d2f2d8aa71",
+    "seq": 14,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "scopes",
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179",
+    "kind": "agent.scope_denied",
+    "payload": {
+     "agent_id": "agt_9035585b2681",
+     "checks": [
+      {
+       "detail": "Passport signed by Countersign and unmodified",
+       "id": "p1",
+       "name": "signature_valid",
+       "status": "pass"
+      },
+      {
+       "detail": "Expires 2026-11-29",
+       "id": "p2",
+       "name": "not_expired",
+       "status": "pass"
+      },
+      {
+       "detail": "No revocation on the ledger",
+       "id": "p3",
+       "name": "not_revoked",
+       "status": "pass"
+      },
+      {
+       "detail": "Passport grants contract.sign",
+       "id": "p4",
+       "name": "scope_in_passport",
+       "status": "pass"
+      },
+      {
+       "detail": "Charish Anumukonda found in Crustdata",
+       "id": "p5",
+       "name": "sponsor_exists",
+       "status": "pass"
+      },
+      {
+       "detail": "Currently Backend Engineer at SpotDraft since 2020-04-01",
+       "id": "p6",
+       "name": "sponsor_still_employed",
+       "status": "pass"
+      },
+      {
+       "detail": "spotdraft.com is SpotDraft's domain",
+       "id": "p7",
+       "name": "domain_matches_company",
+       "status": "pass"
+      },
+      {
+       "detail": "Title confirmed: Backend Engineer",
+       "id": "p8",
+       "name": "sponsor_title_current",
+       "status": "pass"
+      },
+      {
+       "detail": "Backend Engineer cannot delegate contract.sign (needs a founder, CXO, VP, director/head or legal)",
+       "id": "p9",
+       "name": "sponsor_can_grant_scope",
+       "status": "fail"
+      }
+     ],
+     "decision": "block"
+    },
+    "prev_hash": "8113f49beb6c8b04a09f715715b993849a63f680deb4658be3f352800219b749",
+    "seq": 15,
+    "sources": [
+     {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     },
+     {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     },
+     {
+      "endpoint": "passport",
+      "field": "scopes",
+      "url": null
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     },
+     {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    ],
+    "ts": "2026-10-31T06:09:56+00:00"
+   },
+   {
+    "hash": "c452131cb671957e67736ab8c7ea3d291b8c000e8222c59fa098f9a08689b57f",
+    "kind": "agent.reviewed",
+    "payload": {
+     "agent_id": "agt_e84cf4ef30d9",
+     "at": "2026-10-31T06:09:56+00:00",
+     "decision": "keep",
+     "id": "9610224fab",
+     "notes": "First week: sponsor checks green, outreach stays within hiring.",
+     "reviewer": "Pankaj Savaliya",
+     "scopes": null,
+     "scorecard": {
+      "allowed": 0,
+      "block_reasons": [],
+      "blocked": 0,
+      "last_activity": "2026-10-31T06:09:56+00:00",
+      "ledger_entries": 3,
+      "messages_checked": 0,
+      "sponsor_checks": 1,
+      "sponsor_checks_failed": 0
+     }
+    },
+    "prev_hash": "ee4f214d5928d1b61df81b1d3d7b77e7acaad165f8bcb470d962f97daae97179",
+    "seq": 16,
+    "sources": [],
+    "ts": "2026-10-31T06:09:56+00:00"
+   }
+  ]
+ },
+ "payroll": [
+  {
+   "subject": "agt_e84cf4ef30d9",
+   "decision": "allow",
+   "checks": [
+    {
+     "id": "p1",
+     "name": "signature_valid",
+     "status": "pass",
+     "detail": "Passport signed by Countersign and unmodified",
+     "source": {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     }
+    },
+    {
+     "id": "p2",
+     "name": "not_expired",
+     "status": "pass",
+     "detail": "Expires 2026-11-30",
+     "source": {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     }
+    },
+    {
+     "id": "p3",
+     "name": "not_revoked",
+     "status": "pass",
+     "detail": "No revocation on the ledger",
+     "source": {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     }
+    },
+    {
+     "id": "p4",
+     "name": "sponsor_exists",
+     "status": "pass",
+     "detail": "Pankaj Savaliya found in Crustdata",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    },
+    {
+     "id": "p5",
+     "name": "sponsor_still_employed",
+     "status": "pass",
+     "detail": "Currently Co-Founder | Backend Engineer at Grewon Technologies Pvt. Ltd. since 2019-01-01",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    },
+    {
+     "id": "p6",
+     "name": "domain_matches_company",
+     "status": "pass",
+     "detail": "grewon.com is Grewon Technologies Pvt. Ltd.'s domain",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    },
+    {
+     "id": "p7",
+     "name": "sponsor_title_current",
+     "status": "pass",
+     "detail": "Title confirmed: Co-Founder | Backend Engineer",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    },
+    {
+     "id": "p8",
+     "name": "sponsor_can_grant_scope",
+     "status": "pass",
+     "detail": "Co-Founder | Backend Engineer can delegate outreach.hiring",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    },
+    {
+     "id": "p9",
+     "name": "sponsor_can_grant_scope",
+     "status": "pass",
+     "detail": "Co-Founder | Backend Engineer can delegate data.read",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/pankajsavaliya"
+     }
+    }
+   ],
+   "ledger_entry": "8da1ad6965eaeff2e8a2f8e7247fbefacef7c4e574eed597abef59a2211f9649"
+  },
+  {
+   "subject": "agt_ea68231b151b",
+   "decision": "block",
+   "checks": [
+    {
+     "id": "p1",
+     "name": "signature_valid",
+     "status": "pass",
+     "detail": "Passport signed by Countersign and unmodified",
+     "source": {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     }
+    },
+    {
+     "id": "p2",
+     "name": "not_expired",
+     "status": "pass",
+     "detail": "Expires 2026-11-30",
+     "source": {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     }
+    },
+    {
+     "id": "p3",
+     "name": "not_revoked",
+     "status": "pass",
+     "detail": "No revocation on the ledger",
+     "source": {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     }
+    },
+    {
+     "id": "p4",
+     "name": "sponsor_exists",
+     "status": "pass",
+     "detail": "Shivank Verma found in Crustdata",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     }
+    },
+    {
+     "id": "p5",
+     "name": "sponsor_still_employed",
+     "status": "fail",
+     "detail": "Left PulseTrader on 2026-04-01 (213 days ago); now at Galaxy. Their authority ended when they left.",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.past[0]",
+      "url": "https://www.linkedin.com/in/shivankverma"
+     }
+    }
+   ],
+   "ledger_entry": "4e68a275151da20f2020a850a612e31c90fb90aa8ab95b0b1d6807e1ee0ead97"
+  },
+  {
+   "subject": "agt_9035585b2681",
+   "decision": "allow",
+   "checks": [
+    {
+     "id": "p1",
+     "name": "signature_valid",
+     "status": "pass",
+     "detail": "Passport signed by Countersign and unmodified",
+     "source": {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     }
+    },
+    {
+     "id": "p2",
+     "name": "not_expired",
+     "status": "pass",
+     "detail": "Expires 2026-11-30",
+     "source": {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     }
+    },
+    {
+     "id": "p3",
+     "name": "not_revoked",
+     "status": "pass",
+     "detail": "No revocation on the ledger",
+     "source": {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     }
+    },
+    {
+     "id": "p4",
+     "name": "sponsor_exists",
+     "status": "pass",
+     "detail": "Charish Anumukonda found in Crustdata",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    },
+    {
+     "id": "p5",
+     "name": "sponsor_still_employed",
+     "status": "pass",
+     "detail": "Currently Backend Engineer at SpotDraft since 2020-04-01",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0]",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    },
+    {
+     "id": "p6",
+     "name": "domain_matches_company",
+     "status": "pass",
+     "detail": "spotdraft.com is SpotDraft's domain",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    },
+    {
+     "id": "p7",
+     "name": "sponsor_title_current",
+     "status": "pass",
+     "detail": "Title confirmed: Backend Engineer",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    },
+    {
+     "id": "p8",
+     "name": "sponsor_can_grant_scope",
+     "status": "pass",
+     "detail": "Backend Engineer can delegate data.read",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[0].title",
+      "url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+     }
+    }
+   ],
+   "ledger_entry": "85139f2f8081c538256d6e13994e8917cd5620718c1a09e3639405c2025d91a4"
+  },
+  {
+   "subject": "agt_cbab2b0c8b80",
+   "decision": "block",
+   "checks": [
+    {
+     "id": "p1",
+     "name": "signature_valid",
+     "status": "pass",
+     "detail": "Passport signed by Countersign and unmodified",
+     "source": {
+      "endpoint": "countersign/issuer",
+      "field": "key 017cd0d57ed34ee9",
+      "url": null
+     }
+    },
+    {
+     "id": "p2",
+     "name": "not_expired",
+     "status": "pass",
+     "detail": "Expires 2026-11-30",
+     "source": {
+      "endpoint": "passport",
+      "field": "expires_at",
+      "url": null
+     }
+    },
+    {
+     "id": "p3",
+     "name": "not_revoked",
+     "status": "pass",
+     "detail": "No revocation on the ledger",
+     "source": {
+      "endpoint": "countersign/ledger",
+      "field": null,
+      "url": null
+     }
+    },
+    {
+     "id": "p4",
+     "name": "sponsor_exists",
+     "status": "pass",
+     "detail": "Vinod Sonagara found in Crustdata",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "basic_profile.name",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    },
+    {
+     "id": "p5",
+     "name": "sponsor_still_employed",
+     "status": "pass",
+     "detail": "Currently Advisor at Newtral since 2025-04-01",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1]",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    },
+    {
+     "id": "p6",
+     "name": "domain_matches_company",
+     "status": "pass",
+     "detail": "newtral.io is Newtral's domain",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].employer_company_website_domain",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    },
+    {
+     "id": "p7",
+     "name": "sponsor_title_current",
+     "status": "fail",
+     "detail": "Passport says 'Co-Founder'; Crustdata says 'Advisor'",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    },
+    {
+     "id": "p8",
+     "name": "sponsor_can_grant_scope",
+     "status": "pass",
+     "detail": "Advisor can delegate data.read",
+     "source": {
+      "endpoint": "person/enrich",
+      "field": "experience.employment_details.current[1].title",
+      "url": "https://www.linkedin.com/in/vinod-sonagara"
+     }
+    }
+   ],
+   "ledger_entry": "a47d25456173837ef787e2fdc03ecebef203f827bdd2b06c9f7e342029637404"
+  }
+ ]
+}
