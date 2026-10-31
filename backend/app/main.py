@@ -6,6 +6,7 @@ GET  /api/replay?delay=0.6                  -> streams fixtures/run.jsonl (demo 
 GET  /api/health
 GET/POST /api/agents/{agent_id}/run          -> same stream, run as a Countersign AI employee (app/sourced_agent.py)
 POST /api/verify_resume                     -> check a resume's claims against Crustdata
+GET  /api/demo/beats, /api/demo/run         -> the guided fleet demo as an event stream (app/fleet/demo.py)
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ from .orchestrator import run  # noqa: E402
 from .schemas import RunRequest  # noqa: E402
 from .agents.api import router as agents_router  # noqa: E402  (Countersign, docs/COUNTERSIGN.md)
 from .sourced_agent import router as sourced_router  # noqa: E402  (Sourced run under a passport + Send Guard)
+from .fleet.api import router as demo_router  # noqa: E402  (guided fleet demo, app/fleet/demo.py)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -36,6 +38,7 @@ app = FastAPI(title="Brief-to-Shortlist hiring agent")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(agents_router)
 app.include_router(sourced_router)
+app.include_router(demo_router)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 

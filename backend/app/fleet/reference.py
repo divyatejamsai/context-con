@@ -109,6 +109,10 @@ async def run(ctx: Ctx, applicants: Path) -> Report:
         ctx.log(f"  check     {claims.name} ({by}): {ok} verified, {len(bad)} contradicted"
                 + "".join(f"\n              x {c.claim} -> {c.evidence}" for c in bad))
         rows.append({"name": claims.name, "contradicted": len(bad)})
+        ctx._emit({"type": "finding", "candidate": claims.name, "profile_url": claims.profile_url, "extracted_by": by,
+                   "verified": ok, "total": len(checked),
+                   "contradicted": [{"claim": c.claim, "evidence": c.evidence,
+                                     "source": c.source.model_dump() if c.source else None} for c in bad]})
         await ctx.file("resume_check", f"{claims.name}: {len(bad)} false claim(s), {ok} verified",
                        {"candidate": claims.name, "profile_url": claims.profile_url, "extracted_by": by,
                         "contradicted": [{"claim": c.claim, "evidence": c.evidence} for c in bad],

@@ -10,11 +10,17 @@ import hashlib
 import json
 import os
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from ..schemas import Source
+
+try:
+    import fcntl
+except ImportError:  # Windows: in-process lock only
+    fcntl = None
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 GENESIS = "0" * 64
@@ -34,8 +40,8 @@ def entry_hash(entry: dict) -> str:
     return hashlib.sha256(canonical(body).encode()).hexdigest()
 
 
-def _read_raw() -> list[dict]:
-    p = path()
+def _read_raw(p: Path | None = None) -> list[dict]:
+    p = p or path()
     if not p.exists():
         return []
     out = []
@@ -48,10 +54,25 @@ def _read_raw() -> list[dict]:
     return out
 
 
+@contextmanager
+def _file_lock(p: Path):
+    """Cross-process lock next to the ledger, so two writers can't both claim the same seq."""
+    with open(p.with_suffix(p.suffix + ".lock"), "a") as fh:
+        if fcntl:
+            fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if fcntl:
+                fcntl.flock(fh, fcntl.LOCK_UN)
+
+
 def append(kind: str, payload: dict, sources: list[Source] | list[dict] | None = None) -> str:
     """Record an event; returns its hash. Sources are the Crustdata citations behind it."""
     srcs = [s.model_dump() if isinstance(s, Source) else dict(s) for s in (sources or []) if s]
-    with _lock:
+    p = path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with _lock, _file_lock(p):  # the API, the MCP server and scripts may append to the same file
         rows = _read_raw()
         prev = rows[-1].get("hash", GENESIS) if rows else GENESIS
         entry = {
@@ -63,17 +84,16 @@ def append(kind: str, payload: dict, sources: list[Source] | list[dict] | None =
             "prev_hash": prev,
         }
         entry["hash"] = entry_hash(entry)
-        p = path()
-        p.parent.mkdir(parents=True, exist_ok=True)
         with p.open("a") as f:
             f.write(canonical(entry) + "\n")
     return entry["hash"]
 
 
-def verify_chain() -> tuple[bool, int | None]:
-    """(ok, first bad seq). A line is bad if its hash doesn't match its content or doesn't link to the previous one."""
+def verify_chain(p: Path | None = None) -> tuple[bool, int | None]:
+    """(ok, first bad seq). A line is bad if its hash doesn't match its content or doesn't link to the previous one.
+    p checks another copy of a ledger (e.g. one handed over for audit) instead of the live one."""
     prev = GENESIS
-    for i, e in enumerate(_read_raw()):
+    for i, e in enumerate(_read_raw(p)):
         if "_corrupt" in e or e.get("seq") != i or e.get("prev_hash") != prev or entry_hash(e) != e.get("hash"):
             return False, i
         prev = e["hash"]
