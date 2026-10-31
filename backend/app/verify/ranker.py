@@ -482,6 +482,97 @@ def _bonuses(k: dict[str, list[Claim]], criteria: Criteria, person: dict) -> lis
     return out
 
 
+# ---- likelihood to move ---------------------------------------------------------------------------
+# "The person who fits rarely applies ... and changed jobs weeks before their profile says so." Fit alone doesn't
+# say who will actually take the job; these signals, read only from employment history, estimate who is ready to
+# move. Weights are tuned on the real-hires backtest (evals/backtest.py tune) with cross-validation, and can be
+# overridden with RANK_MOVE_WEIGHTS='{"due": 3, ...}'. All zero = signals shown in reasons but not scored.
+MOVE_SIGNALS = ("sweet_spot", "due", "just_moved", "between_jobs", "step_up", "overqualified", "adjacent_title")
+MOVE_WEIGHTS: dict[str, float] = {s: 0.0 for s in MOVE_SIGNALS}
+MOVE_CAP = 8.0
+
+
+def move_weights() -> dict[str, float]:
+    w = dict(MOVE_WEIGHTS)
+    raw = os.getenv("RANK_MOVE_WEIGHTS")
+    if raw:
+        try:
+            import json
+            w.update({k: float(v) for k, v in json.loads(raw).items() if k in MOVE_SIGNALS})
+        except Exception as e:  # noqa: BLE001
+            log.warning("bad RANK_MOVE_WEIGHTS (%s); using defaults", e)
+    return w
+
+
+def move_signals(person: dict, criteria: Criteria) -> dict[str, float]:
+    """0/1 (or 0..1) signals that this person is ready to move into this role, from their employment history."""
+    pr = load_person(person)
+    today = date.today()
+    sig = {s: 0.0 for s in MOVE_SIGNALS}
+    cur = next((j for j in pr.current if j.start), None)
+    past = [j for j in pr.past if j.start and j.end and j.end > j.start]
+    if cur:
+        y = (today - cur.start).days / 365.25
+        sig["sweet_spot"] = 1.0 if 1.5 <= y <= 4 else 0.0
+        sig["just_moved"] = 1.0 if y < 0.75 else 0.0
+        tenures = sorted((j.end - j.start).days / 365.25 for j in past)
+        if tenures:
+            median = tenures[len(tenures) // 2]
+            sig["due"] = 1.0 if median >= 0.5 and y >= median else 0.0
+    elif past:
+        last = max(past, key=lambda j: j.end)
+        sig["between_jobs"] = 1.0 if (today - last.end).days <= 270 else 0.0
+    title = (cur.title if cur else None) or (max(past, key=lambda j: j.end).title if past else None)
+    if title and criteria.role:
+        want = seniority_rank(criteria.seniority + " x") if criteria.seniority else seniority_rank(criteria.role)
+        have = seniority_rank(title)
+        sig["step_up"] = 1.0 if want - have == 1 else 0.0
+        sig["overqualified"] = 1.0 if have - want >= 2 else 0.0
+        sim = max((title_similarity(_core(title), _core(t)) for t in [criteria.role, *criteria.title_variants] if t),
+                  default=0.0)
+        # "goes by another title": same kind of work under a different name
+        sig["adjacent_title"] = 1.0 if 0.0 < sim < 0.6 and _role_like(title, criteria) else 0.0
+    return sig
+
+
+_MOVE_TEXT = {
+    "sweet_spot": "1.5-4 years into the current role, when most people move",
+    "due": "has been in the current role at least as long as they usually stay",
+    "just_moved": "joined the current employer under 9 months ago, so unlikely to move",
+    "between_jobs": "between jobs: last role ended in the past 9 months",
+    "step_up": "this role is one level up from the current title",
+    "overqualified": "current title is well above this role's level",
+    "adjacent_title": "does this work under a different title",
+}
+
+
+def move_bonus(signals: dict[str, float], weights: dict[str, float]) -> tuple[float, list[str]]:
+    pts = sum(weights.get(k, 0.0) * v for k, v in signals.items())
+    texts = [_MOVE_TEXT[k] for k, v in signals.items() if v and weights.get(k)]
+    return max(-MOVE_CAP, min(MOVE_CAP, pts)), texts
+
+
+def rank_parts(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[float, bool]:
+    """(raw score before the move bonus, rounding and the must-have cap; whether a must-have gap caps it)."""
+    k = _by_kind(claims)
+    factors = [f for f in (
+        _role_fit(k, criteria), _skills(k, criteria), _location(k, criteria),
+        _company(k, criteria, person), _experience(k, criteria), _career_fit(k, criteria, person),
+    ) if f is not None]
+    total_w = sum(f.weight for f in factors) or 1
+    base = sum(f.earned for f in factors) / total_w * BASE_CAP
+    bonus = min(MAX_BONUS, sum(p for p, _ in _bonuses(k, criteria, person) if p > 0))
+    contradicted = [c for c in claims if c.status == "contradicted"]
+    stale = {c.id for c in contradicted if c.evidence.startswith("profile headline")}
+    penalty = min(MAX_PENALTY, sum(CONTRADICTION_PENALTY / (2 if c.id in stale else 1) for c in contradicted))
+    return base + bonus - penalty, bool(_missing_must_haves(k, criteria))
+
+
+def final_score(raw: float, gapped: bool, move: float = 0.0) -> int:
+    score = int(round(max(0, min(100, raw + move))))
+    return min(score, MUST_HAVE_CAP) if gapped else score
+
+
 class _LLMReasons(BaseModel):
     reasons: list[Reason]
 
@@ -528,11 +619,10 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     # A stale headline is a freshness signal, not a lie: half penalty and softer wording.
     stale = {c.id for c in contradicted if c.evidence.startswith("profile headline")}
     penalty = min(MAX_PENALTY, sum(CONTRADICTION_PENALTY / (2 if c.id in stale else 1) for c in contradicted))
-    score = int(round(max(0, min(100, base + bonus - penalty))))
+    move, move_texts = move_bonus(move_signals(person, criteria), move_weights())
     # Must-haves are gates, not weights: a missing one caps the score however strong the rest is.
     gaps = _missing_must_haves(k, criteria)
-    if gaps:
-        score = min(score, MUST_HAVE_CAP)
+    score = final_score(base + bonus - penalty, bool(gaps), move)
 
     scored: list[tuple[float, Reason]] = []
     for c in contradicted:
@@ -550,6 +640,11 @@ async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) 
     for pts, r in bonuses:
         # Bonus points are on a 0-4 scale; factor impacts are on ~0-15, so scale up for ordering only.
         scored.append((pts * 4, Reason(text=f"+{pts:.0f}: {r.text}" if pts >= 1 else r.text, claim_ids=r.claim_ids)))
+    if move_texts:
+        cite = (k.get("career") or k.get("tenure") or k.get("employer") or k.get("title") or [None])[0]
+        if cite is not None:
+            label = f"{'+' if move >= 0 else ''}{move:.0f}: likely to move" if abs(move) >= 1 else "Likely to move"
+            scored.append((move * 4 or 0.02, Reason(text=f"{label}: {'; '.join(move_texts)}", claim_ids=[cite.id])))
     n_ver = sum(c.status == "verified" for c in claims)
     if claims:
         ver = [c.id for c in claims if c.status == "verified"]
