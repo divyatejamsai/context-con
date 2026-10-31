@@ -152,7 +152,7 @@ async def ledger_export_verify(body: dict):
 
 
 # Other workstreams' routers, included when their modules exist.
-for _mod in ("guard_api", "enroll_api", "registry_api"):  # enroll_api first: /agents/enrollments is not an id
+for _mod in ("guard_api", "connect_api", "enroll_api", "registry_api"):  # before registry_api: /agents/enrollments, /agents/heartbeat are not ids
     try:
         _m = __import__(f"{__package__}.{_mod}", fromlist=["router"])
         router.include_router(_m.router)

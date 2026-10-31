@@ -415,6 +415,23 @@ def set_assignees(agent_id: str, user_ids: list[str], by: str = "admin") -> dict
         return public(rec)
 
 
+ANNOTATIONS = {"tools", "owner", "connection_id", "agent_type", "first_seen_at", "last_seen_at", "heartbeats"}
+
+
+def annotate(agent_id: str, **fields: Any) -> dict:
+    """Connection details kept next to the passport (app/agents/connect.py): the tools it may use, its accountable
+    owner, which connection request created it, and when it last made a signed call. Not part of the signed passport."""
+    bad = set(fields) - ANNOTATIONS
+    if bad:
+        raise RegistryError(f"can't annotate {', '.join(sorted(bad))}")
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        rec.update(fields)
+        _save(agents)
+    return public(rec)
+
+
 def set_workspace(agent_id: str, workspace_id: str | None, by: str = "operator") -> dict:
     with _lock:
         agents = _load()

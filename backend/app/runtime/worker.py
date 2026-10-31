@@ -33,6 +33,10 @@ class BudgetExceeded(RuntimeError):
     pass
 
 
+class ToolNotAllowed(PermissionError):
+    """The agent called a tool it wasn't connected to (its connection request's tool list)."""
+
+
 @dataclass
 class Meter:
     """Counts one task's calls. Lives in a contextvar so concurrent tasks don't share counts."""
@@ -78,6 +82,10 @@ class MeteredClient:
         async def call(*a, **kw):
             m = METER.get()
             if m is not None:
+                from ..agents.connect import tool_allowed
+                why = tool_allowed(registry.get_agent(m.agent_id), name)
+                if why:
+                    raise ToolNotAllowed(why)
                 m.charge("crustdata")
             return await attr(*a, **kw)
         return call

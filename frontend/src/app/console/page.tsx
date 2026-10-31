@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { API_URL } from "@/lib/stream";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, api, runtime, estop, getAdminToken, setAdminToken, type Agent, type Enrollment, type Role, type Scenario,
+  ApiError, api, connectApi, runtime, estop, getAdminToken, setAdminToken, type Agent, type ConnectRequest, type Enrollment, type Role, type Scenario,
   type Verdict, type Workspace, type Me,
 } from "./api";
 import {
@@ -20,7 +20,8 @@ import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer } from "./ledger";
 import { DemoView } from "./demo";
-import { AgentDetail, FlashBar, OnboardForm, reasonText, type Flash, type Tab } from "./agent";
+import { AgentDetail, FlashBar, reasonText, type Flash, type Tab } from "./agent";
+import { ConnectRequests, ConnectWizard } from "./connect";
 import { WorkView } from "./work";
 import { MembersView } from "./members";
 import { RulesView } from "./rules";
@@ -94,7 +95,18 @@ export default function Console() {
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<Flash>(null);
   const [payroll, setPayroll] = useState<{ verdicts: Verdict[]; suspended: string[] } | null>(null);
-  const [onboarding, setOnboarding] = useState(false);
+  const [onboarding, setOnboardingState] = useState(false);
+  const [resume, setResume] = useState<string>();
+  const [connectKey, setConnectKey] = useState(0);
+  const [requests, setRequests] = useState<ConnectRequest[]>([]);
+  // A fresh wizard each time it opens; `resume` opens an existing request instead.
+  const setOnboarding = (on: boolean, id?: string) => {
+    if (on) {
+      setResume(id);
+      setConnectKey((k) => k + 1);
+    }
+    setOnboardingState(on);
+  };
   const [ws, setWs] = useState<Workspace | null>(null);
   const [invites, setInvites] = useState<Enrollment[]>([]);
   const [pending, setPending] = useState(0);
@@ -116,6 +128,7 @@ export default function Console() {
     // Recruiters can't read the ledger (403), so the chain badge is simply left out for them.
     const [list, l] = await Promise.all([api.agents(), api.ledger().catch(() => null)]);
     api.enrollments().then(setInvites).catch(() => setInvites([]));
+    connectApi.list().then(setRequests).catch(() => setRequests([]));
     runtime.state().then((st) => setPending(st.approvals.pending.length)).catch(() => setPending(0));
     estop.overview().then((o) => setStops({ n: o.active.length, agents: new Set(o.active.flatMap((f) => f.agents.map((a) => a.agent_id))).size }))
       .catch(() => setStops({ n: 0, agents: 0 }));
@@ -344,21 +357,22 @@ export default function Console() {
               )}
             </div>
 
-            {(!me?.access || me.access.views.includes("enrollments")) && <Invites invites={invites} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />}
+            {(!me?.access || me.access.views.includes("enrollments")) && <ConnectRequests requests={requests} onOpen={(id) => setOnboarding(true, id)} />}
+            {(!me?.access || me.access.views.includes("enrollments")) && <Invites invites={invites.filter((i) => !requests.some((r) => r.enrollment_id === i.enrollment_id))} onRevoke={(id) => act(`inv:${id}`, () => api.revokeEnrollment(id), () => ({ tone: "ok", title: "Invite cancelled", body: "That one-time command no longer works." }))} busy={busy} />}
           </main>
         )}
       </div>
 
-      <Sheet open={onboarding} onOpenChange={setOnboarding}>
-        <SheetContent className="border-border bg-panel sm:max-w-xl">
+      <Sheet open={onboarding} onOpenChange={(o) => setOnboarding(o)}>
+        <SheetContent className="border-border bg-panel sm:max-w-3xl">
           <SheetTitle className="sr-only">Connect an agent</SheetTitle>
-          <OnboardForm
-            roles={roles}
+          <ConnectWizard
+            key={connectKey}
             scenarios={scenarios}
+            me={me}
             first={!agents.length}
-            onDone={async () => {
-              await refresh();
-            }}
+            resume={resume}
+            onChanged={() => void refresh()}
             onOpen={(agentId) => {
               setOnboarding(false);
               openAgent(agentId);

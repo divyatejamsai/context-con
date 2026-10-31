@@ -103,6 +103,8 @@ async def enroll_agent(body: EnrollBody):
                                      "public_key": row["public_key"], "key_custody": "agent"})
     from .api import crustdata
     verdict = await registry.recheck(agent["agent_id"], crustdata())
+    from . import connect
+    connect.on_enrolled(row["enrollment_id"], agent["agent_id"], verdict.model_dump())  # tools, owner, budgets
     agent = registry.get_agent(agent["agent_id"])
     return {"agent": agent, "passport": agent["passport"], "verdict": verdict}
 

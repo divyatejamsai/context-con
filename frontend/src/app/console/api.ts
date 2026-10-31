@@ -525,6 +525,93 @@ export const runtime = {
   runPayroll: () => post<NonNullable<RuntimeState["payroll"]["last_result"]>>("/runtime/payroll/run"),
 };
 
+// ---- connecting an agent (backend/app/agents/connect_api.py) -------------------------------------------------------
+
+export type Risk = "low" | "medium" | "high" | "critical";
+export type AgentTypeKey = "template" | "claude_code" | "mcp" | "http";
+export interface CatalogScope { key: Scope; label: string; risk: Risk; allows: string; never: string; who_can_grant: string; needs_review: boolean }
+export interface CatalogTool { key: string; label: string; kind: "data" | "action"; needs: Scope[]; detail: string }
+export interface CatalogTemplate { key: string; name: string; role: string; scopes: Scope[]; tools: string[]; job: string; jobs: string[] }
+export interface CatalogType { key: AgentTypeKey; label: string; runtime: "in-house" | "own"; detail: string }
+export interface Catalog {
+  agent_types: CatalogType[];
+  templates: CatalogTemplate[];
+  scopes: CatalogScope[];
+  tools: CatalogTool[];
+  roles: Role[];
+  budget_defaults: Budget;
+  budget_limits: Budget;
+}
+export interface OrgPerson { user_id: string; name: string; email: string; job_role?: string | null; workspace_role: WorkspaceRole; can_own: boolean; why_not?: string | null }
+export interface SponsorMatch {
+  name: string | null;
+  profile_url: string;
+  title: string | null;
+  company: string | null;
+  domain?: string | null;
+  works_there: boolean;
+  grants: Partial<Record<Scope, boolean>>;
+  found?: boolean;
+  error?: string;
+}
+export type ConnectStatus = "pending_review" | "approved" | "rejected" | "awaiting_agent" | "enrolled" | "connected" | "failed" | "cancelled";
+export interface ConnectRequest {
+  request_id: string;
+  agent_type: AgentTypeKey;
+  template: string | null;
+  runtime: "in-house" | "own";
+  name: string;
+  job: string | null;
+  role: string;
+  scopes: Scope[];
+  tools: string[];
+  budget: Partial<Budget>;
+  require_approval: boolean;
+  days: number;
+  sponsor: Sponsor;
+  owner: { user_id: string; name: string; email: string; workspace_role: WorkspaceRole } | null;
+  risk: Risk;
+  review: { required: boolean; scopes: Scope[]; decision: "approve" | "reject" | null; by: string | null; at: string | null; note: string | null; sole_admin: boolean };
+  status: ConnectStatus;
+  requested_by: string;
+  requested_by_id: string | null;
+  created_at: string;
+  enrollment_id: string | null;
+  enrollment_status?: string | null;
+  expires_at?: string;
+  agent_id: string | null;
+  agent_status?: AgentStatus;
+  first_seen_at?: string | null;
+  test: { at: string; via: string; ledger_entry: string } | null;
+  verdict: Verdict | null;
+  ledger: string[];
+}
+export interface IssueResult {
+  request: ConnectRequest;
+  agent?: Agent;
+  verdict?: Verdict;
+  token?: string;
+  command?: string;
+  mcp_command?: string;
+  mcp_config?: string;
+}
+
+export const connectApi = {
+  catalog: () => req<Catalog>("/connect/catalog"),
+  people: () => req<{ members: OrgPerson[]; me: string | null; note?: string }>("/connect/people"),
+  findSponsor: (b: { name: string; company: string; scopes?: Scope[] }) =>
+    post<{ matches: SponsorMatch[]; error?: string | null; note?: string | null }>("/connect/sponsor/find", b),
+  checkSponsor: (b: { profile_url: string; company: string; scopes?: Scope[] }) => post<SponsorMatch>("/connect/sponsor/check", b),
+  create: (b: Record<string, unknown>) => post<ConnectRequest>("/connect/requests", b),
+  list: () => req<ConnectRequest[]>("/connect/requests"),
+  get: (id: string) => req<ConnectRequest>(`/connect/requests/${id}`),
+  approve: (id: string, note = "") => post<ConnectRequest>(`/connect/requests/${id}/approve`, { note }),
+  reject: (id: string, note = "") => post<ConnectRequest>(`/connect/requests/${id}/reject`, { note }),
+  issue: (id: string) => post<IssueResult>(`/connect/requests/${id}/issue`),
+  test: (id: string) => post<{ request: ConnectRequest; connected: boolean; waiting_for?: string; error?: string; first_seen_at?: string }>(`/connect/requests/${id}/test`),
+  cancel: (id: string) => post<ConnectRequest>(`/connect/requests/${id}/cancel`),
+};
+
 // ---- emergency stop (backend/app/runtime/freeze.py) --------------------------------------------------
 
 export type FreezeScope = "agent" | "sponsor" | "all";
