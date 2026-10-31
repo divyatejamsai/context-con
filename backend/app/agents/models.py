@@ -1,4 +1,4 @@
-"""Shared Countersign types (docs/COUNTERSIGN.md). WS6 owns this file; WS7/WS8 import from it."""
+"""Shared Agaxes types (docs/COUNTERSIGN.md). WS6 owns this file; WS7/WS8 import from it."""
 from __future__ import annotations
 
 from typing import Literal
@@ -29,7 +29,7 @@ class Passport(BaseModel):
     issued_at: str
     expires_at: str
     public_key: str          # agent's Ed25519 public key, base64
-    issuer_key_id: str = ""  # which Countersign issuer key signed it
+    issuer_key_id: str = ""  # which Agaxes issuer key signed it
     issuer_signature: str = ""
 
 

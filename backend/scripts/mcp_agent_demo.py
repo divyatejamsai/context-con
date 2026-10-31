@@ -1,4 +1,4 @@
-"""An agent calling Countersign's Send Guard over MCP, end to end (no shortcuts into the Python API).
+"""An agent calling Agaxes's Send Guard over MCP, end to end (no shortcuts into the Python API).
 
 1. Onboards an AI employee in the registry (same store the backend and console use).
 2. Starts backend/mcp_server.py as a subprocess and speaks MCP JSON-RPC to it over stdio:

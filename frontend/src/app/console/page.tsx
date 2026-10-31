@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowUpRight, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send,
+  Activity, ArrowUpRight, Play, KeyRound, Moon, Sun, Ban, ClipboardCheck, FileClock, IdCard, Link2, Loader2, Plus, RefreshCw, RotateCcw, Send,
   ShieldAlert, ShieldCheck, UserMinus, Users, X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -20,12 +20,13 @@ import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
 import { LedgerExplorer, LedgerTimeline } from "./ledger";
 import { DemoView } from "./demo";
+import { WorkView } from "./work";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandMark } from "@/components/brand-mark";
 import { BRAND } from "@/lib/brand";
 
 type Mode = "loading" | "live" | "offline";
-type View = "employees" | "verify" | "guard" | "ledger" | "demo";
+type View = "employees" | "work" | "verify" | "guard" | "ledger" | "demo";
 type Tab = "passport" | "permissions" | "reviews" | "ledger";
 type Flash = { tone: "ok" | "bad" | "info"; title: string; body?: string; verdict?: Verdict } | null;
 export type Chain = { chain_ok: boolean; first_bad_seq: number | null; count: number };
@@ -36,6 +37,7 @@ const GROUPS: Group[] = ["Workforce", "Checks", "Audit", "Learn"];
 // The sidebar renders this list, grouped. Add a view here and it shows up in the nav.
 const VIEWS: { v: View; label: string; icon: React.ElementType; desc: string; group: Group }[] = [
   { v: "employees", label: "Agents", icon: Users, desc: "Onboard agents, see their passports, and suspend or retire them", group: "Workforce" },
+  { v: "work", label: "Work", icon: Activity, desc: "Live work: assign tasks, approve sends, pause or stop agents, budgets and report cards", group: "Workforce" },
   { v: "guard", label: "Send Guard", icon: Send, desc: "Check a drafted message before an agent can send it", group: "Checks" },
   { v: "verify", label: "Verify a passport", icon: ShieldCheck, desc: "Check whether an agent that contacts you can be trusted", group: "Checks" },
   { v: "ledger", label: "Ledger", icon: Link2, desc: "The tamper-evident record of every check and decision", group: "Audit" },
@@ -150,6 +152,8 @@ export default function Console() {
               <Loader2 className="size-4 animate-spin" /> Connecting to {BRAND.name}…
             </span>
           </div>
+        ) : view === "work" ? (
+          <WorkView onChanged={refresh} />
         ) : view === "verify" ? (
           <VerifyView agents={agents} scenarios={scenarios} onOnboard={startOnboarding} />
         ) : view === "guard" ? (

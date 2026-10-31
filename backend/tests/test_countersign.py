@@ -1,4 +1,4 @@
-"""Countersign WS6: passport + ledger. Runs offline on the committed fixtures."""
+"""Agaxes WS6: passport + ledger. Runs offline on the committed fixtures."""
 import json
 from datetime import date
 from pathlib import Path

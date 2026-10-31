@@ -1,6 +1,6 @@
-"""A minimal MCP stdio client for Countersign: spawns backend/mcp_server.py and speaks JSON-RPC 2.0 to it.
+"""A minimal MCP stdio client for Agaxes: spawns backend/mcp_server.py and speaks JSON-RPC 2.0 to it.
 
-The fleet agents use this, and only this, to reach Countersign, the same way an outside agent (Claude Code,
+The fleet agents use this, and only this, to reach Agaxes, the same way an outside agent (Claude Code,
 another company's bot) would. Agents sign locally; only signatures cross the wire.
 """
 from __future__ import annotations
@@ -44,7 +44,7 @@ class CountersignMCP:
         while True:
             line = await asyncio.wait_for(self.proc.stdout.readline(), timeout=120)
             if not line:
-                raise McpError("Countersign MCP server exited")
+                raise McpError("Agaxes MCP server exited")
             res = json.loads(line)
             if res.get("id") == self.n:
                 if "error" in res:

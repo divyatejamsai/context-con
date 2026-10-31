@@ -16,14 +16,21 @@ export function Logo() {
 }
 
 /** Two-column auth layout: the form on the left, what the workspace gives you on the right. */
-export function AuthShell({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
+export function AuthShell({ children, aside, switchTo }: { children: React.ReactNode; aside?: React.ReactNode; switchTo?: "login" | "signup" }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
       <div className="flex flex-col px-5 py-6 sm:px-10">
-        <Link href="/login" className="flex items-center gap-2 self-start">
-          <BrandMark className="size-6 rounded-[6px]" />
-          <span className="text-[14px] font-semibold tracking-[-0.01em]">{BRAND.name}</span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/login" className="flex items-center gap-2">
+            <BrandMark className="size-6 rounded-[6px]" />
+            <span className="text-[14px] font-semibold tracking-[-0.01em]">{BRAND.name}</span>
+          </Link>
+          {switchTo && (
+            <Link href={`/${switchTo}`} className="inline-flex h-8 items-center rounded-md border border-border-strong px-3 text-[13px] font-medium transition hover:bg-hover">
+              {switchTo === "signup" ? "Sign up" : "Log in"}
+            </Link>
+          )}
+        </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">{children}</div>
         <p className="text-[12px] text-faint">Every agent in your workspace carries a passport. Each action it takes is checked and logged.</p>
       </div>

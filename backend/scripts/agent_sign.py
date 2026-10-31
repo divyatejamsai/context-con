@@ -1,5 +1,5 @@
 """Sign a message body as an onboarded agent, locally. For outside agents (e.g. Claude Code) that call
-Countersign over MCP: the MCP tools take a signature, never a private key, so the agent signs here first.
+Agaxes over MCP: the MCP tools take a signature, never a private key, so the agent signs here first.
 
     python scripts/agent_sign.py <agent_id> "<exact body>"            -> base64 signature for check_before_send
     python scripts/agent_sign.py <agent_id> --work <kind> "<summary>"  -> signature for record_work (no details)
