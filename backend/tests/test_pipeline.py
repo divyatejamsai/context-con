@@ -308,3 +308,42 @@ def test_heuristic_remote_country_and_new_roles():
     c = heuristic_parse("need a senior backend eng, blr or remote india, payments, upi")
     assert "Bangalore" in c.locations and "India" in c.locations and "upi" in c.skills
     assert heuristic_parse("Staff Rust engineer in Pune").role.endswith("Rust Engineer")
+
+
+def test_live_eval_round_fixes():
+    from app.brief import brief_domain_words, keep_function, years_asked
+    from app.orchestrator import domain_terms
+    b1 = "need a senior backend eng asap, payments exp (UPI/cards), blr. python or go. 5+ yrs"
+    # domain terms come from the brief text even if the LLM loses them
+    c = Criteria(role="Senior Backend Engineer", skills=["Python"], must_haves=[], raw_brief=b1)
+    assert "payments" in domain_terms(c) and "payments" in brief_domain_words(b1)
+    assert years_asked(b1) == 5 and heuristic_parse(b1).min_years == 5
+    # generic variants are dropped when the role names a function
+    c = keep_function(Criteria(role="Senior Backend Engineer",
+                               title_variants=["Senior Backend Engineer", "Staff Software Engineer", "Senior SDE",
+                                               "Senior Platform Engineer", "Senior Software Engineer, Backend"]))
+    assert c.title_variants == ["Senior Backend Engineer", "Senior Platform Engineer", "Senior Software Engineer, Backend"]
+    # a generic role keeps its generic variants
+    c = keep_function(Criteria(role="Software Engineer", title_variants=["Software Engineer", "Software Developer"]))
+    assert len(c.title_variants) == 2
+
+
+def test_company_lookup_shared_and_capped(monkeypatch):
+    import app.orchestrator as o
+
+    class Slow(RealShaped):
+        calls = 0
+
+        async def company_enrich(self, company_id=None, domain=None, fields=None):
+            Slow.calls += 1
+            await asyncio.sleep(5)
+
+    monkeypatch.setattr(o, "COMPANY_TIMEOUT", 0.2)
+    client = Slow()
+    companies = {}
+
+    async def go():
+        return await asyncio.gather(*(o.enrich(client, dict(client.rec), pre={}, companies=companies) for _ in range(3)))
+    res = asyncio.run(go())
+    assert Slow.calls == 1
+    assert all(company is None and any("timed out" in x for x in probs) for _, company, probs in res)

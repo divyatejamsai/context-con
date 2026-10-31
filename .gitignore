@@ -13,3 +13,4 @@ cache/
 
 # live eval reports contain real people's names
 eval_live*.md
+evals_out*.md

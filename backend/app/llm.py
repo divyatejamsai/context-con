@@ -88,14 +88,14 @@ def _extract_json(text: str) -> Any:
         return json.loads(text[start : max(text.rfind("}"), text.rfind("]")) + 1])
 
 
-async def generate_json(prompt: str, schema: type[T], tier: Tier = "fast") -> T:
+async def generate_json(prompt: str, schema: type[T], tier: Tier = "fast", temperature: float = 0.2) -> T:
     """Return an instance of `schema`. Raises LLMError if the model can't produce valid JSON."""
     if is_mock():
         return mock_instance(schema)
     config = {
         "response_mime_type": "application/json",
         "response_schema": schema,
-        "temperature": 0.2,
+        "temperature": temperature,
     }
     text = await _call(prompt, tier, config)
     try:

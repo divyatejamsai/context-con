@@ -13,9 +13,9 @@ import time
 from collections.abc import AsyncIterator
 
 from . import people
-from .brief import analyze_brief, broaden_ladder, clean_term, default_assumptions
+from .brief import analyze_brief, brief_domain_words, broaden_ladder, clean_term, default_assumptions
 from .fallbacks import DevCrustdataClient, basic_rank, basic_verify
-from .outreach import draft_outreach
+from .outreach import draft_outreach, template_draft
 from .schemas import (Candidate, CandidateEvent, Claim, Criteria, DoneEvent, ErrorEvent, Event, Reason,
                       RunSummary, StepEvent)
 
@@ -24,7 +24,9 @@ log = logging.getLogger(__name__)
 SEARCH_LIMIT = int(os.getenv("SEARCH_LIMIT", "25"))
 MIN_POOL = int(os.getenv("MIN_POOL", "3"))          # broaden the search while the pool is smaller than this
 MAX_ENRICH = int(os.getenv("MAX_ENRICH", "10"))      # how many candidates get the full enrich/verify/rank treatment
-CONCURRENCY = int(os.getenv("PIPELINE_CONCURRENCY", "5"))
+CONCURRENCY = int(os.getenv("PIPELINE_CONCURRENCY", "10"))
+COMPANY_TIMEOUT = float(os.getenv("COMPANY_TIMEOUT", "10"))    # cap on Company Identify + Enrich per company
+OUTREACH_TIMEOUT = float(os.getenv("OUTREACH_TIMEOUT", "20"))  # slower than this -> template draft
 CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
 SHORTLIST_MIN = int(os.getenv("SHORTLIST_MIN", "40"))  # below this a candidate is shown but not shortlisted
 
@@ -118,7 +120,7 @@ _NOT_DOMAIN = {"go", "golang", "python", "java", "javascript", "typescript", "js
 def domain_terms(c: Criteria, n: int = 3) -> list[str]:
     """Short domain keywords from must-haves + skills ("payments experience" -> "payments"), not languages/tools."""
     out: list[str] = []
-    for raw in c.must_haves + c.skills:
+    for raw in brief_domain_words(c.raw_brief) + c.must_haves + c.skills:
         t = clean_term(raw)
         if t and 3 <= len(t) <= 30 and t not in _NOT_DOMAIN and t not in out:
             out.append(t)
@@ -238,7 +240,19 @@ def prescore(p: dict, c: Criteria) -> int:
     return s
 
 
-async def enrich(client, p: dict, pre: dict | None = None) -> tuple[dict, dict | None, list[str]]:
+async def _lookup_company(client, cid, domain, cname) -> dict | None:
+    if cid or domain:
+        return await client.company_enrich(company_id=cid, domain=domain)
+    if cname:
+        ident = await client.company_identify(name=cname)
+        if ident:
+            return await client.company_enrich(
+                company_id=people.first(ident, "crustdata_company_id", "company_id", "id"),
+                domain=people.first(ident, "basic_info.primary_domain", "company_website_domain", "domain")) or ident
+    return None
+
+
+async def enrich(client, p: dict, pre: dict | None = None, companies: dict | None = None) -> tuple[dict, dict | None, list[str]]:
     """Returns (person, company, problems). Falls back to search data when enrich fails.
     `pre` holds batch Person Enrich results ({url: person | None}) so we don't call per person."""
     problems: list[str] = []
@@ -258,17 +272,19 @@ async def enrich(client, p: dict, pre: dict | None = None) -> tuple[dict, dict |
 
     company = None
     domain, cid, cname = people.company_domain(person), people.company_id(person), people.company(person)
-    try:
-        if cid or domain:
-            company = await client.company_enrich(company_id=cid, domain=domain)
-        elif cname:
-            ident = await client.company_identify(name=cname)
-            if ident:
-                company = await client.company_enrich(
-                    company_id=people.first(ident, "crustdata_company_id", "company_id", "id"),
-                    domain=people.first(ident, "basic_info.primary_domain", "company_website_domain", "domain")) or ident
-    except Exception as e:
-        problems.append(f"Company Enrich failed ({type(e).__name__})")
+    key = str(cid or domain or (cname or "").lower() or "")
+    if key:
+        # one lookup per company per run, shared by colleagues; capped so a failing endpoint can't stall the run
+        companies = {} if companies is None else companies
+        if key not in companies:
+            companies[key] = asyncio.ensure_future(
+                asyncio.wait_for(_lookup_company(client, cid, domain, cname), timeout=COMPANY_TIMEOUT))
+        try:
+            company = await asyncio.shield(companies[key])
+        except asyncio.TimeoutError:
+            problems.append(f"Company Enrich timed out after {COMPANY_TIMEOUT:.0f}s; company claims unverifiable")
+        except Exception as e:
+            problems.append(f"Company Enrich failed ({type(e).__name__}); company claims unverifiable")
     return person, company, problems
 
 
@@ -284,13 +300,23 @@ def _namespace(cid: str, claims: list[Claim], reasons: list[Reason]) -> tuple[li
 
 
 async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verify, rank, emit, seen_steps: set,
-                            pre: dict | None = None) -> Candidate:
+                            pre: dict | None = None, companies: dict | None = None,
+                            slowest: dict | None = None) -> Candidate:
+    slowest = {} if slowest is None else slowest
+    clock = [time.monotonic()]
+
+    def lap(name: str):
+        now = time.monotonic()
+        slowest[name] = max(slowest.get(name, 0), int((now - clock[0]) * 1000))
+        clock[0] = now
+
     async def stage(step: str, msg: str):
         if step not in seen_steps:
             seen_steps.add(step)
             await emit(StepEvent(step=step, message=msg))
 
-    person, company, problems = await enrich(client, p, pre)
+    person, company, problems = await enrich(client, p, pre, companies)
+    lap("max_company_ms")
     for prob in problems:
         await emit(ErrorEvent(step="enrich", message=f"{people.name(p)}: {prob}"))
 
@@ -301,6 +327,7 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
         await emit(ErrorEvent(step="verify", message=f"{people.name(p)}: verifier error ({type(e).__name__}), used basic checks"))
         claims, flags = await basic_verify(person, company, criteria, client)
     flags = list(flags) + [x for x in problems if "using search data only" in x][:1]
+    lap("max_verify_ms")
 
     await stage("rank", "Scoring candidates against the brief (every reason cites a claim)...")
     try:
@@ -309,6 +336,7 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
         await emit(ErrorEvent(step="rank", message=f"{people.name(p)}: ranker error ({type(e).__name__}), used basic score"))
         score, reasons = await basic_rank(person, claims, criteria)
     claims, reasons = _namespace(cid, claims, reasons)
+    lap("max_rank_ms")
 
     cand = Candidate(
         id=cid, name=people.name(person), title=people.title(person), company=people.company(person),
@@ -317,7 +345,11 @@ async def process_candidate(cid: str, p: dict, criteria: Criteria, client, verif
     )
     if cand.score >= SHORTLIST_MIN:  # drafts only for people we'd actually contact
         await stage("outreach", "Drafting outreach for shortlisted candidates (drafts only, never sent)...")
-        cand.outreach_draft = await draft_outreach(cand, criteria)
+        try:
+            cand.outreach_draft = await asyncio.wait_for(draft_outreach(cand, criteria), timeout=OUTREACH_TIMEOUT)
+        except asyncio.TimeoutError:
+            cand.outreach_draft = template_draft(cand, criteria)
+        lap("max_outreach_ms")
     return cand
 
 
@@ -396,12 +428,15 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
             sem = asyncio.Semaphore(CONCURRENCY)
             seen_steps: set = set()
             done: list[Candidate] = []
+            companies: dict = {}
+            slowest: dict[str, int] = {}
 
             async def one(i: int, p: dict):
                 async with sem:
                     try:
                         cand = await asyncio.wait_for(
-                            process_candidate(f"c{i + 1}", p, criteria, client, verify, rank, emit, seen_steps, pre),
+                            process_candidate(f"c{i + 1}", p, criteria, client, verify, rank, emit, seen_steps, pre,
+                                              companies, slowest),
                             timeout=CANDIDATE_TIMEOUT)
                     except asyncio.TimeoutError:
                         await emit(ErrorEvent(step="enrich", message=f"{people.name(p)}: timed out, skipped"))
@@ -415,6 +450,7 @@ async def run(brief: str, client=None) -> AsyncIterator[Event]:
 
             await asyncio.gather(*(one(i, p) for i, p in enumerate(chosen)))
             timings["candidates"] = _ms(t)
+            timings.update(slowest)  # slowest single candidate per stage, for profiling
             summary.enriched = len(done)
             pre_by_url = {people.profile_url(p): prescore(p, criteria) for p in chosen}
             ranked = sorted(done, key=lambda c: (c.score, sum(k.status == "verified" for k in c.claims),

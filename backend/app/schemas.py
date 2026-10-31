@@ -22,6 +22,7 @@ class Criteria(BaseModel):
     must_haves: list[str] = Field(default_factory=list)
     nice_to_haves: list[str] = Field(default_factory=list)
     raw_brief: str = ""
+    min_years: int | None = None  # "5+ yrs" -> 5; WS3's ranker reads it
 
 
 class Source(BaseModel):
