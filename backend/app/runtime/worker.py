@@ -330,7 +330,10 @@ async def _sign_offer(a: dict, by: str, mcp: Any, edited: str | None) -> dict:
         (d / f"{a['approval_id']}.txt").write_text(sealed + f"\n\nApproved by {by}. sha256 {sha}\n")
         entry = ledger.append("offer.signed", {"agent_id": a["agent_id"], "task_id": a["task_id"], "to": a["to"],
                                                "sha256": sha, "agent_signature": sig, "approved_by": by,
-                                               "passport_check": v.get("ledger_entry"), "edited": bool(edited)})
+                                               "passport_check": v.get("ledger_entry"), "edited": bool(edited),
+                                               "approvers": [x.get("by") for x in a.get("approvals") or []] or [by],
+                                               "rules": [{k: h[k] for k in ("rule_id", "version", "sentence")}
+                                                         for h in a.get("rules") or []]})
         mail = await seal.email_copy(seal.get(seal_id), f"Offer letter from {p.sponsor.company}: {a['to'].get('name')}", a["to"])
         status, result = "signed", {"signed": True, "sha256": sha, "signature": sig, "ledger_entry": entry,
                                     "checks": v.get("checks", []), "seal_id": seal_id,

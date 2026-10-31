@@ -155,6 +155,12 @@ export function WorkView({ onChanged, agentId }: { onChanged?: () => void; agent
                 outside={st.agents.find((x) => x.agent_id === a.agent_id)?.runtime === "external"}
                 onApprove={(body) => act(`apv:${a.approval_id}`, async () => {
                   const r = await runtime.approve(a.approval_id, body);
+                  if (r.status === "pending") {
+                    // a company rule needs more than one person: this approval counted, someone else must add theirs
+                    const n = r.approvals?.length ?? 1, need = r.approvals_needed ?? 2;
+                    setTimeout(() => setToast({ tone: "ok", text: `Approved (${n} of ${need}). “${r.rules?.[0]?.name ?? "A company rule"}” needs ${need} different people, so it waits for someone else.` }), 0);
+                    return;
+                  }
                   if (r.status !== "sent" && r.status !== "signed") throw new Error(r.result?.error ? `Not ${a.action === "sign_offer" ? "signed" : "sent"}: ${r.result.error}` : `Not sent: Send Guard blocked it at send time${r.result?.checks?.find((c) => c.status !== "pass") ? ` (${checkLabel(r.result.checks.find((c) => c.status !== "pass")!.name)})` : ""}`);
                   const what = a.action === "sign_offer" ? `Offer to ${a.to.name} signed` : `${body ? "Edited and sent" : "Approved"}: message to ${a.to.name}`;
                   const mail = r.result?.email?.emailed ? ` A copy went to your test inbox (${r.result.email.delivered_to}).` : "";
@@ -502,6 +508,7 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
         <pre className="mt-2.5 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-elevated px-3 py-2 font-sans text-[12.5px] leading-relaxed">{a.body}</pre>
       )}
       {editing && <p className="mt-1 text-[11px] text-muted-foreground">The agent re-signs your edited text and Send Guard checks it again from scratch before it goes out.</p>}
+      <RuleHits a={a} />
       {a.action === "sign_offer" ? (
         <p className="mt-2 text-[11.5px] text-muted-foreground">{a.preview.note}</p>
       ) : (
@@ -520,6 +527,34 @@ function ApprovalCard({ a, busy, outside, onApprove, onReject }: {
         <Button variant="secondary" onClick={onReject} disabled={!!busy}><X className="size-3.5" /> Reject</Button>
         <span className="ml-auto whitespace-nowrap text-[11px] text-faint">{ago(a.created_at)}</span>
       </div>
+    </div>
+  );
+}
+
+/** The company rules on this approval (Rules view): a quorum ("1 of 2 approved") or a hold ("no outreach after 8pm"). */
+function RuleHits({ a }: { a: Approval }) {
+  const hits = a.rules ?? [];
+  const need = a.approvals_needed ?? 1;
+  if (!hits.length && need <= 1) return null;
+  const done = a.approvals ?? [];
+  return (
+    <div className="mt-2.5 rounded-md border border-yellow/40 bg-yellow/10 px-2.5 py-2 text-[11.5px] leading-snug">
+      {hits.map((h) => (
+        <p key={h.rule_id}>
+          <span className="font-[590]">Rule: {h.name}</span> <span className="text-faint">v{h.version}</span>
+          <span className="text-muted-foreground"> · {h.detail}</span>
+        </p>
+      ))}
+      {need > 1 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {Array.from({ length: need }, (_, i) => (
+            <span key={i} className={cn("rounded border px-1.5 py-px text-[11px]", done[i] ? "border-verified/40 bg-verified/10 text-verified" : "border-border text-faint")}>
+              {done[i] ? `✓ ${done[i].by}` : `Approver ${i + 1}`}
+            </span>
+          ))}
+          <span className="text-muted-foreground">{done.length} of {need} approved{done.length ? ": needs someone else" : ""}</span>
+        </div>
+      )}
     </div>
   );
 }

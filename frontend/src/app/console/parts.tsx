@@ -22,6 +22,8 @@ export const CHECK_LABEL: Record<string, string> = {
   recipient_exists: "Recipient is a real person",
   recipient_still_at_company: "Recipient still works there",
   claims_in_body_true: "Claim in the message",
+  company_rule: "Company rule",
+  agent_active: "Agent is active",
 };
 
 export const checkLabel = (name: string) => CHECK_LABEL[name] ?? name.replace(/_/g, " ");

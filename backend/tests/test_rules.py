@@ -155,7 +155,6 @@ async def test_offer_over_threshold_needs_two_different_approvers():
         a = store.get_approval(task["output"]["offer"]["approval_id"])
         assert a["approvals_needed"] == 2 and a["rules"][0]["rule_id"] == rule["rule_id"]
         assert "₹42L is over ₹30L" in a["rules"][0]["detail"]
-        assert "Offers over ₹30L need 2 approvers" in a["preview"]["note"]
 
         first = await execute_approval(a["approval_id"], "recruiter@acme.io", rt.mcp)
         assert first["status"] == "pending" and [x["by"] for x in first["approvals"]] == ["recruiter@acme.io"]
@@ -171,7 +170,9 @@ async def test_offer_over_threshold_needs_two_different_approvers():
         hits = enforced()
         assert {h["outcome"] for h in hits} >= {"needs 2 approvers", "waiting for approver 2 of 2"}
         assert all(h["sentence"] == "Offers over ₹30L need 2 approvers" and h["version"] == 1 for h in hits)
-        assert "offer.signed" in kinds_on_ledger()
+        signed = ledger.entries(kind="offer.signed")[-1]["payload"]
+        assert signed["approvers"] == ["recruiter@acme.io", "head-of-people@acme.io"]
+        assert signed["rules"][0]["sentence"] == "Offers over ₹30L need 2 approvers"
     finally:
         await rt.stop()
 
@@ -203,6 +204,20 @@ async def test_offer_under_threshold_needs_one_and_a_rule_added_later_still_coun
         unreadable = await _offer(rt, offer_agent, "")  # "as agreed": fail closed, the rule applies
         c = store.get_approval(unreadable["output"]["offer"]["approval_id"])
         assert c["approvals_needed"] == 3 and "couldn't read an amount" in c["rules"][0]["detail"]
+    finally:
+        await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_offer_without_start_date_on_a_live_server_runtime():
+    """The API server's runtime has no fixed `today`: an offer with no start date used to crash on None + timedelta."""
+    fleet()
+    rt = Runtime(crustdata(), tick=0.05, payroll=False)
+    await rt.start()
+    try:
+        offer_agent, _ = await hire_template("offer", rt.client)
+        task = await _offer(rt, offer_agent, "₹42 LPA")
+        assert task["output"]["offer"]["start_date"]
     finally:
         await rt.stop()
 

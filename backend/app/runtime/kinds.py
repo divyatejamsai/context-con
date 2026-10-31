@@ -480,7 +480,7 @@ async def offer_letter(ctx: RuntimeCtx, inp: dict) -> dict:
     sp = ctx.passport.sponsor
     role = (inp.get("role") or "the role").strip()
     comp = (inp.get("compensation") or "").strip() or "as agreed in your interviews (to be confirmed in writing)"
-    start = (inp.get("start_date") or "").strip() or (ctx.today + timedelta(days=30)).strftime("%-d %B %Y")
+    start = (inp.get("start_date") or "").strip() or ((ctx.today or datetime.now(timezone.utc).date()) + timedelta(days=30)).strftime("%-d %B %Y")
     first = who["name"].split()[0]
     signoff = f"{sp.name}, {sp.title}, {sp.company}\n(prepared by {ctx.agent['name']}, AI offer agent)"
     letter = (f"Dear {first},\n\nWe're delighted to offer you the role of {role} at {sp.company}. Your compensation will be "
@@ -499,8 +499,7 @@ async def offer_letter(ctx: RuntimeCtx, inp: dict) -> dict:
     sha = hashlib.sha256(letter.encode()).hexdigest()
     from ..rules import engine as rules
     needed, hits = rules.offer_approvers(ctx.agent, comp)
-    note = ("Approve to sign: the agent's passport is re-checked for contract.sign, then it signs the letter's hash."
-            + (f" {rules.explain(hits[0])}." if hits else ""))
+    note = "Approve to sign: the agent's passport is re-checked for contract.sign, then it signs the letter's hash."
     a = store.add_approval(task_id=ctx.task_id, agent_id=ctx.agent_id, agent_name=ctx.agent["name"], action="sign_offer",
                            to=who, body=letter, scope="contract.sign", signature=None, today=None,
                            terms={"compensation": comp, "role": role, "start_date": start},

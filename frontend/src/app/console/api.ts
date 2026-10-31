@@ -369,7 +369,36 @@ export interface Approval {
   note?: string | null;
   result?: { sent?: boolean; signed?: boolean; decision?: string; checks?: Check[]; error?: string; ledger_entry?: string; approval_entry?: string;
     verify_url?: string | null; email?: { emailed: boolean; why?: string; delivered_to?: string } | null } | null;
+  /** Company rules (Rules view): how many different people must approve, who has, and the rules that apply. */
+  approvals_needed?: number;
+  approvals?: { by: string; at: string; edited?: boolean }[];
+  rules?: RuleHit[];
 }
+
+// ---- company rules (backend/app/rules) ----------------------------------------------------------------------------
+export type RuleType = "offer_approvers" | "quiet_hours" | "blocked_companies" | "daily_cap";
+export interface RuleHit { rule_id: string; version: number; name: string; sentence: string; type: RuleType; effect: "block" | "hold" | "approvers"; detail: string }
+export interface RuleField { name: string; label: string; type: "money" | "number" | "time" | "select" | "text" | "list"; placeholder?: string; min?: number; max?: number; options?: string[]; option_labels?: Record<string, string> }
+export interface RuleTemplate { type: RuleType; label: string; description: string; applies_to: string; fields: RuleField[]; example: Record<string, unknown>; example_sentence: string }
+export interface RuleVersion { version: number; params: Record<string, unknown>; agents: string[]; enabled: boolean; name: string | null; sentence: string; at: string; by: string; change: string; note?: string | null }
+export interface Rule {
+  rule_id: string; workspace_id: string | null; type: RuleType; type_label: string; applies_to?: string; params: Record<string, unknown>;
+  agents: string[]; agent_names: string[]; name: string | null; sentence: string; enabled: boolean; version: number;
+  created_at: string; created_by: string; updated_at: string; updated_by: string; editable: boolean; enforced_count?: number;
+  history?: RuleVersion[]; recent?: RuleEnforcement[];
+}
+export interface RuleEnforcement { ts: string; hash: string; seq: number; rule_id: string; version: number; name: string; sentence: string; effect: string; detail: string; action: string; outcome: string; agent_id?: string | null; agent_name?: string | null; to?: { name?: string; company?: string } }
+export interface RulesView { rules: Rule[]; templates: RuleTemplate[]; recent: RuleEnforcement[]; can_edit: boolean }
+export const rulesApi = {
+  list: () => req<RulesView>("/rules"),
+  get: (id: string) => req<Rule>(`/rules/${id}`),
+  preview: (b: { type: RuleType; params: Record<string, unknown>; agents?: string[] }) =>
+    post<{ ok: boolean; sentence?: string; error?: string }>("/rules/preview", b),
+  create: (b: { type: RuleType; params: Record<string, unknown>; agents?: string[]; name?: string; enabled?: boolean }) => post<Rule>("/rules", b),
+  update: (id: string, b: { params?: Record<string, unknown>; agents?: string[]; name?: string; enabled?: boolean; note?: string }) =>
+    post<Rule>(`/rules/${id}`, b, "PUT"),
+  remove: (id: string) => post<Rule>(`/rules/${id}`, {}, "DELETE"),
+};
 
 export interface FlowCheck { agent: string; scope: string; decision: "allow" | "deny"; why: string; ledger_entry?: string | null }
 export interface FlowStage { key: string; label: string; scope: Scope; status: string; task_id: string | null; agent: string | null; checks: FlowCheck[] }
