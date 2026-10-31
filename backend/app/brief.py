@@ -105,6 +105,20 @@ _GENERIC_TITLES = {"software engineer", "software developer", "sde", "sde iii", 
 _LEVEL_WORDS = re.compile(r"\b(senior|sr\.?|staff|principal|lead|junior|jr\.?|head of|iii|ii|i)\b", re.I)
 
 
+# close aliases that still mean the same function; anything else must contain a function word
+_FUNCTION_ALIASES = {
+    "backend": ["backend", "back-end", "back end", "server", "api"],
+    "frontend": ["frontend", "front-end", "front end", "ui", "web"],
+    "full": ["full stack", "fullstack", "full-stack"],
+    "machine": ["machine learning", "ml", "applied scientist", "ai engineer"],
+    "ml": ["machine learning", "ml", "applied scientist", "ai engineer"],
+    "data": ["data"],
+    "mobile": ["mobile", "android", "ios"],
+    "devops": ["devops", "site reliability", "sre", "infrastructure", "platform"],
+    "site": ["site reliability", "sre", "devops"],
+}
+
+
 def keep_function(c: Criteria) -> Criteria:
     """Drop generic variants ("Staff Software Engineer") when the role names a function ("Backend"):
     otherwise the search fills up with people who don't do that function."""
@@ -112,10 +126,15 @@ def keep_function(c: Criteria) -> Criteria:
     function = [w for w in re.findall(r"[a-z+#./-]+", core) if w not in {"engineer", "developer", "software", "and", "&"}]
     if not function:
         return c
+    engineering = re.search(r"\b(engineer|developer|sde|programmer)\b", c.role, re.I)
+    allowed = [a for w in function for a in _FUNCTION_ALIASES.get(w, [w])]
     keep = []
     for v in c.title_variants:
         bare = re.sub(r"\s+", " ", _LEVEL_WORDS.sub(" ", v)).strip(" ,-").lower()
         if bare in _GENERIC_TITLES:
+            continue
+        # engineering roles: a variant must still name the function ("Platform Engineer" drifted to AI platform)
+        if engineering and not any(re.search(rf"(?<![a-z]){re.escape(a)}(?![a-z])", bare) for a in allowed):
             continue
         keep.append(v)
     c.title_variants = keep or [c.role]

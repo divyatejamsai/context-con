@@ -323,7 +323,7 @@ def test_live_eval_round_fixes():
     c = keep_function(Criteria(role="Senior Backend Engineer",
                                title_variants=["Senior Backend Engineer", "Staff Software Engineer", "Senior SDE",
                                                "Senior Platform Engineer", "Senior Software Engineer, Backend"]))
-    assert c.title_variants == ["Senior Backend Engineer", "Senior Platform Engineer", "Senior Software Engineer, Backend"]
+    assert c.title_variants == ["Senior Backend Engineer", "Senior Software Engineer, Backend"]
     # a generic role keeps its generic variants
     c = keep_function(Criteria(role="Software Engineer", title_variants=["Software Engineer", "Software Developer"]))
     assert len(c.title_variants) == 2
@@ -395,3 +395,23 @@ def test_near_miss_flag_and_rank_data(monkeypatch):
     assert all(any(f.startswith("Near miss") for f in c.flags) for c in cands)
     final = [e for e in evs if e.type == "step" and e.step == "rank" and e.data and "near_miss" in e.data][-1]
     assert set(final.data["near_miss"]) == {c.id for c in cands} and "near miss" in final.message
+
+
+def test_round4_function_drift_and_outreach_checks(monkeypatch):
+    from app.brief import keep_function
+    from app.outreach import check_draft, signoff
+    from app.schemas import Claim, Source
+    c = keep_function(Criteria(role="Senior Backend Engineer",
+                               title_variants=["Senior Backend Engineer", "Senior Platform Engineer", "Senior API Engineer",
+                                               "Senior Server Side Engineer"]))
+    assert "Senior Platform Engineer" not in c.title_variants and "Senior API Engineer" in c.title_variants
+    # non-engineering roles keep their aliases
+    c = keep_function(Criteria(role="Account Executive", title_variants=["Account Executive", "Sales Lead"]))
+    assert "Sales Lead" in c.title_variants
+    claims = [Claim(id="k1", claim="Works at Razorpay since 2021", status="verified", evidence="e", source=Source(endpoint="x"))]
+    cand = Candidate(id="c1", name="A B")
+    assert check_draft("Hi A, your background is interesting. Chat?", claims, cand, Criteria()) is None
+    fixed = check_draft("Hi A, loved your work at Razorpay.", claims, cand, Criteria())
+    assert "?" in fixed and fixed.endswith(signoff())
+    monkeypatch.setenv("RECRUITER_NAME", "Sai")
+    assert check_draft("Hi A, Razorpay! Call this week?\n\n[Your name]", claims, cand, Criteria()).endswith("Sai")

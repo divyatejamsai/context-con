@@ -133,6 +133,7 @@ def metrics(r: Result) -> dict:
     return {
         "pool": s.searched if s else 0, "enriched": s.enriched if s else 0, "shortlisted": s.shortlisted if s else 0,
         "top": max((x.score for x in r.cands), default=0),
+        "near": sum(any(f.startswith("Near miss") for f in x.flags) for x in r.cands),
         "verified%": round(100 * sum(k.status == "verified" for k in claims) / n),
         "contra": sum(k.status == "contradicted" for k in claims),
         "unverif%": round(100 * sum(k.status == "unverifiable" for k in claims) / n),
@@ -155,13 +156,13 @@ async def run_one(key: str, brief: str) -> Result:
 
 
 def report(results: list[Result]) -> str:
-    lines = ["| Brief | Pass | Pool | Enriched | Shortlist | Top | Verified% | Contra | Unverif% | Domain fit | Errors | Secs |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Brief | Pass | Pool | Enriched | Shortlist | Near miss | Top | Verified% | Contra | Unverif% | Domain fit | Errors | Secs |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     fails = []
     for r in results:
         m = metrics(r)
         ok = sum(p for _, p in r.checks)
-        lines.append(f"| {r.key} | {ok}/{len(r.checks)} | {m['pool']} | {m['enriched']} | {m['shortlisted']} | {m['top']} | "
+        lines.append(f"| {r.key} | {ok}/{len(r.checks)} | {m['pool']} | {m['enriched']} | {m['shortlisted']} | {m['near']} | {m['top']} | "
                      f"{m['verified%']} | {m['contra']} | {m['unverif%']} | {m['domain_fit']} | {m['errors']} | {m['secs']} |")
         fails += [f"- {r.key}: {name}" for name, p in r.checks if not p]
     total = sum(len(r.checks) for r in results)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 
 from . import llm
@@ -10,19 +11,51 @@ from .schemas import Candidate, Criteria
 log = logging.getLogger(__name__)
 
 PROMPT = """Write a short, warm recruiting outreach message (max 90 words) to {name}.
-Role we're hiring for: {role}. What the client wants: {wants}.
+The role: {role}.
 
 Hard rules:
 - Every statement about {first} or their employer must come from the VERIFIED FACTS below. Nothing else.
-- Lead with the domain fact (the first fact listed) because it is why we're reaching out.
+  Do not describe experience they "have" unless a fact says so; the role's requirements are not facts about them.
+- Name at least one specific fact (an employer, a skill, a tenure) in the first two sentences. Lead with the first fact.
 - No adjectives or descriptions of any company ("leading", "fast-growing", "innovative", "financial services company")
   unless those exact words are in a fact.
-- No subject line. No other placeholders. End with exactly:
-[Your name]
+- The second-to-last line must be a direct question asking for a short call this week.
+- No subject line. No placeholders. End with exactly:
+{signoff}
 
 VERIFIED FACTS:
 {evidence}
 """
+
+
+def signoff() -> str:
+    return os.getenv("RECRUITER_NAME") or "[Your name]"
+
+
+_STOP = {"the", "and", "at", "in", "of", "since", "skill", "title", "based", "works", "with", "for", "yrs", "years"}
+
+
+def _fact_tokens(claims) -> set[str]:
+    toks = set()
+    for k in claims:
+        for w in re.findall(r"[A-Za-z][A-Za-z0-9.+#-]{2,}", k.claim):
+            w = w.rstrip(".-").lower()
+            if w not in _STOP:
+                toks.add(w)
+    return toks
+
+
+def check_draft(draft: str, claims, c: Candidate, criteria: Criteria) -> str | None:
+    """Post-check the LLM draft. Returns a fixed draft, or None if it must be replaced by the template."""
+    text = (draft or "").strip()
+    if not text:
+        return None
+    if not _fact_tokens(claims) & set(re.findall(r"[a-z0-9+#]+(?:[.-][a-z0-9+#]+)*", text.lower())):
+        return None  # cites no fact at all: generic, use the grounded template instead
+    body = text.rsplit(signoff(), 1)[0].rstrip() if signoff() in text else text
+    if "?" not in body:
+        body += "\n\nWould you be open to a 15-minute call this week?"
+    return f"{body}\n\n{signoff()}"
 
 
 def _hook_sentence(fact: str) -> str:
@@ -48,7 +81,7 @@ def template_draft(c: Candidate, criteria: Criteria) -> str:
     lines.append(f"We're hiring a {criteria.role or 'senior engineer'}"
                  + (f" in {', '.join(criteria.locations)}" if criteria.locations else "")
                  + " and I think your background is a strong fit. Open to a 15-minute chat this week?")
-    lines += ["", "[Your name]"]
+    lines += ["", signoff()]
     return "\n".join(lines)
 
 
@@ -66,13 +99,14 @@ async def draft_outreach(c: Candidate, criteria: Criteria) -> str:
     verified = _domain_first(c, criteria)
     if llm.is_mock() or not verified:
         return template_draft(c, criteria)
+    facts = verified[:6]
     prompt = PROMPT.format(
-        name=c.name, first=(c.name or "them").split()[0], role=criteria.role,
-        wants=", ".join(dict.fromkeys(criteria.must_haves + criteria.skills[:3])) or criteria.raw_brief,
-        evidence="\n".join(f"- {k.claim}" for k in verified[:6]),
+        name=c.name, first=(c.name or "them").split()[0], role=criteria.role, signoff=signoff(),
+        evidence="\n".join(f"- {k.claim}" for k in facts),
     )
     try:
-        return await llm.generate_text(prompt, tier="fast")
+        draft = await llm.generate_text(prompt, tier="fast")
     except Exception as e:
         log.warning("outreach LLM failed, using template: %s", e)
         return template_draft(c, criteria)
+    return check_draft(draft, facts, c, criteria) or template_draft(c, criteria)
