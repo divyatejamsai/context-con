@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
 import { SourcedMark } from "@/components/sourced-mark";
+import { AccountMenu } from "@/components/account-menu";
 
 /** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
@@ -105,6 +106,7 @@ export function AppHeader({ active, children }: { active: (typeof PRODUCT_TABS)[
           {children}
           <ConsoleLink />
           <ThemeToggle />
+          <AccountMenu />
         </div>
       </div>
     </header>
