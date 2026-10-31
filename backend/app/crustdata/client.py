@@ -41,6 +41,7 @@ TIMEOUT_S = 20.0
 MAX_ATTEMPTS = 4
 RETRY_STATUSES = {429, 500, 502, 503, 504}
 MODES = ("live", "cache", "replay")
+ENRICH_BATCH_WINDOW_S = 0.15  # how long person_enrich waits to collect concurrent calls into one batch
 
 
 class CrustdataError(Exception):
@@ -159,6 +160,9 @@ class CrustdataClient:
                 "accept": "application/json",
             },
         )
+        self._enrich_pending: dict[str, asyncio.Future] = {}
+        self._enrich_flush: asyncio.TimerHandle | None = None
+        self._bg: set[asyncio.Task] = set()
         self._limiters = {name: _RateLimiter(ep.rpm) for name, ep in ENDPOINTS.items()}
         self.stats = {"live": 0, "cache": 0, "fixture": 0, "miss": 0, "retries": 0, "errors": 0}
 
@@ -259,13 +263,54 @@ class CrustdataClient:
     # is_null is_not_null (.) [.] geo_distance. Note "=<" / "=>", not "<=" / ">=".
 
     async def person_search(self, filters: dict, limit: int = 25, **extra) -> list[dict]:
-        """Rows are person records (basic_profile, experience, ...). extra: fields, sorts, cursor, search."""
-        return await self._list("person/search", {"filters": filters, "limit": limit, **extra})
+        """Rows are person records (basic_profile, experience, ...). extra: fields, sorts, cursor, search.
+
+        `filters` is either raw Crustdata syntax ({"field"...} / {"op"...}) or the simple
+        orchestrator shape {"titles": [...], "locations": [...], "skills": [...], "seniority": str|None}.
+        """
+        extra.setdefault("fields", PERSON_SEARCH_FIELDS)
+        extra = {k: v for k, v in extra.items() if v is not None}
+        return await self._list("person/search", {"filters": to_person_filters(filters), "limit": limit, **extra})
 
     async def person_enrich(self, profile_url: str, fields: list[str] | None = None) -> dict | None:
+        """Concurrent single calls are coalesced into batches of up to 25 (the endpoint allows 15 req/min),
+        so callers can enrich candidates one by one in parallel without hitting the rate limit."""
         if not profile_url:
             return None
-        return (await self.person_enrich_many([profile_url], fields)).get(profile_url)
+        if fields is not None:
+            return (await self.person_enrich_many([profile_url], fields)).get(profile_url)
+        fut = self._enrich_pending.get(profile_url)
+        if fut is None:
+            fut = asyncio.get_running_loop().create_future()
+            self._enrich_pending[profile_url] = fut
+            if len(self._enrich_pending) >= 25:
+                self._flush_enrich()
+            elif self._enrich_flush is None:
+                self._enrich_flush = asyncio.get_running_loop().call_later(ENRICH_BATCH_WINDOW_S, self._flush_enrich)
+        return await asyncio.shield(fut)
+
+    def _flush_enrich(self) -> None:
+        if self._enrich_flush is not None:
+            self._enrich_flush.cancel()
+            self._enrich_flush = None
+        batch, self._enrich_pending = self._enrich_pending, {}
+        if not batch:
+            return
+
+        async def run() -> None:
+            try:
+                res = await self.person_enrich_many(list(batch))
+                for url, fut in batch.items():
+                    if not fut.done():
+                        fut.set_result(res.get(url))
+            except Exception as e:  # noqa: BLE001 - surfaced to every waiter
+                for fut in batch.values():
+                    if not fut.done():
+                        fut.set_exception(e)
+
+        task = asyncio.ensure_future(run())
+        self._bg.add(task)
+        task.add_done_callback(self._bg.discard)
 
     async def person_enrich_many(self, profile_urls: list[str], fields: list[str] | None = None) -> dict[str, dict | None]:
         """Batch enrich (25 per request; the endpoint allows only 15 req/min). Returns {url: person | None}."""
@@ -321,6 +366,56 @@ class CrustdataClient:
         row = next((r for r in rows if isinstance(r, dict) and r.get("success") and r.get("url") == url), None)
         row = row or next((r for r in rows if isinstance(r, dict) and r.get("success")), None)
         return {**row, "_source": {**src, "url": row.get("url")}} if row else None
+
+
+# Field paths for the simple filter shape. Confirmed against SMOKE_REPORT.md where noted.
+PERSON_SEARCH_FIELDS = ["crustdata_person_id", "basic_profile", "experience", "social_handles"]
+TITLE_FIELD = "experience.employment_details.current.title"
+LOCATION_FIELDS = os.getenv("CRUSTDATA_LOCATION_FIELDS", "basic_profile.location.city,basic_profile.location.country").split(",")
+CITY_ALIASES = {
+    "bangalore": ["Bangalore", "Bengaluru"], "bengaluru": ["Bangalore", "Bengaluru"],
+    "bombay": ["Mumbai"], "mumbai": ["Mumbai"], "gurgaon": ["Gurgaon", "Gurugram"], "gurugram": ["Gurgaon", "Gurugram"],
+    "delhi": ["Delhi", "New Delhi"], "new delhi": ["Delhi", "New Delhi"], "sf": ["San Francisco"], "nyc": ["New York"],
+    "remote": [],
+}
+SKILLS_FIELD = os.getenv("CRUSTDATA_SKILLS_FIELD", "")  # empty = skills are left to the ranker (better recall)
+
+
+def _any_of(field: str, values: list[str]) -> dict | None:
+    values = [v.strip() for v in values if v and v.strip()]
+    if not values:
+        return None
+    leaves = [{"field": field, "type": "(.)", "value": v} for v in values]
+    return leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves}
+
+
+def _location_filter(locations: list[str]) -> dict | None:
+    values: list[str] = []
+    for loc in locations:
+        key = (loc or "").strip().lower()
+        values += CITY_ALIASES.get(key, [loc.strip()] if key else [])
+    values = list(dict.fromkeys(values))
+    leaves = [{"field": f.strip(), "type": "(.)", "value": v} for v in values for f in LOCATION_FIELDS if f.strip()]
+    if not leaves:
+        return None
+    return leaves[0] if len(leaves) == 1 else {"op": "or", "conditions": leaves}
+
+
+def to_person_filters(filters: dict) -> dict:
+    """Translate the orchestrator's simple shape into Crustdata filter syntax; pass raw syntax through."""
+    simple_keys = {"titles", "title", "locations", "location", "skills", "seniority"}
+    if not filters or "field" in filters or "op" in filters or not simple_keys & filters.keys():
+        return filters
+    as_list = lambda v: [v] if isinstance(v, str) else list(v or [])  # noqa: E731
+    conds = [c for c in (
+        _any_of(TITLE_FIELD, as_list(filters.get("titles") or filters.get("title"))),
+        _location_filter(as_list(filters.get("locations") or filters.get("location"))),
+        _any_of(SKILLS_FIELD, as_list(filters.get("skills"))) if SKILLS_FIELD else None,
+    ) if c]
+    # seniority is left to the ranker: titles already carry it ("Senior Backend Engineer").
+    if not conds:
+        raise CrustdataError("person_search needs at least a title or location", endpoint="person/search")
+    return conds[0] if len(conds) == 1 else {"op": "and", "conditions": conds}
 
 
 PERSON_ENRICH_FIELDS = ["basic_profile", "experience", "education", "skills", "social_handles"]

@@ -149,3 +149,34 @@ async def test_web_fetch_and_identify_shapes(tmp_path):
         page = await c.web_fetch("https://x.com")
         assert page["content"] == "hi" and page["_source"]["url"] == "https://x.com"
         assert await c.company_identify(domain="x.com") is None
+
+
+def test_simple_filters_translate():
+    from app.crustdata.client import to_person_filters, TITLE_FIELD
+    f = to_person_filters({"titles": ["Backend Engineer"], "locations": ["Bangalore", "Bengaluru"], "skills": ["go"], "seniority": "senior"})
+    assert f["op"] == "and"
+    assert f["conditions"][0] == {"field": TITLE_FIELD, "type": "(.)", "value": "Backend Engineer"}
+    loc = f["conditions"][1]
+    assert loc["op"] == "or" and {c["value"] for c in loc["conditions"]} == {"Bangalore", "Bengaluru"}
+    raw = {"field": "x", "type": "=", "value": 1}
+    assert to_person_filters(raw) is raw
+
+
+@pytest.mark.asyncio
+async def test_concurrent_person_enrich_is_batched(tmp_path):
+    import asyncio
+    import json
+    calls = []
+
+    def handler(req):
+        urls = json.loads(req.content)["professional_network_profile_urls"]
+        calls.append(urls)
+        return httpx.Response(200, json=[{"matched_on": u, "match_status": "matched",
+                                          "matches": [{"confidence_score": 1, "person_data": {"basic_profile": {"name": u}}}]}
+                                         for u in urls])
+
+    urls = [f"https://www.linkedin.com/in/p{i}/" for i in range(7)]
+    async with make_client(tmp_path, handler, mode="live") as c:
+        out = await asyncio.gather(*(c.person_enrich(u) for u in urls))
+    assert len(calls) == 1 and len(calls[0]) == 7
+    assert [o["basic_profile"]["name"] for o in out] == urls

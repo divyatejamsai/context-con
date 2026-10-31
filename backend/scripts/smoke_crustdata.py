@@ -109,7 +109,9 @@ async def main(fresh: bool) -> int:
 
         people = await step("person_search", c.person_search(SEARCH_FILTERS, limit=10, fields=PERSON_FIELDS))
         if people is None:  # field list may need a premium group: retry with defaults
-            people = await step("person_search_min", c.person_search(SEARCH_FILTERS, limit=10))
+            people = await step("person_search_min", c.person_search(SEARCH_FILTERS, limit=10, fields=None))
+        # the simple orchestrator shape (WS2) must work too
+        await step("person_search_simple", c.person_search({"titles": ["Backend Engineer"], "locations": ["Bengaluru"]}, limit=5))
         if people:
             save("person_search", people)
 
@@ -118,6 +120,21 @@ async def main(fresh: bool) -> int:
         for url, person in (enriched or {}).items():
             if person:
                 save(f"person_enrich_{handle(url)}", person)
+
+        # Employers of the enriched people -> companies.json {company_id: company enrich record}
+        employer_ids = []
+        for person in (enriched or {}).values():
+            for job in ((person or {}).get("experience") or {}).get("employment_details", {}).get("current") or []:
+                cid = job.get("crustdata_company_id") if isinstance(job, dict) else None
+                if cid and cid not in employer_ids:
+                    employer_ids.append(cid)
+        companies_by_id = {}
+        for cid in employer_ids[:6]:
+            rec = await step(f"company_enrich_{cid}", c.company_enrich(company_id=cid))
+            if rec:
+                companies_by_id[str(cid)] = rec
+        if companies_by_id:
+            save("companies", companies_by_id)
 
         ident = await step("company_identify", c.company_identify(domain="razorpay.com"))
         if ident:
