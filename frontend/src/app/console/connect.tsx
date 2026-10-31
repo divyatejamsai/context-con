@@ -363,10 +363,7 @@ export function ConnectWizard({
                   <div className="grid gap-2 sm:grid-cols-2">
                     {cat.templates.map((t) => (
                       <Choice key={t.key} on={tpl === t.key} onClick={() => pickTemplate(t.key)}>
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-[560]">{t.name}</span>
-                          <RiskPill risk={maxRisk(cat.scopes, t.scopes)} />
-                        </span>
+                        <span className="block text-[13px] font-[560]">{t.name}</span>
                         <span className="mt-0.5 block text-[11.5px] leading-snug text-muted-foreground">{t.job}</span>
                         {!!t.jobs.length && <span className="mt-1.5 block text-[10.5px] text-faint">Jobs: {t.jobs.join(", ")}</span>}
                       </Choice>
@@ -654,11 +651,6 @@ export function ConnectWizard({
       </div>
     </div>
   );
-}
-
-function maxRisk(all: CatalogScope[], keys: Scope[]): Risk {
-  const order: Risk[] = ["low", "medium", "high", "critical"];
-  return all.filter((s) => keys.includes(s.key)).reduce<Risk>((r, s) => (order.indexOf(s.risk) > order.indexOf(r) ? s.risk : r), "low");
 }
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
