@@ -6,7 +6,8 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { brandText } from "@/lib/brand";
 import { SCOPE_INFO, type Agent, type LedgerEntry, type Scope } from "./api";
-import { SourceChip, checkLabel, plain } from "./parts";
+import { checkLabel, plain } from "./parts";
+import { EntryDetail, duration } from "./ledger-detail";
 
 /** run.finished carries the run's counts as an object ({searched, enriched, shortlisted, elapsed_ms}), not a sentence. */
 function runSummary(p: Record<string, unknown>): string | undefined {
@@ -15,11 +16,11 @@ function runSummary(p: Record<string, unknown>): string | undefined {
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   const o = s && typeof s === "object" ? (s as Record<string, unknown>) : {};
   const shortlisted = n(o.shortlisted) ?? (Array.isArray(p.shortlist) ? p.shortlist.length : undefined);
-  const searched = n(o.searched), enriched = n(o.enriched), ms = n(o.elapsed_ms);
+  const searched = n(o.searched), enriched = n(o.enriched), ms = n(p.elapsed_ms) ?? n(o.elapsed_ms);
   const parts = [
     shortlisted !== undefined && `${shortlisted} shortlisted${searched ? ` from ${searched} found` : ""}`,
     enriched && `${enriched} checked against Crustdata`,
-    ms && `took ${ms < 60_000 ? `${Math.max(1, Math.round(ms / 1000))}s` : `${Math.round(ms / 60_000)} min`}`,
+    ms !== undefined && `took ${duration(ms)}`,
   ].filter(Boolean);
   return parts.length ? parts.join(", ") : undefined;
 }
@@ -190,7 +191,7 @@ export function describe(e: LedgerEntry, names: Map<string, string>): Line {
     case "run.started":
       return { cat, noise, tone: "neutral", text: <>{who} started a candidate search</>, detail: p.brief ? `“${String(p.brief).split("\n")[0]}”` : undefined };
     case "run.finished":
-      return { cat, noise, tone: "ok", text: <>{who} finished a candidate search</>, detail: runSummary(p) };
+      return { cat, noise, tone: "ok", text: <>{who} finished a candidate search{typeof (p.understood as { role?: unknown } | undefined)?.role === "string" ? <> for {String((p.understood as { role: string }).role)}</> : null}</>, detail: runSummary(p) };
     case "campaign.started":
       return { cat, noise, tone: "neutral", text: <>{who} started a hiring campaign with {String(p.candidates ?? "")} candidates</>, detail: p.brief ? `“${String(p.brief).split("\n")[0]}”` : undefined };
     case "offer.signed":
@@ -257,8 +258,6 @@ export function LedgerTimeline({
   );
 }
 
-// Agaxes' own fields (issuer key, passport) sort after the Crustdata citations, which are the evidence.
-const isInternal = (endpoint: string) => endpoint.startsWith("countersign/") || endpoint === "passport";
 
 const DOT: Record<Tone, string> = { ok: "bg-verified", bad: "bg-contradicted", warn: "bg-flag", neutral: "bg-border-strong" };
 const when = (ts: string) => new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -272,27 +271,21 @@ function EntryRow({ e, names, firstBad, nested }: { e: LedgerEntry; names: Map<s
       <div className="flex items-start gap-3">
         <span className={cn("mt-[7px] size-2 shrink-0 rounded-full", broken ? "bg-contradicted" : DOT[line.tone])} />
         <div className="min-w-0 flex-1">
-          <p className={cn("text-[13px] leading-snug", nested && "text-[12.5px]")}>{line.text}</p>
-          {line.detail && <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{line.detail}</p>}
+          <p className={cn("cursor-pointer text-[13px] leading-snug", nested && "text-[12.5px]")} onClick={() => setOpen(!open)}>{line.text}</p>
+          {line.detail && <p className="mt-0.5 break-words text-[12.5px] leading-snug text-muted-foreground">{line.detail}</p>}
           {e.actor?.email && !nested && <p className="mt-0.5 text-[11.5px] text-faint">by {e.actor.email}{e.actor.role ? ` (${e.actor.role})` : ""}</p>}
           {broken && e.seq === firstBad && <p className="mt-1 text-[12px] font-[510] text-contradicted">The chain breaks here: this entry or the one before it was changed.</p>}
-          {open && (
-            <div className="mt-2 space-y-1.5 rounded-md border border-border bg-elevated px-3 py-2 font-mono text-[10.5px] text-muted-foreground">
-              <p>#{e.seq} · {e.kind} · {e.ts}</p>
-              <p className="break-all">hash {e.hash}</p>
-              <p className="break-all">prev {e.prev_hash}</p>
-              {e.sources.length > 0 && <div className="flex flex-wrap gap-1.5 pt-0.5 font-sans">{[...e.sources].sort((a, b) => Number(isInternal(a.endpoint)) - Number(isInternal(b.endpoint))).map((s, i) => <SourceChip key={i} source={s} />)}</div>}
-            </div>
-          )}
         </div>
         <span className="flex shrink-0 items-center gap-1">
           <span className="text-[11.5px] tabular-nums text-faint" title={e.ts}>{when(e.ts)}</span>
-          <button onClick={() => setOpen(!open)} aria-expanded={open} title="Details: hash, ids and sources"
+          <button onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide details" : "What happened, what was checked, and the sources"}
             className="grid size-6 place-items-center rounded text-faint hover:bg-hover hover:text-foreground">
             <ChevronRight className={cn("size-3.5 transition", open && "rotate-90")} />
           </button>
         </span>
       </div>
+      {/* Full width under the row (indented past the dot on wider screens), so it isn't squeezed beside the time on a phone. */}
+      {open && <div className="sm:pl-5"><EntryDetail e={e} names={names} /></div>}
     </li>
   );
 }

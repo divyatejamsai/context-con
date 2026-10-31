@@ -20,6 +20,7 @@ import asyncio
 import hashlib
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
@@ -66,6 +67,84 @@ def _err(step: str, message: str) -> dict:
 def _failures(v: Verdict) -> str:
     bad = [f"{c.name} ({c.status}): {c.detail}" for c in v.checks if c.status != "pass"]
     return "; ".join(bad) or "no checks ran"
+
+
+def _dedupe(sources: list[dict]) -> list[dict]:
+    """Many candidates cite the same field; keep one of each (endpoint, field, url)."""
+    seen, out = set(), []
+    for x in sources:
+        k = (x.get("endpoint"), x.get("field"), x.get("url"))
+        if k not in seen:
+            seen.add(k)
+            out.append(x)
+    return out
+
+
+def _guard_reason(g: dict) -> str | None:
+    bad = [c for c in g.get("checks") or [] if c.get("status") != "pass"]
+    return (bad[0].get("detail") or bad[0].get("name")) if bad else None
+
+
+class RunStory:
+    """Collects the parts of a run a reader of the ledger needs: the reading of the brief, each search and its count,
+    and the final tiers. Kept small: names, scores and short reasons, never whole profiles."""
+
+    CRITERIA_KEYS = ("role", "title_variants", "seniority", "skills", "locations", "company_preferences", "must_haves",
+                     "nice_to_haves", "min_years", "schools", "degrees", "education_note")
+
+    def __init__(self) -> None:
+        self.criteria: dict = {}
+        self.assumptions: list[str] = []
+        self.searches: list[dict] = []
+        self.tiers: dict = {}
+        self.notes: list[str] = []
+
+    def see(self, d: dict) -> None:
+        data = d.get("data") or {}
+        if d.get("type") == "error":
+            self.notes.append(str(d.get("message") or "")[:200])
+        if d.get("type") != "step":
+            return
+        step = d.get("step")
+        if step == "parse" and data.get("criteria"):
+            c = data["criteria"]
+            self.criteria = {k: c[k] for k in self.CRITERIA_KEYS if c.get(k) not in (None, "", [])}
+        elif step == "parse" and data.get("assumptions"):
+            self.assumptions += [str(a) for a in data["assumptions"]][:8]
+        elif step == "search" and "filters" in data:
+            self.searches.append({"level": data.get("level"), "strategy": data.get("strategy"), "filters": data.get("filters"),
+                                  "count": None})
+        elif step == "search" and "count" in data:
+            for s in reversed(self.searches):
+                if s.get("level") == data.get("level"):
+                    s["count"] = data["count"]
+                    break
+        elif step == "rank" and ("shortlist" in data or "order" in data):
+            self.tiers = {k: data.get(k) for k in ("order", "shortlist", "near_miss", "threshold") if data.get(k) is not None}
+
+    def payload(self, brief: str, candidates: dict, guarded: dict, guard_why: dict, sent: dict, elapsed_ms: int) -> dict:
+        short, near = set(self.tiers.get("shortlist") or []), set(self.tiers.get("near_miss") or [])
+        order = self.tiers.get("order") or sorted(candidates, key=lambda i: -(candidates[i].get("score") or 0))
+        people = []
+        for i in [*order, *[i for i in candidates if i not in order]]:
+            c = candidates.get(i)
+            if not c:
+                continue
+            claims = c.get("claims") or []
+            people.append({
+                "id": i, "name": c.get("name"), "title": c.get("title"), "company": c.get("company"),
+                "score": c.get("score"),
+                "tier": "shortlist" if i in short else "near_miss" if i in near else "below" if self.tiers else "shortlist",
+                "reasons": [r.get("text") for r in (c.get("reasons") or [])[:3] if r.get("text")],
+                "flags": [str(f) for f in (c.get("flags") or [])[:3]],
+                "claims": {k: sum(1 for x in claims if x.get("status") == k) for k in ("verified", "contradicted", "unverifiable")},
+                **({"guard": guarded[i]} if i in guarded else {}),
+                **({"guard_reason": guard_why[i]} if guard_why.get(i) else {}),
+                **({"sent": sent[i]} if i in sent else {}),
+            })
+        return {"brief": brief[:1000], "understood": self.criteria, "assumptions": self.assumptions,
+                "searches": self.searches, "threshold": self.tiers.get("threshold"), "candidates": people[:25],
+                "notes": self.notes[:5], "elapsed_ms": elapsed_ms}
 
 
 def _subject(c: dict, passport: Passport, role: str | None) -> str:
@@ -125,8 +204,11 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: 
     summary: dict = {}
     done_ev: dict | None = None
     brief_role: dict = {}
+    story = RunStory()
+    t0 = time.monotonic()
     async for ev in run(brief, client=client):
         d = ev.model_dump(mode="json")
+        story.see(d)
         if d["type"] == "step" and d.get("step") == "parse" and (d.get("data") or {}).get("criteria"):
             brief_role = d["data"]["criteria"]
         if d["type"] == "candidate":
@@ -197,11 +279,16 @@ async def run_as_agent(brief: str, agent_id: str, client: Any = None, autosend: 
         contacts_task.cancel()
 
     sources = [cl.get("source") for c in candidates.values() for cl in c.get("claims") or [] if cl.get("source")]
+    guard_why = {c["id"]: (c.get("guard") or {}).get("error") or _guard_reason(c.get("guard") or {}) for c in todo
+                 if guarded.get(c["id"]) == "block"}
     entry = ledger.append("run.finished", {
         "agent_id": agent_id, "brief_sha256": brief_sha, "summary": summary,
         "shortlist": [{"id": i, "name": candidates[i].get("name"), "score": candidates[i].get("score")} for i in shortlist if i in candidates],
         "guard": guarded, "sent": sent,
-    }, sources[:200])
+        # The run in plain terms, so the ledger can tell its story without the event stream: what was asked, how it was
+        # read, what was searched, and every decision with its reason.
+        **story.payload(brief, candidates, guarded, guard_why, sent, elapsed_ms=int((time.monotonic() - t0) * 1000)),
+    }, _dedupe(sources)[:200])
     if out_of_credits_since(started):  # lookups failed part-way: the shortlist and checks are incomplete
         yield _err("crustdata", OUT_OF_CREDITS)
     if done_ev:

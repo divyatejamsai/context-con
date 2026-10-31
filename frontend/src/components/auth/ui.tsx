@@ -7,14 +7,6 @@ import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
 
-export function Logo() {
-  return (
-    <span className="grid size-6 place-items-center rounded-[5px] bg-foreground">
-      <Check className="size-3.5 text-background" strokeWidth={3} />
-    </span>
-  );
-}
-
 /** Two-column auth layout: the form on the left, what the workspace gives you on the right. */
 export function AuthShell({ children, aside, switchTo }: { children: React.ReactNode; aside?: React.ReactNode; switchTo?: "login" | "signup" }) {
   return (

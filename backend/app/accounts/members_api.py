@@ -36,7 +36,9 @@ class RoleBody(BaseModel):
 
 
 def _session(p: Principal) -> Principal:
-    if not p.scoped:
+    # Any signed-in user with a workspace, including the platform operator in its own company. The admin token and
+    # open access have no workspace.
+    if p.via != "session" or not p.workspace_id:
         raise HTTPException(400, "log in as a workspace user: the admin token isn't tied to a workspace")
     return p
 
