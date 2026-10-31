@@ -3,7 +3,7 @@
 > Living handover doc. Anyone (human or AI agent) picking this up should be able to continue from here alone.
 > Update it every time a decision is made or a milestone is hit. Newest entries go at the top of each log.
 
-Last updated: 2026-10-31 ~10:28 IST
+Last updated: 2026-10-31 ~10:35 IST (wall clock; earlier timestamps in this doc ran ahead and are approximate)
 
 ---
 
@@ -90,6 +90,10 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| 10:43 | Ranker is deterministic and weighted (LLM only rewrites reason text, optional) | Reproducible scores; judges want decisions that stay the same however the case is worded | WS3 |
+| 10:35 | Demo brief = B1 (payments backend, Bangalore) | Indian fintech is dense in Crustdata, so the demo returns rich results | WS5 |
+| 10:35 | Seeded fakes are built from real Person Enrich fixtures, with lie types: stale_current_job, inflated_title, fake_employer, stretched_tenure, wrong_location | Lies must be disprovable from the graph | WS5 |
+| 10:35 | Standard env var names: CRUSTDATA_MODE, LLM_MODE, GEMINI_FAST_MODEL, GEMINI_SMART_MODEL | Avoid naming drift between workstreams | Claude (doc owner) |
 | 10:25 | Split build into 5 parallel workstreams (WS1-WS5) with fixed folder ownership and shared interfaces | User wants parallel work; ownership avoids merge conflicts | dummyanaxes |
 | 10:12 | LLM = Gemini on Vertex AI via ADC; repo = divyatejamsai/context-con | User choice | dummyanaxes |
 | 10:05 | Stack: Python/FastAPI agent + Next.js UI, SSE streaming, cache/replay mode | 2-person split, UI needed for hiring demo, replay protects demo | dummyanaxes + Claude |
@@ -99,6 +103,18 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 4. Progress log
 | Time (IST) | What happened |
 |---|---|
+| ~10:44 | **All 6 branches merged into `main`** (ws/crustdata, ws/pipeline, ws/verify, ws/ui, ws/demo). Clean merges, 30 backend tests pass in replay and dev modes. Every workstream should now rebase on `main`. Cloud pushes work again |
+| ~10:42 | WS3 fixed 2 real-data bugs: stage now comes from the latest priced round in `funding.milestones` (Razorpay's `last_round_type` is `secondary_market`), and `year_founded` is an int year, not an epoch. `web_search` links are opaque `google.com/goto?url=` tokens, so the verifier prefers direct URLs |
+| ~10:37 | Merged `ws/crustdata` into `integrate`: 26 backend tests pass in both dev and replay modes |
+| ~10:34 | WS1: Crustdata client live-tested on the Mac, all 8 endpoints OK, pushed `ws/crustdata` (6c4c0e8) |
+| ~10:35 | Repo made public. All workstreams combined on local branch `integrate` (commit 024338c, 16 backend tests pass in mock/dev). Push from the cloud is refused until the Claude GitHub App gets access to `context-con`. **Public repo: never commit keys, `.env`, or GCP project details** |
+| ~10:33 | WS4: UI done, replay + live modes, works against WS2 backend in mock/dev |
+| 10:47 | WS5: seeded fakes now emit `<slug>.person.json` (real enrich record + `claimed`). `check_fakes.py` caught 8/8 planted lies with 0 false positives (offline, on WS3 dev data). Waiting on real Person Enrich fixtures from WS1 |
+| 10:46 | Crustdata allowed in the cloud environment; GitHub linked, but the Claude GitHub App can't see private repo `context-con` yet, so the user is adding it under repository access |
+| 10:43 | WS3: verifier + ranker done, integrated with WS2 pipeline on dev data (16/16 tests) |
+| 10:40 | WS2: `/api/run` SSE end to end in mock mode (9 tests pass); fallback verifier in place |
+| 10:34 | Pushed CONTEXT.md workstreams update: commit de76200 on main |
+| 10:35 | WS2 finished schemas.py, llm.py and run.jsonl. WS5 finished briefs, seeded-fakes generator, script v1 and run steps. Neither is pushed yet (cloud threads have no GitHub access) |
 | 10:27 | First push to GitHub: commit 18c9e38 on main (CONTEXT.md, README, .gitignore, .env.example). `.env` with Crustdata key created on Sai's Mac (gitignored, chmod 600). TODO: set GOOGLE_CLOUD_PROJECT in .env |
 | 10:25 | Workstreams defined (section 7a). Found: Crustdata blocked from cloud sandboxes, so live calls run on Sai's Mac |
 | 10:18 | Crustdata API key + MCP URL received; key kept in local `.env` only. Repo cloned, first push of docs |
@@ -233,6 +249,34 @@ async def verify_candidate(person: dict, company: dict | None, criteria: Criteri
 # backend/app/verify/ranker.py
 async def rank_candidate(person: dict, claims: list[Claim], criteria: Criteria) -> tuple[int, list[Reason]]  # every Reason cites claim ids
 ```
+
+### Contract additions (logged 10:35 IST, all backward compatible)
+- **Env vars (all workstreams use these names):** `CRUSTDATA_MODE` = `live | cache | replay` (default `cache`), `LLM_MODE` = `live | mock`, `GEMINI_FAST_MODEL` (default `gemini-2.5-flash`), `GEMINI_SMART_MODEL` (default `gemini-2.5-pro`). Python deps go in `backend/requirements.txt` (owned by WS2).
+- **WS2:** event models `StepEvent / CandidateEvent / ErrorEvent / DoneEvent` live in `schemas.py`. `StepEvent` has optional `data` (the parse step sends `{"criteria": {...}}`). All `Criteria` / `Candidate` fields have defaults. `llm.py` also exports `LLMError` and `is_mock()`.
+- **WS2 to WS1 (10:40):** the orchestrator calls `CrustdataClient(api_key=..., mode=CRUSTDATA_MODE)` and passes `person_search` filters as `{"titles": [one title], "locations": [...], "skills": [...], "seniority": str | None}`, one call per title variant, in parallel. WS1 maps that to the real API filter syntax.
+- **WS2 to WS3 (10:40):** if `verify/` is missing or throws, `app/fallbacks.py` runs a basic verifier/ranker instead. The orchestrator namespaces claim ids per candidate (`k1` -> `c3-k1`), and reasons that cite unknown claim ids are dropped.
+- **WS2 to WS4 (10:40):** extra endpoints `GET /api/run?brief=...` (for EventSource) and `GET /api/replay?delay=0.6` (streams `fixtures/run.jsonl`). The final step event `{"step":"rank","data":{"order":[ids]}}` gives the shortlist order.
+- **`CRUSTDATA_MODE=dev`** = synthetic people, used automatically if `app/crustdata/` isn't present.
+- **WS3 verifier (10:43):** self-reported facts come from `person["claimed"]` (keys: `employer, title, start_date, tenure_years, years_experience, location, company_stage, skills`); otherwise they come from the profile headline. **WS5 seeded fakes must use the `claimed` key.** Facts are checked against Person Enrich employment and Company Enrich, and the employer falls back to `web_search` when the graph has nothing. `verify_candidate` takes an optional `today=` kwarg for tests. It never raises: each Crustdata call has an 8s timeout, and a failed call means that claim is unverifiable. Flags: job change in the last 120 days, recent exit, stale headline, concurrent roles, each contradiction.
+- **WS3 ranker (10:43):** deterministic weights: role 30, skills 25, location 15, company pref 15, experience 15, rescaled to only the factors the brief mentions. Each contradiction costs -12 points, a stale headline -6. `RANK_USE_LLM=1` rewrites the reason text with Gemini and keeps the claim ids.
+- **WS5 to WS2/WS3 (stretch):** `POST /api/verify_resume` with body `{name, profile_url, claims:[{id, claim}]}` returns `list[Claim]` (same Claim type). Powers the "seeded fakes" demo.
+- **WS5 to WS1:** save 3-5 Person Enrich fixtures as `fixtures/crustdata/person_enrich_*.json` plus `fixtures/crustdata/companies.json` (map of company_id to Company Enrich response). These are used to build the final seeded-fake resumes.
+
+### Real Crustdata facts (from WS1's live smoke test on Sai's Mac, ~10:34 IST)
+- All 8 endpoints returned OK live. Client is on branch `ws/crustdata` (6c4c0e8).
+- **Person Enrich is rate-limited to 15 requests/min.** Use `person_enrich_many(urls)`, which batches 25 per call.
+- Enrich and identify return the record itself, plus `_match` and `_source`.
+- Field paths:
+  - person: `basic_profile.{name, headline, current_title, location.city/country}`
+  - jobs: `experience.employment_details.{current,past}[].{title, name, crustdata_company_id, start_date, end_date, seniority_level}`
+  - LinkedIn URL: `social_handles.professional_network_identifier.profile_url`
+  - skills: `skills.professional_network_skills[]`
+  - company stage: `funding.{last_round_type, total_investment_usd}`. Size: `headcount.total`
+- Gotchas: `web_search` URLs are Google redirect links (unwrap before citing), and `web_fetch` content is raw HTML.
+- Person-level fixtures are **not committed**, because the repo is public. That's the user's decision, pending.
+
+### Branches (all on GitHub, merged to `main` at ~10:44 IST)
+`ws/crustdata` (WS1), `ws/pipeline` (WS2), `ws/verify` (WS3), `ws/ui` (WS4), `ws/demo` (WS5). Keep working on your `ws/*` branch, rebased on `main`, and merge again at each checkpoint.
 
 ### The workstreams
 
