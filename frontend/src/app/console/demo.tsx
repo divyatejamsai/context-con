@@ -152,7 +152,7 @@ export function DemoView({ onChanged, onOpen }: { onChanged: () => void; onOpen:
     src.onerror = () => {
       src.close();
       setPhase((p) => (p === "running" ? "error" : p));
-      setError((e) => e ?? (got ? "The stream was cut off before the story finished." : "Couldn't start a run. Another run may be going (the backend allows one at a time), or the backend is down."));
+      setError((e) => e ?? (got ? "The stream was cut off before the story finished." : "Couldn't start a run. Another run may be going (the backend allows one at a time), the backend may need the admin token (key button, top right), or it is down."));
     };
   }, [claudeCode, onChanged]);
 
