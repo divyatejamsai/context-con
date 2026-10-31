@@ -28,7 +28,7 @@ from pydantic import BaseModel
 
 from .. import llm
 from ..schemas import Claim, Criteria, Source
-from ..verify.profile import load_person, same_company
+from ..verify.profile import Job, Profile, load_person, norm, parse_date, same_company, seniority_rank, title_similarity
 from ..verify.verifier import verify_candidate
 from . import ledger
 from .graph import Graph
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 CALL_TIMEOUT_S = float(os.getenv("GUARD_CALL_TIMEOUT", "8"))
+TENURE_TOLERANCE_YEARS = 0.5  # "2 years at X" passes for 1.5 to 2.5 years
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -59,25 +60,90 @@ class BodyClaims(BaseModel):
     years_experience: float | None = None
     location: str | None = None
     company_stage: str | None = None
+    other: list[str] = []  # LLM only: other factual claims about the recipient that fit no field (checked as unverifiable)
+
+    def facts(self) -> list[str]:
+        return [k for k, v in self.model_dump(exclude={"other"}).items() if v not in (None, "")]
 
 
-_CO = r"([A-Z][\w&\-]*(?:\.[A-Za-z]+)?(?:\s+[A-Z][\w&\-]*){0,3})"
+# A capitalised or camelCase ("dataZen") word; a trailing "." only on abbreviations ("Pvt.", "Inc."), not sentence ends.
+_WORD = r"(?:[A-Z0-9]|[a-z]+[A-Z])[\w&\-]*(?:(?<=Pvt)\.|(?<=Ltd)\.|(?<=Inc)\.|(?<=Co)\.|(?<=Jr)\.|(?<=Sr)\.|(?<=Corp)\.)?"
+_CO_GREEDY = rf"({_WORD}(?:\s+(?:{_WORD}|&)){{0,4}})"
 _NUM = r"(\d+(?:\.\d+)?)\+?\s*(?i:years?|yrs?)"
+_TITLE = r"([A-Z][\w.&/()\-]*(?:\s+[\w.&/()\-|]+){0,7}?)"
 _PATTERNS: list[tuple[str, tuple[str, ...]]] = [
-    (rf"{_NUM}\s+(?i:at|with)\s+{_CO}", ("tenure_years", "employer")),
+    (rf"{_NUM}\s+(?i:at|with)\s+{_CO_GREEDY}", ("tenure_years", "employer")),
+    (rf"\b(?i:at|with)\s+{_CO_GREEDY}\s+(?i:for)\s+(?i:(?:almost|nearly|over|about|around)\s+)?{_NUM}", ("employer", "tenure_years")),
     (rf"{_NUM}\s+(?:of\s+)?(?:experience|exp\b|in the industry)", ("years_experience",)),
-    (rf"\b(?i:you(?:'re| are)|your role as|as)\s+(?i:an?\s+|the\s+)?([A-Z][\w/&\-]*(?:\s+[A-Z][\w/&\-]*){{0,4}})\s+at\s+{_CO}", ("title", "employer")),
-    (rf"\b(?i:at|with|joined)\s+{_CO}\s+(?i:since)\s+((?:19|20)\d\d(?:-\d\d)?)", ("employer", "start_date")),
-    (rf"\b(?i:your\s+(?:work|time|role|team|journey|tenure)\s+at)\s+{_CO}", ("employer",)),
-    (rf"\b(?i:you(?:'re| are)\s+(?:now\s+)?(?:at|with))\s+{_CO}", ("employer",)),
+    (rf"\b(?i:you(?:'re| are)|your role as|as)\s+(?i:an?\s+|the\s+)?{_TITLE}\s+at\s+{_CO_GREEDY}", ("title", "employer")),
+    (rf"\b(?i:at|with|joined)\s+{_CO_GREEDY}\s+(?i:since|in)\s+((?:19|20)\d\d(?:-\d\d)?)", ("employer", "start_date")),
+    (rf"\b(?i:your\s+(?:work|time|role|team|journey|tenure)\s+at)\s+{_CO_GREEDY}", ("employer",)),
+    (rf"\b(?i:you(?:'ve| have)\s+been\s+(?:building|working)\s+at)\s+{_CO_GREEDY}", ("employer",)),
+    (rf"\b(?i:you(?:'re| are)\s+(?:now\s+)?(?:at|with))\s+{_CO_GREEDY}", ("employer",)),
     (rf"\b(?i:you(?:'re| are)\s+(?:based\s+)?in)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)", ("location",)),
-    (rf"\b{_CO}\s+(?:is|being)\s+(?:a\s+|an\s+)?((?i:(?:pre-?)?seed|series [a-j]|public|ipo'?d))\b", ("employer", "company_stage")),
+    (rf"\b{_CO_GREEDY}\s+(?:is|being)\s+(?:a\s+|an\s+)?((?i:(?:pre-?)?seed|series [a-j]|public|ipo'?d))\b", ("employer", "company_stage")),
 ]
+
+# Same city, different spelling: the claim is rewritten to the record's spelling before checking.
+CITY_ALIASES = [
+    {"bengaluru", "bangalore", "blr"}, {"mumbai", "bombay"}, {"gurugram", "gurgaon"}, {"chennai", "madras"},
+    {"kolkata", "calcutta"}, {"new delhi", "delhi"}, {"thiruvananthapuram", "trivandrum"}, {"kochi", "cochin"},
+    {"mysuru", "mysore"}, {"pune", "poona"}, {"vadodara", "baroda"}, {"puducherry", "pondicherry"},
+]
+
+
+def _canon_city(claimed: str, record: str | None) -> str:
+    c = claimed.strip().lower()
+    for group in CITY_ALIASES:
+        if c in group:
+            for alt in group:
+                if record and re.search(rf"\b{re.escape(alt)}\b", record.lower()):
+                    return alt.title()
+    return claimed
+
+
+_NUM_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
+                                         "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+_NUM_WORDS_RE = re.compile(rf"\b({'|'.join(_NUM_WORDS)})\s+(years?|yrs?)\b", re.I)
+
+# Safety net: wording that usually carries a checkable fact. If the extractor returned nothing for that kind of fact,
+# the claim was missed and the check is unverifiable (block), not a silent pass.
+_SIGNALS: list[tuple[str, tuple[str, ...], str]] = [
+    (r"\b(?:\d+(?:\.\d+)?|" + "|".join(_NUM_WORDS) + r")\+?\s+(?:years?|yrs?|months?)\b", ("tenure_years", "years_experience", "start_date"),
+     "a length of time"),
+    (r"\b(?:19|20)\d\d\b", ("start_date", "tenure_years"), "a year"),
+    (r"\b(?:director|vp|vice president|head of|chief|cto|ceo|cfo|coo|founder|principal|staff|senior|lead|manager)\b",
+     ("title",), "a job title"),
+    (r"\b(?:live|living|based|located|relocated|moved)\s+(?:in|to)\b|\byou(?:'re| are) (?:from|in)\b", ("location",), "a location"),
+    (r"\b(?:joined|started at|founded|work(?:ing)? at|over at|been at|role at|team at)\b", ("employer", "start_date", "tenure_years"),
+     "an employer"),
+]
+_SECOND_PERSON = re.compile(r"\b(?:you|your|you're|you've|yours)\b", re.I)
+# Pitches ("you'd be joining", "you could work from") are about the future, not facts about the recipient.
+_HYPOTHETICAL = re.compile(r"\byou(?:'d| would| could|'ll| will| might| can)\b|\b(?:would|could|will|can) you\b", re.I)
+_FACTUAL_YOU = re.compile(r"\byou(?:'re|'ve| are| have| were| joined| work| led| lead| built| run| spent| started)\b|\byour\b", re.I)
+_FIRST_PERSON_LEAD = re.compile(r"^\s*(?:i|i'm|i've|we|we're|we've|our|my)\b", re.I)
+
+
+def missed_claims(body: str, stated: BodyClaims) -> list[str]:
+    """Kinds of fact a second-person sentence seems to state that the extractor did not return."""
+    got = set(stated.facts())
+    out: list[str] = []
+    for sent in re.split(r"(?<=[.!?])\s+|\n+", body):
+        if not _SECOND_PERSON.search(sent) or _FIRST_PERSON_LEAD.search(sent):
+            continue
+        if _HYPOTHETICAL.search(sent) and not _FACTUAL_YOU.search(sent):
+            continue
+        for pat, kinds, label in _SIGNALS:
+            if re.search(pat, sent, re.I) and not got & set(kinds):
+                out.append(f"{label} in \"{sent.strip()[:90]}\"")
+    return list(dict.fromkeys(out))
 
 
 def extract_claims_rules(body: str) -> BodyClaims:
     """Deterministic extractor for second-person facts. Used alone in LLM_MODE=mock, and to fill LLM gaps."""
     found: dict[str, Any] = {}
+    body = _NUM_WORDS_RE.sub(lambda m: f"{_NUM_WORDS[m.group(1).lower()]} {m.group(2)}", body)
     for pat, keys in _PATTERNS:
         m = re.search(pat, body, re.I if keys == ("years_experience",) else 0)
         if not m:
@@ -85,7 +151,7 @@ def extract_claims_rules(body: str) -> BodyClaims:
         for k, v in zip(keys, m.groups()):
             if k in found or v is None:
                 continue
-            v = v.strip().rstrip(".!,")
+            v = re.sub(r"\s+(?:and|&)$", "", v.strip().rstrip(".!,"))
             found[k] = float(v) if k in ("tenure_years", "years_experience") else v
     return BodyClaims(**found)
 
@@ -100,25 +166,28 @@ Only fill a field when the message states it; leave the rest null.
   years_experience: total career years, as stated
   location: where the message says they are based
   company_stage: funding stage the message attributes to their employer (seed, series b, public...)
+  other: any OTHER checkable fact the message asserts about the recipient's career that fits none of the fields
+         above (e.g. "you led the payments team", "you were at Google before"), each as a short phrase. Not opinions.
 
 Message:
 \"\"\"{body}\"\"\""""
 
 
-async def extract_claims(body: str, recipient_name: str = "the recipient") -> BodyClaims:
+async def extract_claims(body: str, recipient_name: str = "the recipient") -> tuple[BodyClaims, bool]:
+    """(claims, used_llm). Gemini when available, with the rule extractor filling gaps; rules alone otherwise."""
     rules = extract_claims_rules(body)
     if llm.is_mock():
-        return rules
+        return rules, False
     try:
         got = await llm.generate_json(_EXTRACT_PROMPT.format(name=recipient_name, body=body), BodyClaims)
-    except Exception as e:  # LLMError or anything else: the rule extractor still runs
+    except Exception as e:  # LLMError or anything else: rules + the missed-claim safety net take over
         log.warning("guard: LLM claim extraction failed, using rules only: %s", e)
-        return rules
+        return rules, False
     merged = got.model_dump()
-    for k, v in rules.model_dump().items():
+    for k, v in rules.model_dump(exclude={"other"}).items():
         if merged.get(k) in (None, "") and v is not None:
             merged[k] = v
-    return BodyClaims(**merged)
+    return BodyClaims(**merged), True
 
 
 def _describe(k: str, c: BodyClaims) -> str:
@@ -206,14 +275,49 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
             detail += f"; now {now.title + ' at ' if now.title else 'at '}{now.company}"
         checks.append(Check(id=cid, name=cname, status="fail", detail=detail, source=_src(rec, fld, url)))
 
-    stated = await extract_claims(body, who)
-    keys = [k for k, v in stated.model_dump().items() if v not in (None, "")]
-    if not keys:
+    stated, used_llm = await extract_claims(body, who)
+    keys = stated.facts()
+    stale = _former_employers_named(body, pr, stated.employer)
+    # With Gemini, its "other" list names facts that fit no field; without it, the keyword safety net does.
+    missed = [f'"{o}"' for o in stated.other if o.strip()] if used_llm else missed_claims(body, stated)
+    if not keys and not stale and not missed:
         checks.append(Check(id="g3", name="claims_in_body_true", status="pass",
                             detail="The draft states no checkable facts about the recipient", source=_src(rec, None, url)))
         return checks
+    n0 = len(checks)
+    for j in stale:
+        checks.append(Check(id=f"g{len(checks) + 2}", name="claims_in_body_true", status="fail",
+                            detail=f"Draft mentions {j.company}, which {who} left" + (f" on {j.end.isoformat()}" if j.end else "")
+                            + (f"; now at {pr.current[0].company}" if pr.current else "") + ". Stale.",
+                            source=_src(rec, f"{j.path}.end_date", url)))
+    for m in missed:
+        checks.append(Check(id=f"g{len(checks) + 2}", name="claims_in_body_true", status="unverifiable",
+                            detail=f"The draft states {m}, which the guard could not check against the record. Reword or remove it.",
+                            source=Source(endpoint="guard/extract", field="body")))
 
-    claimed = {k: getattr(stated, k) for k in keys}
+    if stated.location:
+        stated.location = _canon_city(stated.location, pr.location)
+    job, job_current = _job_for_claim(pr, stated.employer)
+    n = len(checks) - n0 + 2
+
+    def add(status: str, text: str, detail: str, source: Source | None) -> None:
+        nonlocal n
+        n += 1
+        checks.append(Check(id=f"g{n}", name="claims_in_body_true", status=status, detail=f"{text}. {detail}", source=source))
+
+    # Tenure, start date and title are checked against the job the draft names (a concurrent or past role counts).
+    own = {k for k in ("tenure_years", "start_date", "title") if k in keys}
+    for k in ("tenure_years", "start_date", "title"):
+        if k in own:
+            status, detail, fld = _job_claim(k, stated, job, job_current, today)
+            add(status, f"Draft says {who} {_describe(k, stated)}", detail, _src(rec, fld, url))
+
+    rest = [k for k in keys if k not in own]
+    if "employer" in rest and own and job is not None and job_current:
+        rest.remove("employer")  # the role-specific check above already confirmed the employer
+    if not rest:
+        return checks
+    claimed = {k: getattr(stated, k) for k in rest}
     claimed["_source"] = "the draft message"
     try:
         found, _ = await verify_candidate({**rec, "claimed": claimed}, None, Criteria(), client, today=today)
@@ -225,22 +329,79 @@ async def _recipient_checks(to: dict, body: str, graph: Graph, client: Any, toda
         k = _claim_key(c)
         if k and k not in by_key:
             by_key[k] = c
-    for n, k in enumerate(keys, 1):
-        if k == "start_date" and "tenure_years" in keys:
-            continue  # both answered by the same tenure claim
-        if k == "employer" and "tenure_years" in keys and by_key.get(k) and by_key[k].status == "verified":
-            continue  # "5 years at Razorpay": the tenure check covers the employer, one line is enough
-        c = by_key.get("tenure" if k in ("start_date", "tenure_years") else k)
+    for k in rest:
+        c = by_key.get(k)
         text = f"Draft says {who} {_describe(k, stated)}"
         if c is None:
-            checks.append(Check(id=f"g{n + 2}", name="claims_in_body_true", status="unverifiable",
-                                detail=f"{text}: nothing in the record to check it against", source=_src(rec, None, url)))
+            add("unverifiable", text, "Nothing in the record to check it against", _src(rec, None, url))
             continue
         status = {"verified": "pass", "contradicted": "fail"}.get(c.status, "unverifiable")
-        evidence = c.evidence if c.status != "verified" else f"record: {c.claim}"
-        checks.append(Check(id=f"g{n + 2}", name="claims_in_body_true", status=status,
-                            detail=f"{text}. {evidence}", source=c.source))
+        add(status, text, c.evidence if c.status != "verified" else f"Record: {c.claim}", c.source)
     return checks
+
+
+def _former_employers_named(body: str, pr: Profile, claimed_employer: str | None) -> list[Job]:
+    """Past employers the draft names (when the recipient has no current role there). The claimed employer is
+    handled by the employer check, so it is skipped here."""
+    out: list[Job] = []
+    for j in pr.past:
+        if not j.company or any(same_company(j.company, c.company) for c in pr.current):
+            continue
+        if claimed_employer and same_company(claimed_employer, j.company):
+            continue
+        key = re.sub(r"\s+(?:pvt|private|ltd|limited|inc|llc|technologies|technology|solutions|software)\b.*$", "", j.company, flags=re.I).strip()
+        if len(key) >= 3 and re.search(rf"(?<![\w-]){re.escape(key)}(?![\w-])", body, re.I) and j not in out:
+            out.append(j)
+    return out
+
+
+def _job_for_claim(pr: Profile, employer: str | None) -> tuple[Job | None, bool]:
+    if not employer:
+        return (pr.current[0], True) if pr.current else (None, False)
+    for j in pr.current:
+        if same_company(employer, j.company):
+            return j, True
+    for j in pr.past:
+        if same_company(employer, j.company):
+            return j, False
+    return None, False
+
+
+def _job_claim(k: str, c: BodyClaims, job: Job | None, current: bool, today: date) -> tuple[str, str, str | None]:
+    """(status, detail, source field) for a tenure / start date / title claim about one specific role."""
+    if job is None:
+        return "fail" if c.employer else "unverifiable", (f"No role at {c.employer} in the record" if c.employer
+                                                          else "No current role in the record"), "experience.employment_details"
+    if not current:
+        end = f" on {job.end.isoformat()}" if job.end else ""
+        return "fail", f"Stale: they left {job.company}{end}" + (f" (was {job.title})" if job.title else ""), f"{job.path}.end_date"
+    if k == "title":
+        if not job.title:
+            return "unverifiable", f"No title on the {job.company} role", f"{job.path}.title"
+        sim = title_similarity(c.title, job.title)
+        rank = max(seniority_rank(job.title), seniority_rank(job.seniority_level) if job.seniority_level else 0)
+        inflated = seniority_rank(c.title) > rank
+        if inflated:
+            return "fail", f"More senior than the record: '{job.title}' at {job.company}", f"{job.path}.title"
+        if sim >= 0.5 or norm(c.title) in norm(job.title) or norm(job.title) in norm(c.title):
+            return "pass", f"Record: {job.title} at {job.company}", f"{job.path}.title"
+        return "fail", f"Record says '{job.title}' at {job.company}", f"{job.path}.title"
+    if not job.start:
+        return "unverifiable", f"The {job.company} role has no start date", f"{job.path}.start_date"
+    yrs = (today - job.start).days / 365.25
+    since = f"started {job.start.isoformat()} ({yrs:.1f} yrs)"
+    if k == "tenure_years":
+        ok = abs(float(c.tenure_years) - yrs) <= TENURE_TOLERANCE_YEARS
+        return ("pass" if ok else "fail"), f"Record: {job.company} role {since}", f"{job.path}.start_date"
+    m = re.fullmatch(r"((?:19|20)\d\d)(?:-(\d\d))?", str(c.start_date).strip())
+    if not m:
+        d = parse_date(c.start_date)
+        ok = bool(d) and abs((d - job.start).days) <= 62
+    elif m.group(2):
+        ok = (int(m.group(1)), int(m.group(2))) == (job.start.year, job.start.month)
+    else:
+        ok = int(m.group(1)) == job.start.year
+    return ("pass" if ok else "fail"), f"Record: {job.company} role {since}", f"{job.path}.start_date"
 
 
 def _ledger_append(verdict: Verdict, passport: Passport, to: dict, scope: str, body: str) -> str | None:
