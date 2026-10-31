@@ -233,3 +233,67 @@ async def receipt(entry_hash: str):
 @router.post("/receipts/verify")
 async def verify_receipt(r: dict):
     return receipts.verify_receipt(r.get("receipt") or r)
+
+
+# ---- outside agents (signed with the agent's own key; see runtime/external.py) ------------------
+
+class AgentCall(BaseModel):
+    agent_id: str
+    ts: int
+    signature: str
+    task_id: str | None = None
+    text: str = ""
+    done: int | None = None
+    total: int | None = None
+    ok: bool = True
+
+
+class AgentSend(BaseModel):
+    agent_id: str
+    task_id: str
+    to: dict
+    body: str
+    scope: str
+    signature: str  # the agent's signature of the exact body (passport.sign_message), as for Send Guard
+
+
+def _auth(action: str, c: AgentCall) -> dict:
+    from .external import AgentAuthError, authenticate
+    try:
+        return authenticate(action, c.agent_id, c.task_id, c.ts, c.text, c.signature)
+    except AgentAuthError as e:
+        raise HTTPException(401, str(e))
+
+
+@router.post("/agent/claim")
+async def agent_claim(c: AgentCall):
+    from .external import claim
+    return claim(_auth("claim", c), c.task_id)
+
+
+@router.post("/agent/progress")
+async def agent_progress(c: AgentCall):
+    from .external import progress
+    if not c.task_id:
+        raise HTTPException(400, "task_id is required")
+    return progress(_auth("progress", c), c.task_id, c.text, c.done, c.total)
+
+
+@router.post("/agent/complete")
+async def agent_complete(c: AgentCall):
+    from .external import complete
+    if not c.task_id:
+        raise HTTPException(400, "task_id is required")
+    return complete(rt(), _auth("complete", c), c.task_id, c.text, c.ok)
+
+
+@router.post("/agent/send")
+async def agent_send(s: AgentSend):
+    from .external import send
+    from ..agents import registry
+    try:
+        rec = registry.get_agent(s.agent_id)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(401, f"unknown agent {s.agent_id}")
+    # authentication here is the message signature itself: Send Guard's message_signature_valid check fails on a forgery
+    return await send(rt(), rec, s.task_id, s.to, s.body, s.scope, s.signature)

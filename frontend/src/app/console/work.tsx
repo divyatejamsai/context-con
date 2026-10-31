@@ -103,8 +103,7 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
     );
   }
 
-  const live = st.agents.filter((a) => a.status !== "offboarded" && a.runtime !== "external");
-  const outside = st.agents.filter((a) => a.status !== "offboarded" && a.runtime === "external");
+  const live = st.agents.filter((a) => a.status !== "offboarded");
 
   return (
     <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6">
@@ -187,12 +186,6 @@ export function WorkView({ onChanged }: { onChanged?: () => void }) {
           </div>
         ) : (
           <EmptyState title="No AI employees yet">Onboard one in AI employees (or run the guided demo), then give it work here.</EmptyState>
-        )}
-        {outside.length > 0 && (
-          <p className="mt-3 text-[12px] text-muted-foreground">
-            Outside agents ({outside.map((a) => a.name).join(", ")}) run on their own machines and reach Agaxes over MCP.
-            Their checks and sends show up in the ledger. You can suspend them from AI employees.
-          </p>
         )}
       </section>
 
@@ -309,6 +302,9 @@ function AgentCard({ a, busy, kinds, onAssign, onOpen, onPause, onResume, onSusp
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-[620]">{a.name} <span className="font-[450] text-muted-foreground">· {a.role}</span></p>
           <p className="truncate text-[11.5px] text-muted-foreground">for {a.sponsor.name} ({a.sponsor.title}, {a.sponsor.company})</p>
+          {a.runtime === "external" && (
+            <p className="mt-0.5 text-[10.5px] font-[510] text-primary">Outside agent · runs on its own machine, signs every call with its own key</p>
+          )}
         </div>
         <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[11px] font-[510]", s.cls)}>
           <span className={cn("size-1.5 rounded-full", s.dot)} />{s.label}
