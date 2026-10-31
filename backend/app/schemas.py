@@ -23,6 +23,7 @@ class Criteria(BaseModel):
     nice_to_haves: list[str] = Field(default_factory=list)
     raw_brief: str = ""
     min_years: int | None = None  # "5+ yrs" -> 5; WS3's ranker reads it
+    hiring_company: str | None = None  # who is hiring; enables the talent-flow search (where they hire from)
 
 
 class Source(BaseModel):

@@ -313,11 +313,11 @@ class AsOfClient:
     async def person_search(self, filters: dict, limit: int = 25, **extra) -> list[dict]:
         fields = list(dict.fromkeys([*(extra.pop("fields", None) or orchestrator.PERSON_SEARCH_FIELDS), "skills"]))
         try:
-            rows = await self.inner.person_search(widen_to_past(filters), limit=limit * self.search_widen,
+            rows = await self.inner.person_search(widen_to_past(filters), limit=min(100, limit * self.search_widen),
                                                   fields=fields, **extra)
         except Exception as e:  # server refused the widened filter: fall back to today's filter, still re-checked
             log.warning("widened search refused (%s); using the original filter", e)
-            rows = await self.inner.person_search(filters, limit=limit * self.search_widen, fields=fields, **extra)
+            rows = await self.inner.person_search(filters, limit=min(100, limit * self.search_widen), fields=fields, **extra)
         out = []
         for r in rows:
             self.stats["search_rows"] += 1
@@ -580,7 +580,8 @@ async def build_openings(client, args) -> list[Opening]:
 
 # =============================================================================================== run
 
-async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose: bool = False) -> dict:
+async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose: bool = False,
+                      talent_flow: bool = True) -> dict:
     """Sourced on one posting, as of the posting date. Returns a private result row (has names)."""
     from app.brief import analyze_brief
     from app.fallbacks import basic_rank, basic_verify
@@ -598,10 +599,13 @@ async def run_opening(client, op: Opening, *, slate: int = DISTRACTORS, verbose:
 
     analysis = await analyze_brief(op.brief())
     crit = analysis.criteria
+    crit.hiring_company = op.company if talent_flow else None
     out["criteria"] = {"role": crit.role, "title_variants": crit.title_variants, "locations": crit.locations,
                        "skills": crit.skills[:8]}
     pool = await orchestrator.search_pool(asof, crit, emit)
     out["pool"] = len(pool)
+    out["feeder_rows"] = sum(1 for p in pool if p.get("_feeder"))
+    out["hire_via_feeder"] = any(p.get("_feeder") and keys_of(p) & hire_keys for p in pool)
     out["asof_search"] = dict(asof.stats)
     in_pool = [p for p in pool if keys_of(p) & hire_keys]
     out["hire_in_pool"] = bool(in_pool)
@@ -1028,7 +1032,8 @@ async def main_async(args) -> int:
                     r = done.get(op.job_id)
                     if r is None:
                         try:
-                            r = await run_opening(client, op, slate=args.slate, verbose=args.verbose)
+                            r = await run_opening(client, op, slate=args.slate, verbose=args.verbose,
+                                                  talent_flow=not args.no_talent_flow)
                         except Exception as e:  # noqa: BLE001
                             log.exception("run failed")
                             r = {"job_id": op.job_id, "company": op.company, "title": op.title, "posted": op.posted,
@@ -1075,6 +1080,7 @@ def main(argv=None) -> int:
     ap.add_argument("--slate", type=int, default=DISTRACTORS)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--fresh", action="store_true", help="ignore earlier results.jsonl")
+    ap.add_argument("--no-talent-flow", action="store_true", help="Sourced without the talent-flow search (ablation)")
     ap.add_argument("--out", default="")
     ap.add_argument("-v", "--verbose", action="store_true")
     return asyncio.run(main_async(ap.parse_args(argv)))

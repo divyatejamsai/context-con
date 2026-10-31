@@ -29,7 +29,8 @@ COMPANY_TIMEOUT = float(os.getenv("COMPANY_TIMEOUT", "6"))    # cap on Company I
 OUTREACH_TIMEOUT = float(os.getenv("OUTREACH_TIMEOUT", "12"))  # slower than this -> template draft
 CANDIDATE_TIMEOUT = float(os.getenv("CANDIDATE_TIMEOUT", "120"))
 SHORTLIST_MIN = int(os.getenv("SHORTLIST_MIN", "40"))  # below this a candidate is shown but not shortlisted
-NEAR_MISS_MIN = int(os.getenv("NEAR_MISS_MIN", "30"))  # [NEAR_MISS_MIN, SHORTLIST_MIN) = near miss, flagged as such
+NEAR_MISS_MIN = int(os.getenv("NEAR_MISS_MIN", "30"))
+TALENT_FLOW = os.getenv("TALENT_FLOW", "1") != "0"  # search the companies the hirer usually hires from
 
 
 # ---- pluggable parts (WS1 / WS3), with fallbacks so the pipeline always runs --------------------
@@ -220,7 +221,83 @@ async def search_pool(client, criteria: Criteria, emit) -> list[dict]:
                              data={"count": len(pool), "level": level}))
         if len(pool) >= MIN_POOL:
             break
+    if getattr(criteria, "hiring_company", None) and TALENT_FLOW:
+        feeders = await feeder_companies(client, criteria.hiring_company, as_of=getattr(client, "cutoff", None))
+        before = len(pool)
+        for p in await feeder_pool(client, criteria, feeders, emit):
+            kept = pool.setdefault(_key(p), p)
+            kept["_feeder"] = True
+        await emit(StepEvent(step="search", message=f"{len(pool) - before} more profiles from talent flow; {len(pool)} total",
+                             data={"count": len(pool)}))
     return list(pool.values())
+
+
+# ---- talent flow: search the companies this employer actually hires from ---------------------------
+
+FEEDERS = int(os.getenv("TALENT_FLOW_FEEDERS", "6"))
+_CUR = "experience.employment_details.current"
+
+
+async def feeder_companies(client, company: str, as_of=None, n: int = FEEDERS) -> list[tuple[str, int]]:
+    """Where did this company's people work right before they joined? [(company, joiners)], most common first.
+    Uses people who joined in the 3 years before `as_of` (default today), so a backtest sees no later hires."""
+    from datetime import date, timedelta
+    from .verify.profile import parse_date, same_company
+    today = as_of or date.today()
+    win = [{"field": f"{_CUR}.name", "type": "(.)", "value": company},
+           {"field": f"{_CUR}.start_date", "type": "=>", "value": (today - timedelta(days=3 * 365)).isoformat()},
+           {"field": f"{_CUR}.start_date", "type": "=<", "value": (today - timedelta(days=45)).isoformat()}]
+    try:
+        rows = await client.person_search({"op": "and", "conditions": win}, limit=100, fields=PERSON_SEARCH_FIELDS)
+    except Exception as e:  # noqa: BLE001
+        log.warning("talent flow: employee search failed (%s)", e)
+        return []
+    counts: dict[str, int] = {}
+    names: dict[str, str] = {}
+    for r in rows or []:
+        jobs = (people.first(r, "experience.employment_details.current") or []) + \
+               (people.first(r, "experience.employment_details.past") or [])
+        jobs = [j for j in jobs if isinstance(j, dict)]
+        here = [j for j in jobs if same_company(j.get("name"), company) and parse_date(j.get("start_date"))]
+        if not here:
+            continue
+        joined = min(parse_date(j["start_date"]) for j in here)
+        before = [j for j in jobs if not same_company(j.get("name"), company) and j.get("name")
+                  and (s := parse_date(j.get("start_date"))) and s < joined]
+        if not before:
+            continue
+        prev = max(before, key=lambda j: parse_date(j.get("start_date")))
+        key = re.sub(r"[^a-z0-9]+", " ", prev["name"].lower()).strip()
+        counts[key] = counts.get(key, 0) + 1
+        names.setdefault(key, prev["name"])
+    ranked = sorted(counts.items(), key=lambda kv: -kv[1])
+    return [(names[k], c) for k, c in ranked[:n]]
+
+
+async def feeder_pool(client, criteria: Criteria, feeders: list[tuple[str, int]], emit) -> list[dict]:
+    """People with the role's title at the companies this employer hires from (location ignored: the company
+    already says where)."""
+    if not feeders:
+        return []
+    from .brief import _strip_seniority
+    titles = list(dict.fromkeys(_strip_seniority(t) for t in (criteria.title_variants or [criteria.role]) if t))[:4]
+    await emit(StepEvent(step="search", message=f"Talent flow: {criteria.hiring_company} hires most often from "
+                         + ", ".join(f"{n} ({c})" for n, c in feeders) + "; searching them...",
+                         data={"feeders": [{"company": n, "joiners": c} for n, c in feeders]}))
+    tleaves = [{"field": f"{_CUR}.title", "type": "(.)", "value": t.lower()} for t in titles]
+    tf = tleaves[0] if len(tleaves) == 1 else {"op": "or", "conditions": tleaves}
+    queries = [{"op": "and", "conditions": [{"field": f"{_CUR}.name", "type": "(.)", "value": n}, tf]} for n, _ in feeders]
+    res = await asyncio.gather(*(client.person_search(q, limit=SEARCH_LIMIT, fields=PERSON_SEARCH_FIELDS) for q in queries),
+                               return_exceptions=True)
+    out = []
+    for r in res:
+        if isinstance(r, Exception):
+            log.warning("talent flow search failed: %s", r)
+            continue
+        for p in r or []:
+            if isinstance(p, dict):
+                out.append({**p, "_feeder": True})
+    return out
 
 
 def prescore(p: dict, c: Criteria) -> int:
@@ -235,6 +312,8 @@ def prescore(p: dict, c: Criteria) -> int:
     if c.locations and any(l.lower() in loc for l in c.locations):
         s += 2
     if p.get("_domain_match"):
+        s += 3
+    if p.get("_feeder"):
         s += 3
     blob = str(p).lower()
     s += sum(1 for k in fit_terms(c) if re.search(rf"(?<![a-z0-9]){re.escape(k)}(?![a-z0-9])", blob))

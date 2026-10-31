@@ -208,3 +208,26 @@ def test_tune_finds_a_signal_that_separates_real_hires_and_reports_heldout():
     assert t["weights"]["due"] > 0 or t["weights"]["just_moved"] < 0
     md = bt.tune_section(t)
     assert "cross-validated on 20 openings" in md
+
+
+# ---- talent flow ---------------------------------------------------------------------------------------------
+
+EMPLOYEES = [_row(f"Emp {i}", f"emp-{i}", [("Acmepay", "Backend Engineer", "2024-03-01", None, 42)],
+                  [("Oldco", "Backend Engineer", "2021-01-01", "2024-02-01", 7)]) for i in range(3)] + \
+            [_row("Emp X", "emp-x", [("Acmepay", "Backend Engineer", "2024-05-01", None, 42)],
+                  [("Co1", "Engineer", "2020-01-01", "2024-04-01", 101)])]
+
+
+def test_feeder_companies_use_only_people_who_joined_before_the_cutoff():
+    from app import orchestrator as o
+    # the hire (joined Acmepay 2025-11) must not count: through AsOfClient his Acmepay job doesn't exist yet
+    client = bt.AsOfClient(FakeClient([HIRE, *EMPLOYEES]), date(2025, 10, 20), 42, "Acmepay")
+    feeders = asyncio.run(o.feeder_companies(client, "Acmepay", as_of=client.cutoff))
+    assert feeders[0] == ("Oldco", 3) and ("Co1", 1) in feeders
+
+
+def test_talent_flow_brings_the_hire_into_the_pool_and_is_flagged():
+    op = bt.Opening(**{**OPENING.__dict__})
+    op.hires, _ = asyncio.run(bt.find_hires(FakeClient([HIRE]), op))
+    r = asyncio.run(bt.run_opening(FakeClient([HIRE, *EMPLOYEES, *OTHERS]), op))
+    assert r["feeder_rows"] > 0 and r["hire_in_pool"]
