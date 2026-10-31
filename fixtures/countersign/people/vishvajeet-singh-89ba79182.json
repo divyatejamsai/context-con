@@ -1,0 +1,222 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Vishvajeet",
+  "headline": "Backend @Primetrace/Crafto  Scaling for 100 million+ users",
+  "languages": [],
+  "last_name": "Singh",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Vishvajeet Singh",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Backend Engineer",
+   "similarity": 0.9998999834060669,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Vishvajeet Singh",
+  "profile_picture_permalink": "",
+  "summary": ""
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "B.E",
+    "description": "",
+    "end_year": 2022,
+    "field_of_study": "Information Technology",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c6823863e605b23f59c87daad4a699386f93accf183fbef714d1e2b65bbb608f.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C560BAQGAwabQA7CqJA/company-logo_400_400/company-logo_400_400/0/1631424743623?e=1776902400&v=beta&t=BDJMpKtQRROOIS21HlEDWPd6Mt2-nPkfaixyMM6jzBw",
+    "location": {
+     "city": "Pune",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Alandi Road Dighi Hills",
+     "state": "Maharashtra"
+    },
+    "professional_network_id": "18515087",
+    "school": "Army Institute of Technology, Pune",
+    "start_year": 2018
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Primetrace is India’s #1 Consumer AI Startup.With a portfolio that includes Kutumb, Crafto AI, Sundar AI, Tarot AI and Polo we have reached over 300 million users across India.We are a team of builders with an unhealthy obsession for great products.From morning debates to midnight deploys, we ship faster than most teams are comfortable with, because building for a billion people across Bharat demands nothing less.Feeling ambitious? Build with us.Reach out to us at talent@primetrace.com",
+     "company_headcount_latest": 188,
+     "company_headcount_range": "201-500",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/112154070",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/91f248bae85ff3596514d1ab2a5a1015ea0ac0050015280e94d89beb44aba45d.jpg",
+     "company_status": "active",
+     "company_website": "https://primetrace.com/",
+     "company_website_domain": "primetrace.com",
+     "crustdata_company_id": 28297307,
+     "description": "",
+     "employment_type": "Full-time",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bangalore Urban"
+     },
+     "name": "Primetrace",
+     "position_id": 2464094286,
+     "professional_network_id": "112154070",
+     "seniority_level": "Senior",
+     "start_date": "2024-08-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Apty, a Digital Adoption Platform (DAP) that helps enterprises drive outcomes across their entire software ecosystem—including custom applications.While most DAPs focus on showing users where to click, Apty focuses on making sure they complete the process—accurately, efficiently, and at scale.Whether it’s Salesforce, Workday, Oracle, ServiceNow, Infor, or a homegrown system, Apty embeds guidance, validation, and automation into your tools—so employees follow through and execute, not just navigate.We don’t measure adoption.We measure execution, process compliance, and ROI.Software should drive results. Apty makes sure it does.",
+     "company_headcount_latest": 66,
+     "company_headcount_range": "51-200",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/13459888",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/d12d787e92344553259767dc1ff00acdb5486224f4b3a006bf8e31cde8087fca.jpg",
+     "company_status": "active",
+     "company_website": "https://apty.ai/",
+     "company_website_domain": "apty.ai",
+     "crustdata_company_id": 635120,
+     "description": "",
+     "employment_type": "Full-time",
+     "end_date": "2024-04-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Apty",
+     "position_id": 1995421860,
+     "professional_network_id": "13459888",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-07-01T00:00:00+00:00",
+     "title": "Software Development Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Tata 1mg is India’s #1 digital health platform. Launched in 2015 (originally as 1mg), the platform is  trusted by millions of Indians for making healthcare accessible, understandable, and affordable.  With over 200 million unique visitors annually, it ranks among the world’s largest healthcare content platforms. It also serves around 6 million people annually for their healthcare transaction needs. Tata 1mg offers integrated healthcare services including ePharmacy, Diagnostics and eConsultations, delivered via a digital platform, institutional partners as well as with a growing network of retail stores across India. It is a clear market leader across its key business segments and one of the fastest growing D2C Consumer branded supplements players in India. Tata 1mg also has one of the largest structured databases of healthcare data in the country and is one of India’s leading players in the use of AI models in healthcare in India.Tata 1mg leverages its omnichannel network to deliver medicines pan-India in over 20K pincodes. The company also operates 19 state-of-the-art NABL and CAP accredited diagnostic labs and its at-home diagnostics collection is powered by a dedicated fleet of over 1200 trained phlebotomists, offering on-time and reliable lab tests in more than 70 cities across India. It is now using the same world-class supply chain to power healthcare for corporates and insurance providers across the country offering services like Occupational Health Centers, Pre policy medical checks, Annual health checks, etc.Tata 1mg has recently achieved profitability for all its core business lines, and is actively investing to grow its retail expansion given the tremendous growth opportunities in the space. With a focus on innovation and accessibility, Tata 1mg is redefining healthcare in India, ensuring that quality care is always within reach, wherever you are.",
+     "company_headcount_latest": 7100,
+     "company_headcount_range": "1001-5000",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/5230742",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fe4434f7afb92ec606bb7df4414580ae181550bed5cb0c37a25156ada66447f.jpg",
+     "company_status": "active",
+     "company_website": "https://www.1mg.com/",
+     "company_website_domain": "1mg.com",
+     "crustdata_company_id": 5736,
+     "description": "",
+     "employment_type": "Internship",
+     "end_date": "2022-03-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Tata 1mg",
+     "position_id": 1888773785,
+     "professional_network_id": "5230742",
+     "seniority_level": "In Training",
+     "start_date": "2021-12-01T00:00:00+00:00",
+     "title": "SDE intern",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "We are an AI-led, platform-driven Digital Engineering and Enterprise Modernization partner, combining deep technical expertise and industry experience to help our clients anticipate what’s next. Our offerings and proven solutions create a unique competitive advantage for our clients by helping them reimagine the world. We work with many industry-leading organizations across the world, including 20 Fortune 50 companies and 4 of the 5 top banks in both the US and India, and numerous innovators across the healthcare ecosystem.Our disruptor’s mindset, commitment to client success, and agility to thrive in the dynamic environment have enabled us to sustain our growth momentum. Persistent has been recognized across top industry platforms for innovation, leadership, and inclusion. We reported $1,654.4M FY26 revenue with 17.4% Y-o-Y growth. We have delivered 24 sequential quarters of growth with $436.0M in Q4 FY26 revenue, up 3.2% Q-o-Q and 16.2% Y-o-Y growth. Our 27,500+ global team members, located in 18 countries, have been instrumental in helping the market leaders transform their industries. We have been recognized as the Fastest Growing IT Services Brand Globally in the 2026 Brand Finance IT Services 25 Report. We were named a Leader in the Everest Group Private Equity (PE) Services PEAK Matrix® Assessment 2026 and Software Product Engineering PEAK Matrix® Assessment 2026.Our Company fosters a values-driven and people-centric work environment that enables our employees to:- Accelerate growth, both professionally and personally- Impact the world in powerful, positive ways, using the latest technologies- Enjoy collaborative innovation, with diversity and work-life wellbeing at the core- Unlock global opportunities to work and learn with the industry’s best Let’s unleash your full potential at Persistent - persistent.com/careers",
+     "company_headcount_latest": 30035,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/5034",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3d0b5d5c2c61b6ee6edd7a05254eeca5cde2c12ed02d8335a04325a9be2c771b.jpg",
+     "company_status": "active",
+     "company_website": "http://www.persistent.com",
+     "company_website_domain": "persistent.com",
+     "crustdata_company_id": 3647,
+     "description": "",
+     "employment_type": "Internship",
+     "end_date": "2021-08-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "Pune, Maharashtra, India"
+     },
+     "name": "Persistent Systems",
+     "position_id": 1795790800,
+     "professional_network_id": "5034",
+     "seniority_level": "In Training",
+     "start_date": "2021-06-01T00:00:00+00:00",
+     "title": "Summer Intern",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Redis",
+   "Distributed Systems",
+   "Grafana",
+   "MySQL",
+   "Large Language Models (LLM)",
+   "AWS Lambda",
+   "Git",
+   "TypeScript",
+   "Python (Programming Language)",
+   "Amazon Web Services (AWS)",
+   "Go (Programming Language)",
+   "Node.js",
+   "Data Structures",
+   "C++",
+   "Javascript",
+   "Algorithms",
+   "Rest API",
+   "HTML and CSS"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/vishvajeet-singh-89ba79182"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 949728
+}

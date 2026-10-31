@@ -54,6 +54,49 @@ def _read_raw(p: Path | None = None) -> list[dict]:
     return out
 
 
+class _Tail:
+    """What append() and is_revoked() need, kept up to date by reading only the bytes added since last time.
+    Without it every append re-read the whole file (O(n^2) over a long eval). verify_chain() still reads it all."""
+
+    def __init__(self) -> None:
+        self.ino, self.offset, self.count, self.last_hash = None, 0, 0, GENESIS
+        self.revoked: dict[str, dict | None] = {}
+
+
+_tails: dict[str, _Tail] = {}
+
+
+def _sync(p: Path) -> _Tail:
+    t = _tails.setdefault(str(p), _Tail())
+    if not p.exists():
+        _tails[str(p)] = t = _Tail()
+        return t
+    st = p.stat()
+    if st.st_ino != t.ino or st.st_size < t.offset:  # new, replaced or truncated file: start over
+        _tails[str(p)] = t = _Tail()
+        t.ino = st.st_ino
+    if st.st_size == t.offset:
+        return t
+    with p.open("rb") as f:
+        f.seek(t.offset)
+        chunk = f.read()
+    end = chunk.rfind(b"\n") + 1  # only whole lines; a half-written last line is read next time
+    for line in chunk[:end].decode("utf-8", "replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except json.JSONDecodeError:
+            r = {"_corrupt": line}
+        t.count += 1
+        t.last_hash = r.get("hash", t.last_hash)
+        if r.get("kind") in ("passport.revoked", "passport.reinstated"):
+            for aid in {(r.get("payload") or {}).get(k) for k in ("agent_id", "subject")} - {None}:
+                t.revoked[aid] = r if r["kind"] == "passport.revoked" else None
+    t.offset += end
+    return t
+
+
 @contextmanager
 def _file_lock(p: Path):
     """Cross-process lock next to the ledger, so two writers can't both claim the same seq."""
@@ -73,10 +116,10 @@ def append(kind: str, payload: dict, sources: list[Source] | list[dict] | None =
     p = path()
     p.parent.mkdir(parents=True, exist_ok=True)
     with _lock, _file_lock(p):  # the API, the MCP server and scripts may append to the same file
-        rows = _read_raw()
-        prev = rows[-1].get("hash", GENESIS) if rows else GENESIS
+        tail = _sync(p)
+        prev = tail.last_hash
         entry = {
-            "seq": len(rows),
+            "seq": tail.count,
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "kind": kind,
             "payload": json.loads(canonical(payload)),
@@ -116,10 +159,5 @@ def _mentions(row: dict, agent_id: str) -> bool:
 
 def is_revoked(agent_id: str) -> dict | None:
     """Latest revoke/reinstate entry wins. Returns the revoke entry if the agent is currently revoked."""
-    state = None
-    for r in entries(agent_id):
-        if r.get("kind") == "passport.revoked":
-            state = r
-        elif r.get("kind") == "passport.reinstated":
-            state = None
-    return state
+    with _lock:
+        return _sync(path()).revoked.get(agent_id)
