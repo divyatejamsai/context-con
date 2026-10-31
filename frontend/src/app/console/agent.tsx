@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  ApiError, SCOPE_INFO, api, type Agent, type LedgerView, type ReviewDecision, type Role, type Scenario, type Scope, type Sponsor,
+  ApiError, SCOPE_INFO, api, type Access, type Agent, type Member, type LedgerView, type ReviewDecision, type Role, type Scenario, type Scope, type Sponsor,
   type Verdict,
 } from "./api";
 import {
@@ -64,11 +64,14 @@ const TABS: { k: Tab; label: string; what: string }[] = [
 ];
 
 export function AgentDetail({
-  agent: a, agents, role, tab, setTab, busy, act, flash, onFlashClose, onBack, onChanged,
+  agent: a, agents, role, tab, setTab, busy, act, flash, onFlashClose, onBack, onChanged, access,
 }: {
   agent: Agent; agents: Agent[]; role?: Role; scenarios: Scenario[]; tab: Tab; setTab: (t: Tab) => void; busy: string | null; act: Act;
-  flash: Flash; onFlashClose: () => void; onBack: () => void; onChanged: () => void;
+  flash: Flash; onFlashClose: () => void; onBack: () => void; onChanged: () => void; access?: Access;
 }) {
+  // A recruiter works with the agent; changing it (sponsor checks, suspend, reviews) and its full history are for admins.
+  const own = access?.level === "own_work";
+  const tabs = own ? TABS.filter((t) => t.k !== "ledger" && t.k !== "reviews") : TABS;
   const [confirm, setConfirm] = useState<"suspend" | "offboard" | null>(null);
   const [reason, setReason] = useState("");
   const gone = a.status === "offboarded";
@@ -102,7 +105,7 @@ export function AgentDetail({
     <main className="mx-auto max-w-[1120px] px-4 pb-20 pt-5 sm:px-8 sm:pt-7">
       <nav className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground" aria-label="Breadcrumb">
         <button onClick={onBack} className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-hover hover:text-foreground">
-          <ArrowLeft className="size-3.5" /> Agents
+          <ArrowLeft className="size-3.5" /> {own ? "My agents" : "Agents"}
         </button>
         <span className="text-faint">/</span>
         <span className="truncate text-foreground">{a.name}</span>
@@ -135,6 +138,7 @@ export function AgentDetail({
                 <Plus className="size-3.5" /> Give it work
               </Button>
             )}
+            {!own && <>
             <Button onClick={recheck} disabled={!!busy} title={`Look up ${s.name} in Crustdata now. If they have left or lost authority, ${a.name} is suspended.`}>
               {busy === "recheck" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Re-check sponsor
             </Button>
@@ -150,6 +154,7 @@ export function AgentDetail({
             <Button variant="ghost" className="text-contradicted hover:bg-contradicted/10 hover:text-contradicted" onClick={() => setConfirm("offboard")} disabled={!!busy} title="Retire it for good: its passport is revoked permanently">
               <UserMinus className="size-3.5" /> Offboard
             </Button>
+            </>}
           </div>
         )}
       </header>
@@ -183,7 +188,7 @@ export function AgentDetail({
       {flash && <FlashBar flash={flash} onClose={onFlashClose} />}
 
       <nav className="mt-7 flex gap-5 overflow-x-auto border-b border-border" role="tablist">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.k}
             role="tab"
@@ -203,7 +208,7 @@ export function AgentDetail({
       <p className="mt-3 text-[12.5px] text-muted-foreground">{TABS.find((t) => t.k === tab)?.what}.</p>
 
       <div className="mt-6 animate-fade" key={tab}>
-        {tab === "overview" && <OverviewTab agent={a} busy={busy} onRecheck={recheck} setTab={setTab} />}
+        {tab === "overview" && <OverviewTab agent={a} busy={busy} onRecheck={recheck} setTab={setTab} own={own} canAssign={access?.level === "company"} onChanged={onChanged} />}
         {tab === "passport" && (
           <div className="space-y-10">
             <PassportTab agent={a} />
@@ -224,7 +229,9 @@ export function AgentDetail({
 }
 
 /** The one-screen answer to "can I trust this agent, and what can I do with it". */
-function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy: string | null; onRecheck: () => void; setTab: (t: Tab) => void }) {
+function OverviewTab({
+  agent: a, busy, onRecheck, setTab, own, canAssign, onChanged,
+}: { agent: Agent; busy: string | null; onRecheck: () => void; setTab: (t: Tab) => void; own?: boolean; canAssign?: boolean; onChanged: () => void }) {
   const s = a.passport.sponsor;
   const v = a.last_verdict;
   const trusted = a.status === "active" && v?.decision !== "block";
@@ -235,7 +242,7 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
     { t: "messages", title: "See its messages", body: "Every message it tried to send and why Send Guard let it through or stopped it.", stat: card ? `${card.messages_checked} checked · ${card.blocked} blocked` : undefined },
     { t: "work", title: "Give it work", body: "Assign a task, approve what it drafts before anything is sent, set a daily budget.", stat: card?.work_filed ? `${card.work_filed} pieces of work filed` : undefined },
     { t: "ledger", title: "Read its history", body: "The tamper-evident record of everything about it, with sources.", stat: `${a.ledger_entries.length} ledger entries` },
-  ];
+  ].filter((n) => !own || n.t !== "ledger") as typeof next;
   return (
     <div className="space-y-8">
       <section className={cn("rounded-xl border p-5", trusted ? "border-verified/30 bg-verified/[0.05]" : "border-contradicted/30 bg-contradicted/[0.05]")}>
@@ -265,6 +272,8 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
       </section>
 
       {appFor(a) && <AppCard agent={a} />}
+
+      {canAssign && <Assignees agent={a} onChanged={onChanged} />}
 
       <section>
         <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
@@ -305,6 +314,62 @@ function OverviewTab({ agent: a, busy, onRecheck, setTab }: { agent: Agent; busy
         </div>
       </section>
     </div>
+  );
+}
+
+/** Who at the company works with this agent. A recruiter sees only the agents assigned to them. */
+function Assignees({ agent: a, onChanged }: { agent: Agent; onChanged: () => void }) {
+  const [members, setMembers] = useState<Member[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    api.members().then(setMembers).catch(() => setMembers([]));
+  }, []);
+  const ids = a.assignees ?? [];
+  const toggle = async (m: Member) => {
+    setBusy(m.id);
+    setErr(null);
+    try {
+      await api.setAssignees(a.agent_id, ids.includes(m.id) ? ids.filter((x) => x !== m.id) : [...ids, m.id]);
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  // Admins and owners already see every agent; this is for the people who only see what they're given.
+  const people = (members ?? []).filter((m) => m.workspace_role === "member" || m.workspace_role === "viewer");
+  return (
+    <section>
+      <SectionHead title="Who works with it">
+        People who see {a.name} under My agents, give it tasks and approve its sends. Admins see every agent anyway.
+      </SectionHead>
+      {members === null ? (
+        <p className="mt-3 flex items-center gap-2 text-[12.5px] text-faint"><Loader2 className="size-3.5 animate-spin" /> Loading people</p>
+      ) : people.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {people.map((m) => {
+            const on = ids.includes(m.id);
+            return (
+              <button key={m.id} type="button" onClick={() => toggle(m)} disabled={!!busy} aria-pressed={on}
+                title={on ? `Take ${a.name} away from ${m.email}` : `Give ${a.name} to ${m.email}`}
+                className={cn("inline-flex h-8 items-center gap-2 rounded-full border pl-1 pr-3 text-[12.5px] transition",
+                  on ? "border-foreground/40 bg-elevated font-[510]" : "border-border-strong text-muted-foreground hover:bg-hover")}>
+                <span className={cn("grid size-6 place-items-center rounded-full text-[10.5px] font-[590]", on ? "bg-foreground text-background" : "bg-elevated")}>
+                  {busy === m.id ? <Loader2 className="size-3 animate-spin" /> : on ? <Check className="size-3" /> : (m.full_name || m.email)[0]?.toUpperCase()}
+                </span>
+                {m.full_name || m.email}
+                <span className="text-[11px] font-normal text-faint">{m.job_role ?? m.workspace_role}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-3 text-[12.5px] text-muted-foreground">No recruiters in your company yet. People who sign up with your email domain join as members.</p>
+      )}
+      {err && <p className="mt-2 text-[12px] text-contradicted">{err}</p>}
+    </section>
   );
 }
 

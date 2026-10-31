@@ -3,6 +3,7 @@
 import { BRAND } from "@/lib/brand";
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell, Button, Divider, Field, Input, Notice, PasswordInput, postJSON, safeNext } from "@/components/auth/ui";
 
@@ -21,7 +22,7 @@ function LoginForm() {
   const [email, setEmail] = useState(params.get("email") || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"login" | "demo" | null>(null);
+  const [busy, setBusy] = useState<"login" | DemoAs | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,10 +38,10 @@ function LoginForm() {
     }
   }
 
-  async function demo() {
+  async function demo(as: DemoAs) {
     setError(null);
-    setBusy("demo");
-    const r = await postJSON("/api/auth/demo");
+    setBusy(as);
+    const r = await postJSON("/api/auth/demo", { as });
     if (r.ok) {
       router.replace(next);
       router.refresh();
@@ -76,12 +77,30 @@ function LoginForm() {
         </form>
 
         <Divider label="or" />
-        <Button variant="secondary" onClick={demo} loading={busy === "demo"} disabled={busy !== null}>
-          Use the demo workspace
-        </Button>
+        <div>
+          <p className="text-[13px] font-medium">Try the demo as</p>
+          <p className="mt-0.5 text-[12.5px] text-muted-foreground">Each one sees only what that person would see at a real company.</p>
+          <div className="mt-2.5 grid gap-2">
+            {DEMO_LEVELS.map((d) => (
+              <button
+                key={d.as}
+                type="button"
+                onClick={() => demo(d.as)}
+                disabled={busy !== null}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border-strong bg-panel px-3.5 py-2.5 text-left transition hover:bg-hover disabled:opacity-60"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[13.5px] font-medium">{d.label}</span>
+                  <span className="block text-[12px] leading-snug text-muted-foreground">{d.what}</span>
+                </span>
+                {busy === d.as ? <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" /> : <ArrowRight className="size-4 shrink-0 text-faint" />}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-2 rounded-lg border border-border bg-elevated p-4">
-          <p className="text-[13.5px] font-medium">New to Sourced?</p>
+          <p className="text-[13.5px] font-medium">New to {BRAND.name}?</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">Set up a workspace for your company in two steps. No sales call.</p>
           <Link href="/signup" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-[14px] font-medium text-primary-foreground transition hover:bg-primary-strong">
             Sign up your company
@@ -91,6 +110,13 @@ function LoginForm() {
     </>
   );
 }
+
+type DemoAs = "admin" | "recruiter" | "operator";
+const DEMO_LEVELS: { as: DemoAs; label: string; what: string }[] = [
+  { as: "operator", label: `${BRAND.name} operator (full view)`, what: "Every company, all six agents, the ledger and the guided demo." },
+  { as: "admin", label: "Company admin", what: "One company's agents: connect them, give people access, see its ledger." },
+  { as: "recruiter", label: "Recruiter", what: "Only the agents assigned to them: their tasks and approvals." },
+];
 
 export default function LoginPage() {
   return (

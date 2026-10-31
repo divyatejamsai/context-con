@@ -488,3 +488,74 @@ async def test_agent_holding_its_own_key_never_runs_in_house_work(slow_kind):
         assert "outside-agent task" in store.get_task(queued["task_id"])["error"]
     finally:
         await rt.stop()
+
+
+# ---- data provider out of credits (Crustdata 402) ---------------------------------------------------
+
+@pytest.fixture
+def broke(monkeypatch):
+    """A live Crustdata client whose key has no credits: every call answers 402 insufficient_credits."""
+    import httpx
+    from app.crustdata import client as cd
+    monkeypatch.setattr(cd, "_PROVIDER", {"out_of_credits_at": None, "endpoint": None})
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        return httpx.Response(402, json={"error": {"type": "insufficient_credits", "message": "Not enough credits"}})
+
+    c = cd.CrustdataClient(mode="live", api_key="k", transport=httpx.MockTransport(handler))
+    c.calls = calls
+    return c
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_is_one_clear_error_and_clears_after_a_top_up(broke, monkeypatch):
+    import httpx
+    from app.crustdata import OUT_OF_CREDITS, OutOfCredits, client as cd, provider_status
+    with pytest.raises(OutOfCredits) as e:
+        await broke.company_identify(domain="grewon.com")
+    assert str(e.value) == OUT_OF_CREDITS and e.value.status == 402 and broke.calls["n"] == 1  # no retry storm
+    st = provider_status()
+    assert st["out_of_credits"] and "out of credits" in st["message"] and st["endpoint"]
+    topped_up = cd.CrustdataClient(mode="live", api_key="k",
+                                   transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    await topped_up.company_identify(domain="grewon.com")
+    assert provider_status()["out_of_credits"] is False
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_never_revokes_passports_on_payroll(broke):
+    ags = fleet()
+    rt = Runtime(broke, tick=0.05, payroll=False, today=TODAY)
+    res = await rt.run_payroll("test")
+    assert res["checked"] >= 5 and res["suspended"] == [] and "out of credits" in res["note"]
+    assert all(registry.get_agent(a["agent_id"])["status"] == "active" for a in ags.values())
+    assert ledger.entries(kind="passport.revoked") == []
+
+
+@pytest.mark.asyncio
+async def test_out_of_credits_fails_the_task_with_a_clear_reason(broke):
+    from app.crustdata import OUT_OF_CREDITS
+    aid = fleet()["diligence"]["agent_id"]
+    rt = Runtime(broke, tick=0.05, payroll=False, today=TODAY)
+    await rt.start()
+    try:
+        t = rt.assign(aid, "vendor_diligence", {"company": "Grewon", "domain": "grewon.com"}, by="test")
+        await until(lambda: status(t["task_id"]) in ("failed", "done", "refused"), 60)
+        got = store.get_task(t["task_id"])
+        assert got["status"] == "failed" and got["error"] == OUT_OF_CREDITS and got["attempts"] == 1
+        assert state(rt)["runtime"]["provider"]["out_of_credits"] is True
+    finally:
+        await rt.stop()
+
+
+def test_out_of_credits_route_answers_402_with_the_message(broke):
+    from app.crustdata import OUT_OF_CREDITS, OutOfCredits
+    from app.main import app
+    if not any(getattr(r, "path", "") == "/api/_test_out_of_credits" for r in app.routes):
+        async def boom():
+            raise OutOfCredits(OUT_OF_CREDITS, status=402)
+        app.add_api_route("/api/_test_out_of_credits", boom)
+    r = TestClient(app).get("/api/_test_out_of_credits")
+    assert r.status_code == 402 and r.json() == {"detail": OUT_OF_CREDITS, "code": "out_of_credits"}

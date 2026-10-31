@@ -180,13 +180,16 @@ require_owner = need("owner")
 # ---- workspaces ----------------------------------------------------------------------------------------------
 
 def _default_workspace_ids() -> set[str]:
-    """Workspaces that also see agents onboarded before accounts existed (set AGAXES_DEFAULT_WORKSPACE to a domain).
-    Otherwise those agents (the seeded fleet) are the platform operator's alone."""
-    from .api import store
+    """Workspaces that also see agents onboarded before accounts existed, i.e. the seeded fleet, and their ledger rows.
+    AGAXES_DEFAULT_WORKSPACE names one by domain. Unset, it's the demo company while the demo workspace is on, so the
+    demo login shows the whole fleet without re-onboarding (which would need Crustdata). Set it to "none" to keep those
+    agents the platform operator's alone. Agents that belong to a company are never affected."""
+    from .api import DEMO_EMAIL, demo_enabled, store
     s = store()
     out = set()
-    dom = (os.getenv("AGAXES_DEFAULT_WORKSPACE") or "").strip().lower()
-    if dom:
+    raw = os.getenv("AGAXES_DEFAULT_WORKSPACE")
+    dom = (raw if raw is not None else (DEMO_EMAIL.split("@")[1] if demo_enabled() else "")).strip().lower()
+    if dom and dom != "none":
         c = s.company_by_domain(dom)
         if c:
             out.add(c["id"])
