@@ -148,7 +148,7 @@ _FINANCE_LEAD = (r"\b(chief financial officer|chief accounting officer|chief inv
 SCOPE_RULES: dict[str, tuple[str, str]] = {
     "outreach.hiring": (_FOUNDER + "|" + _CXO + r"|\b(talent|recruit\w*|hiring|human resources|hr|people (ops|operations|partner)"
                         r"|ressources humaines|recrutement|recruteur|reclutador\w*|personalreferent\w*|vice president|director|head of"
-                        r"|engineering manager)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
+                        r"|engineering manager|engineering lead|tech lead|sourc\w+)\b|\bmanager\b.*\bengineering\b|\bengineering\b.*\bmanager\b",
                         "talent/HR, an engineering manager or above, or a founder"),
     "outreach.sales": (_FOUNDER + "|" + _CXO + r"|\b(sales|business development|growth|revenue|marketing|account executive|account manager"
                        r"|partnerships|gtm|sdr|bdr|customer success|vertrieb|verkauf|vermittler|broker|vice president|director|head of)\b",
@@ -170,14 +170,15 @@ _ASSISTANT = re.compile(
     r"|chief of staff|shadowing|mentee|supporting|working with|seeking|looking for|enthusiast|volunteer|wannabe|in the making"
     r"|intern(?:s|ship|ships)?\b(?! (?:recruit|hiring|talent|program))|trainee|apprentice|stagiaire|praktikant\w*|werkstudent\w*|in training"
     r"|student(?! (?:recruit|experience|success|affairs|hiring|talent))|graduate (?:\w+ ){0,4}program\w*|first impressions|everything officer"
-    r"|of my own life|me inc|society|club|pta)\b")
+    r"|of my own life|me inc|society|club|pta|between roles|open to work|opentowork|model un|junior achievement|hackathon|parody"
+    r"|advisory board|former role)\b")
 _AUTH = r"(?:chief (?:\w+ ){1,4}officer|co founder|cofounder|founder|managing director|director|head|vice president|president|owner|partner|treasurer|controller|financ\w*)"
 _HELPER = r"(?:ea|pa|support|coordinator|liaison|cos|admin|execasst|executive admin|office manager|deputy|righthand)"
 _SUPPORT = re.compile(rf"\b{_HELPER}\s+(?:(?:to|at|for|of)\s+)?(?:the\s+)?{_OTHER}|{_OTHER}(?: s)?\s+{_HELPER}\b")
 # assistant/intern words in scripts that norm() would drop: CJK, Korean, Cyrillic, Spanish/Portuguese/Czech
-_RAW_ASSISTANT = re.compile(r"助理|秘書|秘书|비서|实习|實習|インターン|ассистент|помощник|секретар|стажер|becari[oa]|estagi[aá]ri[oa]|asistentk", re.I)
+_RAW_ASSISTANT = re.compile(r"🔍|#\s*open\s*to\s*work|助理|秘書|秘书|비서|实习|實習|インターン|ассистент|помощник|секретар|стажер|becari[oa]|estagi[aá]ri[oa]|asistentk", re.I)
 _PAST = re.compile(rf"\b(?:ex|former|formerly|previously|past|prior|retd|retired|emeritus|honorary|aspiring|future|incoming|outgoing|designate)\s+{_AUTH}"
-                   rf"|{_AUTH}\s+(?:emeritus|designate|in training|on leave|acquired|exited)\b|\b(?:19|20)\d\d (?:19|20)\d\d\b")
+                   rf"|{_AUTH}\s+(?:emeritus|designate|in training|on leave|acquired|exited|retired|left)\b|\b(?:19|20)\d\d (?:19|20)\d\d\b")
 
 
 def clean_title(title: str | None) -> str:
@@ -189,6 +190,7 @@ def clean_title(title: str | None) -> str:
     t = re.sub(r"\bgo[\s-]*to[\s-]*market\b", "gtm", t.lower()).replace("@", " at ").replace("fp&a", "fpa")
     t = re.sub(r"\b([a-z])\.\s?([a-z])\.(?:\s?([a-z])\.)?", lambda m: "".join(g or "" for g in m.groups()), t)  # e.a. -> ea
     t = re.sub(r"\b((?:19|20)\d\d)\s*[-‐-―]\s*(present|now|today|current)\b", " ", t)  # open range = current
+    t = re.sub(r"\bsince (?:19|20)\d\d\b", " ", t)
     t = re.sub(r"\bex[\s.\-‐-―]+(?=\w)", "ex ", t)
     return expand_title(" ".join(_ROLE_ABBREV.get(w, w) for w in norm(t).split()))
 
@@ -219,7 +221,8 @@ def authority_text(title: str | None, company: str | None = None) -> str | None:
 # Signing contracts and moving money need the role to BE the authority, with nothing but rank/scope words around it.
 # "CFO", "Group CFO", "VP of Finance", "Co-Founder & CEO" pass; "CFO Recruiter", "Household CFO", "CFO (left)",
 # "CEO-elect", "Founder in Residence", "Freelance CFO" do not, whatever new adjective someone invents.
-_MOD = r"(?:(?:senior|group|global|regional|country|interim|acting|executive|joint|co|founding|managing|equity|general|corporate) )*"
+_MOD = (r"(?:(?:senior|group|global|regional|country|interim|acting|executive|joint|co|founding|managing|equity|general|corporate"
+        r"|divisional|division|plant|unit|sole|vice president) )*")
 _FUNCTIONS = (r"(?:engineering|software|technology|tech|it|products?|design|data|analytics|sales|business|commercial|revenue|growth|marketing"
               r"|partnerships|alliances|operations|ops|finance|financial|accounting|treasury|legal|compliance|risk|procurement|purchasing"
               r"|supply chain|people|hr|human resources|talent|strategy|corporate development|customer|programs?|projects?|research|clinical"
@@ -227,9 +230,9 @@ _FUNCTIONS = (r"(?:engineering|software|technology|tech|it|products?|design|data
 _FUNC = rf"(?:(?: of)?(?: the)?(?: \w+){{0,2}} {_FUNCTIONS}(?: \w+){{0,3}})?"
 _FOUNDER_ROLE = r"(?:co founder|cofounder|founder|owner|business owner|proprietor|proprietaire|fondat\w*|fundador\w*|grunder\w*|mitgrunder\w*)"
 _PRIV = {
-    "payment.send": (rf"{_FOUNDER_ROLE}|chief_(?:financial|accounting|investment)_officer|(?:financial |finance |corporate )?controller|comptroller"
+    "payment.send": (rf"{_FOUNDER_ROLE}|chief_(?:financial|accounting|investment)_officer|(?:business )?(?:financial |finance |corporate )?controller|comptroller"
                      rf"|treasurer|(?:finance|financial) director|director of (?:finance|financial planning|fpa|treasury)"
-                     rf"|(?:head|vice president|director|lead) (?:of )?(?:finance|treasury|accounts payable|payroll|fpa|financial planning(?: analysis)?|fund finance|accounting)(?: \w+){{0,2}}"
+                     rf"|(?:head|vice president|director|lead) (?:of )?(?:corporate |business |group )?(?:finance|treasury|accounts payable|payroll|fpa|financial planning(?: analysis)?|fund finance|accounting)(?: \w+){{0,2}}"
                      rf"|(?:accounts payable|payroll|treasury|finance) manager|finance business partner|directeur financier|directeur administratif (?:et )?financier"
                      rf"|daf|director financiero|diretor financeiro|finanzvorstand|finanzleiter\w*|leiter finanzen|kaufmannische\w* leiter\w*"),
     "contract.sign": (rf"{_FOUNDER_ROLE}|chief_(?:[a-z]+_){{0,2}}(?:{_CXO_FUNCS.replace(' ', '_')})(?:_[a-z]+){{0,2}}_officer|president|chairman|chairperson|chairwoman|chair|general manager|country manager"
@@ -253,7 +256,10 @@ def _priv_ok(title: str, scope: str, company: str | None) -> bool:
     for seg in segs:
         def survives(w: str) -> bool:  # authority_text dropped ex-employers and other people's titles; drop them here too
             return all(x in keep for x in w.split("_")) if w.startswith("chief_") else w in keep
-        words = [w for w in seg.split() if w not in co and w not in ("at", "the") and survives(w)]
+        ws = seg.split()
+        # "CEO of Acme" / "CFO at Acme": the sponsor's own company named after the role is fine
+        words = [w for i, w in enumerate(ws) if w not in co and w != "the" and survives(w)
+                 and not (w in ("of", "at") and i + 1 < len(ws) and ws[i + 1] in co)]
         if not words:
             continue
         if re.fullmatch(rf"{_MOD}(?:{_PRIV[scope]})(?: interim)?", " ".join(words)):

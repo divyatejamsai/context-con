@@ -42,6 +42,11 @@ BAD += [  # round 6
     ("Mock CEO", "contract.sign"), ("Head of Vibes", "contract.sign"), ("Director of Fun", "contract.sign"), ("Not the CEO", "contract.sign"),
     ("CFO (left)", "payment.send"), ("Unemployed CFO", "payment.send"), ("Shadow CFO", "payment.send"), ("CFO Podcast Host", "payment.send"),
 ]
+BAD += [  # round 7
+    ("CEO, retired", "contract.sign"), ("Between roles, CFO", "payment.send"), ("CEO | Open to work", "contract.sign"), ("CFO 🔍", "payment.send"),
+    ("CEO - Model UN", "contract.sign"), ("CFO, Hackathon team", "payment.send"), ("Founder, Dad Jokes Inc (parody)", "contract.sign"),
+    ("Advisory Board - CEO", "contract.sign"), ("Former role: CFO", "payment.send"), ("Business Partner", "contract.sign"),
+]
 OTHER_ORG = [("Software Engineer | Founder @ SideProject", "contract.sign", "Acme"), ("Recruiter & Co-Founder of MyStartup", "contract.sign", "Acme"),
              ("Analyst; CEO of Widgets Ltd", "contract.sign", "Acme")]
 GOOD = [
@@ -72,7 +77,10 @@ GOOD = [
     ("Associate Director HR Business Partner International Operations", "outreach.hiring"), ("International Sales Director", "outreach.sales"),
     ("Assistant Manager - HR", "outreach.hiring"), ("Assistant Vice President - Talent Acquisition", "outreach.hiring"), ("AVP Sales", "outreach.sales"),
     ("President", "contract.sign"), ("Executive Chairman", "contract.sign"), ("General Manager", "contract.sign"), ("Equity Partner", "contract.sign"),
-    ("Head of FP&A", "payment.send"), ("Accounts Payable Manager", "payment.send"), ("Directora General", "contract.sign"),
+    ("Head of FP&A", "payment.send"), ("CEO of Acme", "contract.sign"), ("CFO of Acme", "payment.send"), ("Co-Founder of Acme", "contract.sign"),
+    ("Business Finance Controller", "payment.send"), ("Vice President Head of Finance", "payment.send"), ("Head Of Corporate Finance", "payment.send"),
+    ("Divisional CFO", "payment.send"), ("Founder (since 2019)", "contract.sign"), ("Sole Proprietor", "contract.sign"),
+    ("Engineering Lead", "outreach.hiring"), ("Sourcing Specialist", "outreach.hiring"), ("Accounts Payable Manager", "payment.send"), ("Directora General", "contract.sign"),
 ]
 
 
