@@ -8,13 +8,16 @@ import { ApiError, api, type Member, type Workspace, type WorkspaceRole } from "
 import { EmptyState, PageHead, SectionHead, ago, cardCls } from "./parts";
 
 const ROLE_LABEL: Record<WorkspaceRole, string> = { viewer: "Viewer", member: "Member", admin: "Admin", owner: "Owner" };
+// The role list from the backend also carries the platform operator, which isn't a workspace role.
+const roleLabel = (r: string) => (ROLE_LABEL as Record<string, string>)[r] ?? (r === "operator" ? "Platform operator" : r);
 
 export function MembersView({ ws }: { ws: Workspace | null }) {
   const [members, setMembers] = useState<Member[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
-  const owner = ws?.via === "session" && ws.role === "owner";
+  // The platform operator ranks above an owner, so it can manage its own workspace too.
+  const owner = ws?.via === "session" && (ws.role === "owner" || ws.role === "operator");
 
   const load = useCallback(() => {
     setError(null);
@@ -95,7 +98,7 @@ export function MembersView({ ws }: { ws: Workspace | null }) {
                         </select>
                       </span>
                     ) : (
-                      <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11.5px] text-secondary">{ROLE_LABEL[m.workspace_role] ?? m.workspace_role}</span>
+                      <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11.5px] text-secondary">{roleLabel(m.workspace_role)}</span>
                     )}
                   </li>
                 ))}
@@ -106,7 +109,7 @@ export function MembersView({ ws }: { ws: Workspace | null }) {
             <p className={cn("mt-3 text-[12.5px]", note.tone === "ok" ? "text-verified" : "text-contradicted")}>{note.text}</p>
           )}
           {members && !owner && ws?.via === "session" && (
-            <p className="mt-3 text-[12px] text-muted-foreground">You&apos;re {ROLE_LABEL[ws.role].toLowerCase()}. Ask an owner to change someone&apos;s role.</p>
+            <p className="mt-3 text-[12px] text-muted-foreground">You&apos;re {roleLabel(ws.role).toLowerCase()}. Ask an owner to change someone&apos;s role.</p>
           )}
         </section>
 
@@ -116,7 +119,7 @@ export function MembersView({ ws }: { ws: Workspace | null }) {
             {(ws?.roles ?? []).map((r) => (
               <li key={r.role} className="px-4 py-3">
                 <p className="flex items-center gap-2 text-[13px] font-[590]">
-                  {ROLE_LABEL[r.role] ?? r.role}
+                  {roleLabel(r.role)}
                   {ws?.via === "session" && ws.role === r.role && <span className="rounded-full bg-elevated px-1.5 py-px text-[10.5px] font-[510] text-muted-foreground">You</span>}
                 </p>
                 <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{r.can}</p>

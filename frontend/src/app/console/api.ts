@@ -270,9 +270,9 @@ export type WorkspaceRole = "viewer" | "member" | "admin" | "owner";
 export interface Workspace {
   auth_mode: AuthMode;
   via: "session" | "admin_token" | "open" | string;
-  role: WorkspaceRole;
+  role: WorkspaceRole | "operator";
   company?: { id?: string; name?: string; domain?: string } | null;
-  roles: { role: WorkspaceRole; can: string }[];
+  roles: { role: WorkspaceRole | "operator"; can: string }[];
 }
 export interface Member { id: string; email: string; full_name?: string | null; job_role?: string | null; workspace_role: WorkspaceRole; created_at?: string; last_login_at?: string | null }
 export interface Enrollment {

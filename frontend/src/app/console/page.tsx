@@ -513,7 +513,7 @@ function AccessNote({ ws }: { ws: Workspace }) {
         <span><b className="font-[590]">Open access.</b> Anyone on this network can control agents.</span>
       </p>
     );
-  const who = ws.via === "session" ? `You're ${ws.role === "admin" || ws.role === "owner" ? "an" : "a"} ${ws.role}` : ws.via === "admin_token" ? "Using the admin token" : "Read-only";
+  const who = ws.via === "session" ? ws.role === "operator" ? "You're the platform operator" : `You're ${ws.role === "admin" || ws.role === "owner" ? "an" : "a"} ${ws.role}` : ws.via === "admin_token" ? "Using the admin token" : "Read-only";
   return (
     <p className="mt-2 flex items-center gap-1.5 px-2 text-[11.5px] text-muted-foreground" title={ws.auth_mode === "login_required" ? "Everyone must log in, and their role decides what they can do." : "Changes need a login or the admin token. Anyone can read."}>
       <ShieldCheck className="size-3.5 shrink-0 text-verified" />

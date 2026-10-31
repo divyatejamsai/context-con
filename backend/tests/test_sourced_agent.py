@@ -69,6 +69,25 @@ async def test_valid_passport_runs_pipeline_guards_drafts_and_records_ledger():
     assert ledger.verify_chain() == (True, None)
 
 
+async def test_run_finished_tells_the_story_of_the_run():
+    """The ledger entry alone says what was asked, how it was read, what was searched and each decision with its reason."""
+    aid = onboard("authorised_founder", ["outreach.hiring", "data.read"])
+    await collect(aid)
+    p = [e for e in ledger.entries() if e["kind"] == "run.finished"][-1]
+    assert p["payload"]["brief"] == BRIEF
+    assert p["payload"]["understood"]["role"] and p["payload"]["understood"]["locations"] == ["Bangalore"]
+    s = p["payload"]["searches"]
+    assert s and s[0]["filters"]["titles"] and isinstance(s[0]["count"], int)
+    cands = p["payload"]["candidates"]
+    assert cands and all(c["tier"] in ("shortlist", "near_miss", "below") for c in cands)
+    assert all(isinstance(c["reasons"], list) and set(c["claims"]) == {"verified", "contradicted", "unverifiable"} for c in cands)
+    held = [c for c in cands if c.get("guard") == "block"]
+    assert all(c.get("guard_reason") for c in held)
+    assert isinstance(p["payload"]["elapsed_ms"], int)
+    keys = [(x["endpoint"], x.get("field"), x.get("url")) for x in p["sources"]]
+    assert len(keys) == len(set(keys))  # cited fields are deduplicated
+
+
 async def test_without_outreach_scope_no_draft_is_cleared():
     events = await collect(onboard("authorised_founder", ["data.read"]))
     assert any(e.get("step") == "guard" and "No outreach.hiring scope" in e["message"] for e in events)

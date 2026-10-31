@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Check, ChevronDown, Plus, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
+import { ChevronDown, Plus, Download, FileText, Keyboard, Moon, Radio, Rows3, ShieldCheck, Sun, Table2, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { BriefInput, EXAMPLES } from "@/components/brief";
 import { Trace } from "@/components/trace";
@@ -12,6 +12,7 @@ import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run
 import { download, toCSV, toMarkdown } from "@/lib/export";
 import { AGENT_STEPS, AUTOSEND_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { SourcedMark } from "@/components/sourced-mark";
 import { AgaxesCrumb, ConsoleLink, ProductNav } from "@/components/app-header";
 import { AccountMenu } from "@/components/account-menu";
 import { BRAND } from "@/lib/brand";
@@ -434,14 +435,6 @@ export default function Home() {
   );
 }
 
-function Logo() {
-  return (
-    <span className="grid size-6 place-items-center rounded-[5px] bg-foreground">
-      <Check className="size-3.5 text-background" strokeWidth={3} />
-    </span>
-  );
-}
-
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
   useEffect(() => setDark(document.documentElement.dataset.theme === "dark"), []);
@@ -466,7 +459,7 @@ function TopBar({
       <div className="mx-auto flex h-full max-w-[1680px] items-center justify-between gap-3 px-4">
         <AgaxesCrumb />
         <Link href="/sourced" className="flex items-center gap-2">
-          <Logo />
+          <SourcedMark />
           <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
         </Link>
         <span className="hidden text-[14px] text-border-strong sm:inline">/</span>

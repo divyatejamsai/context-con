@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BadgeCheck, Check, Moon, Sun } from "lucide-react";
+import { BadgeCheck, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
+import { SourcedMark } from "@/components/sourced-mark";
 
 /** Sourced's three jobs, in the order a recruiter would meet them. The tab names say what each page is for. */
 export const PRODUCT_TABS = [
@@ -13,13 +14,8 @@ export const PRODUCT_TABS = [
   { href: "/staffing", label: "Shift staffing", title: "Fill 1,000 shifts from applicants and catch the ones who lie on their application" },
 ] as const;
 
-export function Logo() {
-  return (
-    <span className="grid size-6 place-items-center rounded-[5px] bg-foreground">
-      <Check className="size-3.5 text-background" strokeWidth={3} />
-    </span>
-  );
-}
+/** Sourced's logo. Kept as `Logo` for the pages that import it. */
+export { SourcedMark as Logo };
 
 export function ProductNav({ active }: { active: (typeof PRODUCT_TABS)[number]["href"] }) {
   return (
@@ -100,7 +96,7 @@ export function AppHeader({ active, children }: { active: (typeof PRODUCT_TABS)[
       <div className="mx-auto flex h-12 max-w-[1680px] items-center gap-3 px-4">
         <AgaxesCrumb />
         <Link href="/sourced" prefetch={false} className="flex shrink-0 items-center gap-2" title="Sourced home">
-          <Logo />
+          <SourcedMark />
           <span className="hidden text-[14px] font-semibold tracking-[-0.01em] sm:inline">Sourced</span>
         </Link>
         <span className="hidden text-[14px] text-border-strong sm:inline">/</span>
