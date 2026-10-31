@@ -120,11 +120,12 @@ def pool_path(name: str) -> Path:
     return REPO_ROOT / "fixtures" / name / "pool.json"
 
 
-def save_pool(name: str, records: list[dict], meta: dict | None = None) -> Path:
+def save_pool(name: str, records: list[dict], meta: dict | None = None, compact: bool = False) -> Path:
     p = pool_path(name)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps({"saved_at": datetime.now(timezone.utc).isoformat(), "meta": meta or {},
-                             "count": len(records), "records": records}, indent=1, default=str))
+                             "count": len(records), "records": records}, indent=None if compact else 1,
+                            separators=(",", ":") if compact else None, default=str))
     return p
 
 

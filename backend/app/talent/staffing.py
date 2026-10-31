@@ -148,6 +148,7 @@ class Role(BaseModel):
     max_years: float | None = Field(None, ge=0, le=40)               # e.g. a campus fresher drive
     related_experience: bool = True                                  # must have done this line of work before
     keywords: list[str] = Field(default_factory=list)                # job titles that count as this line of work
+    search_titles: list[str] = Field(default_factory=list)           # current titles to search Crustdata for applicants
     skills: list[str] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
     languages: list[str] = Field(default_factory=list)
@@ -164,6 +165,7 @@ class Role(BaseModel):
         clean = lambda xs: list(dict.fromkeys(x.strip() for x in xs if x and x.strip()))  # noqa: E731
         self.skills, self.certifications, self.languages = clean(self.skills), clean(self.certifications), clean(self.languages)
         self.keywords = clean([k.lower() for k in self.keywords]) or default_keywords(self.title)
+        self.search_titles = clean([t.lower() for t in self.search_titles])
         return self
 
     def seats(self, city: str) -> int:
@@ -240,40 +242,40 @@ TEMPLATES: list[dict] = [
      ]},
     {"id": "bpo", "label": "BPO and call centre", "blurb": "Voice and chat agents on rotating shifts, including the US night shift.",
      "roles": [
-         _r("voice-agent", "09:00-18:00, 18:30-03:30", 3, title="Customer service voice agent", cities=["Bangalore", "Hyderabad", "Pune", "Delhi NCR", "Mumbai", "Chennai"],
+         _r("voice-agent", "09:00-18:00, 18:30-03:30", 3, search_titles=["customer service executive", "customer care executive", "telecaller", "voice process", "customer support associate", "call center executive", "tele sales"], title="Customer service voice agent", cities=["Bangalore", "Hyderabad", "Pune", "Delhi NCR", "Mumbai", "Chennai"],
             keywords=ROLE_FAMILIES["support"]["words"] + ROLE_FAMILIES["support"]["titles"] + ["telesales", "tele caller"], languages=["English", "Hindi"],
             skills=["Typing 30 wpm"]),
-         _r("chat-agent", "10:00-19:00", 2, title="Chat support agent", cities=["Bangalore", "Hyderabad", "Pune", "Chennai"],
+         _r("chat-agent", "10:00-19:00", 2, search_titles=["chat support", "chat process", "non voice", "email support", "customer support associate"], title="Chat support agent", cities=["Bangalore", "Hyderabad", "Pune", "Chennai"],
             keywords=["chat support", "customer support", "customer service", "email support", "non voice"], languages=["English"]),
-         _r("team-lead", "09:00-18:00", 1, title="BPO team leader", cities=["Bangalore", "Hyderabad", "Pune"], min_years=2,
+         _r("team-lead", "09:00-18:00", 1, search_titles=["team leader bpo", "team lead customer", "process lead", "team leader customer", "operations team lead"], title="BPO team leader", cities=["Bangalore", "Hyderabad", "Pune"], min_years=2,
             keywords=["team leader", "team lead", "process lead", "supervisor"], languages=["English"]),
      ]},
     {"id": "retail-seasonal", "label": "Retail seasonal (festive sale)", "blurb": "Store, cashier and stockroom staff for the festive rush.",
      "roles": [
-         _r("store-associate", "10:00-16:00, 15:00-22:00", 3, title="Store associate", keywords=ROLE_FAMILIES["retail"]["words"] + ROLE_FAMILIES["retail"]["titles"]),
-         _r("cashier", "10:00-16:00, 15:00-22:00", 1, title="Cashier", keywords=["cashier", "billing", "pos", "checkout"], skills=["POS billing"]),
-         _r("stockroom", "07:00-15:00", 1, title="Stockroom associate", keywords=["inventory", "stock", "warehouse", "picker", "packer", "store keeper"]),
+         _r("store-associate", "10:00-16:00, 15:00-22:00", 3, search_titles=["store associate", "retail associate", "sales associate", "customer service associate retail", "floor associate", "store executive"], title="Store associate", keywords=ROLE_FAMILIES["retail"]["words"] + ROLE_FAMILIES["retail"]["titles"]),
+         _r("cashier", "10:00-16:00, 15:00-22:00", 1, search_titles=["cashier", "billing executive", "billing associate", "pos executive"], title="Cashier", keywords=["cashier", "billing", "pos", "checkout"], skills=["POS billing"]),
+         _r("stockroom", "07:00-15:00", 1, search_titles=["inventory associate", "stock associate", "store keeper", "inventory executive", "stock controller"], title="Stockroom associate", keywords=["inventory", "stock", "warehouse", "picker", "packer", "store keeper"]),
      ]},
     {"id": "hospital", "label": "Hospital nursing", "blurb": "Staff nurses and ward assistants on three rotating shifts.",
      "roles": [
-         _r("staff-nurse", "07:00-14:00, 14:00-21:00, 21:00-07:00", 4, title="Staff nurse", cities=["Bangalore", "Chennai", "Kochi", "Hyderabad"],
+         _r("staff-nurse", "07:00-14:00, 14:00-21:00, 21:00-07:00", 4, search_titles=["staff nurse", "registered nurse", "nursing officer", "icu nurse", "senior staff nurse", "nurse"], title="Staff nurse", cities=["Bangalore", "Chennai", "Kochi", "Hyderabad"],
             keywords=["nurse", "nursing", "staff nurse", "icu", "ward"], min_years=1, certifications=["Registered nurse (state nursing council)", "BLS"],
             languages=["English"]),
-         _r("ward-assistant", "07:00-15:00, 15:00-23:00, 23:00-07:00", 2, title="Ward assistant", cities=["Bangalore", "Chennai", "Kochi", "Hyderabad"],
+         _r("ward-assistant", "07:00-15:00, 15:00-23:00, 23:00-07:00", 2, search_titles=["ward assistant", "patient care assistant", "nursing assistant", "general duty assistant", "patient attendant", "ward boy"], title="Ward assistant", cities=["Bangalore", "Chennai", "Kochi", "Hyderabad"],
             keywords=["ward boy", "ward assistant", "patient care", "nursing assistant", "attendant", "housekeeping"], related_experience=False),
      ]},
     {"id": "events", "label": "Events and stadiums", "blurb": "Ushers, crowd security and F&B staff for a weekend of events.",
      "roles": [
-         _r("usher", "14:00-23:00", 15, title="Event usher", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6], related_experience=False,
+         _r("usher", "14:00-23:00", 15, search_titles=["event coordinator", "event executive", "event staff", "usher", "guest relations executive", "front office executive"], title="Event usher", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6], related_experience=False,
             keywords=["event", "usher", "hospitality", "front office", "steward"], languages=["English"]),
-         _r("crowd-security", "13:00-01:00", 10, title="Crowd security", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6],
+         _r("crowd-security", "13:00-01:00", 10, search_titles=["security guard", "security officer", "bouncer", "security supervisor"], title="Crowd security", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6],
             keywords=["security"], certifications=["PSARA training certificate"]),
-         _r("fnb", "15:00-23:00", 8, title="F&B counter staff", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6],
+         _r("fnb", "15:00-23:00", 8, search_titles=["f&b associate", "food and beverage", "steward", "waiter", "barista", "commis chef"], title="F&B counter staff", cities=["Mumbai", "Bangalore", "Delhi NCR"], days=[5, 6],
             keywords=ROLE_FAMILIES["hospitality"]["words"], certifications=["FSSAI food handler"]),
      ]},
     {"id": "campus", "label": "Campus fresher drive", "blurb": "Graduate trainees for IT services, with no prior experience needed.",
      "roles": [
-         _r("graduate-trainee", "09:00-18:00", 10, title="Graduate engineer trainee", cities=["Bangalore", "Pune", "Hyderabad", "Chennai"], days=[0, 1, 2, 3, 4],
+         _r("graduate-trainee", "09:00-18:00", 10, search_titles=["graduate engineer trainee", "trainee software engineer", "associate software engineer", "software engineer trainee", "trainee engineer"], title="Graduate engineer trainee", cities=["Bangalore", "Pune", "Hyderabad", "Chennai"], days=[0, 1, 2, 3, 4],
             related_experience=False, max_years=1, keywords=["trainee", "intern", "graduate"], skills=["Java or Python"], languages=["English"]),
      ]},
 ]
@@ -1286,23 +1288,40 @@ async def run_staffing(applications: list[dict], shifts: list[dict], graph: Pool
     return {"report": report, "roster": rota.roster(), "screenings": [s.dump() for s in screens], "rota": rota}
 
 
-async def fetch_shift_pool(client: Any, per_role: int = 200, roles: list[str] | list[Role] | None = None) -> list[dict]:
-    """Real shift workers from Crustdata: one paged Person Search per role, across the role's cities."""
+def search_cities(cities: list[str]) -> list[str]:
+    """Role cities -> the spellings Crustdata's location.city filter matches ('Delhi NCR' -> Delhi, Gurgaon, Noida)."""
+    out: list[str] = []
+    for c in cities:
+        c = canon_city(c)
+        out += {"Delhi NCR": ["Delhi", "Gurgaon", "Noida"], "Kochi": ["Kochi", "Cochin", "Ernakulam"],
+                "Chennai": ["Chennai"], "Kolkata": ["Kolkata"], "Chandigarh": ["Chandigarh", "Mohali"]}.get(c, [c])
+    return list(dict.fromkeys(out))
+
+
+def search_titles(role: Role) -> list[str]:
+    return role.search_titles or ROLE_FAMILIES.get(role.id, {}).get("titles") or [k for k in role.keywords if len(k) > 3][:8]
+
+
+async def fetch_shift_pool(client: Any, per_role: int = 200, roles: list[str] | list[Role] | None = None,
+                           progress: Callable[[str, int], Awaitable[None]] | None = None) -> list[dict]:
+    """Real applicants from Crustdata: one paged Person Search per role (its search titles, in its cities)."""
     out: list[dict] = []
     seen: set[str] = set()
     rs = [r if isinstance(r, Role) else next(x for x in default_roles() if x.id == r) for r in (roles or default_roles())]
     for role in rs:
-        titles = ROLE_FAMILIES.get(role.id, {}).get("titles") or role.keywords[:8]
-        search_cities = SEARCH_CITIES if set(role.cities) <= set(CITIES) else [c.split()[0] for c in role.cities]
-        f = all_of(title_filter(titles), city_filter(search_cities))
+        f = all_of(title_filter(search_titles(role)), city_filter(search_cities(role.cities)))
         try:
             rows = await fetch_pool(client, f, per_role)
         except Exception as e:  # noqa: BLE001 - one role failing leaves the others
             log.warning("staffing pool: %s search failed: %s", role.id, e)
-            continue
+            rows = []
+        n = 0
         for r in rows:
             u = norm_url(load_person(r).profile_url)
             if u and u not in seen:
                 seen.add(u)
                 out.append({**r, "_family": role.id})
+                n += 1
+        if progress:
+            await progress(role.id, n)
     return out

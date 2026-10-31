@@ -558,3 +558,50 @@ def test_staffing_api_csv_upload_holds_unknown_profiles(monkeypatch, tmp_path):
     assert j["report"]["test_mode"] and j["report"]["roles"]["staff-nurse"]["applied"] == 0
     assert any("staff nurse" in k for k in j["report"]["open_reasons"])
     assert (tmp_path / "staffing" / "uploads" / f"{up['upload_id']}.json").exists()
+
+
+def test_grow_pool_searches_crustdata_per_template_role(monkeypatch, tmp_path):
+    """The page's 'search Crustdata for more applicants': one Person Search per role, saved as its own recording."""
+    import random as _r
+    from app.main import app
+    import app.talent.api as api
+    import app.talent.pool as pool_mod
+    from app.talent.pool import save_pool
+    from tests.talent_factory import person
+    monkeypatch.setattr(pool_mod, "REPO_ROOT", tmp_path)
+    save_pool("staffing", shift_pool(60))
+    calls = []
+
+    class FakeCrustdata:
+        mode = "cache"
+
+        async def person_search(self, filters, limit=25):
+            calls.append(json.dumps(filters))
+            rng = _r.Random(len(calls))
+            title = "Staff Nurse" if "staff nurse" in calls[-1] else "Patient Care Assistant"
+            out = []
+            for i in range(min(limit, 40)):
+                p = person(5000 + len(calls) * 100 + i, "support", ["Bangalore", "Chennai", "Hyderabad"][i % 3], rng, title=title)
+                p["experience"]["employment_details"]["past"][0]["title"] = title
+                p.pop("_family")
+                out.append(p)
+            return out
+    monkeypatch.setattr(api, "crustdata", lambda: FakeCrustdata())
+    cl = TestClient(app)
+    with cl.stream("POST", "/api/staffing/pool/grow", json={"template": "hospital", "per_role": 40}) as s:
+        evs = [json.loads(line[6:]) for line in s.iter_lines() if line.startswith("data: ")]
+    assert [e["role"] for e in evs if e["type"] == "role"] == ["staff-nurse", "ward-assistant"]
+    done = evs[-1]
+    assert done["type"] == "done" and done["new"] == 80 and done["total"] == 140, done
+    assert len(calls) == 2 and "kochi" in calls[0] and "staff nurse" in calls[0]
+    assert (tmp_path / "fixtures" / "staffing-hospital" / "pool.json").exists()
+    t = cl.get("/api/staffing/templates").json()
+    assert t["pool_by_role"]["staff-nurse"] == 40 and t["pool_total"] == 140
+    j = cl.post("/api/staffing/run", json={"template": "hospital", "test_mode": True, "today": "2026-10-31"}).json()
+    nurse = j["report"]["roles"]["staff-nurse"]
+    assert nurse["applied"] > 0 and nurse["cleared"] > 0 and nurse["filled"] > 0
+    # replay mode: no searching
+    monkeypatch.setattr(api, "crustdata", lambda: type("R", (), {"mode": "replay"})())
+    with cl.stream("POST", "/api/staffing/pool/grow", json={"template": "bpo"}) as s:
+        evs = [json.loads(line[6:]) for line in s.iter_lines() if line.startswith("data: ")]
+    assert evs[-1]["type"] == "error" and "CRUSTDATA_API_KEY" in evs[-1]["message"]

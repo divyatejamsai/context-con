@@ -23,6 +23,8 @@ Shift staffing (app/talent/staffing.py)
                                                rest_hours, live_lookups} -> text/event-stream; ends with the report
     POST /api/staffing/run                     same body, JSON {report, roster (first 200), flagged}
     GET  /api/staffing/run?shifts=1000&fake_rate=0.15&seed=7   the original demo: test mode, default roles, N shifts
+    POST /api/staffing/pool/grow               {template | roles, per_role}: search Crustdata live for more applicants
+                                               (credits) and add them to the recording -> text/event-stream
     POST /api/staffing/no-show                 {shift_id}: backfill a no-show from the bench in the last run
     GET  /api/staffing/last | roster | roster.csv | screenings     the last run
 
@@ -53,7 +55,7 @@ from ..agents.api import crustdata
 from ..agents.registry import RegistryError
 from . import campaign as C
 from .conversations import TERMINAL
-from .pool import PoolGraph, load_pool, profile_url, save_pool
+from .pool import PoolGraph, load_pool, pool_path, profile_url, save_pool
 from .staffing import (ALL_CITIES, CSV_COLUMNS, DEFAULT_TEMPLATE, TEMPLATES, Role, build_shifts, fetch_shift_pool, make_shifts,
                        norm_url, parse_csv, run_staffing, seed_applications, template, to_csv)
 
@@ -63,6 +65,7 @@ _locks: dict[str, asyncio.Lock] = {}
 _staffing_lock = asyncio.Lock()
 _last_staffing: dict | None = None
 _uploads: dict[str, dict] = {}
+_grow_lock = asyncio.Lock()
 log = logging.getLogger(__name__)
 
 
@@ -251,23 +254,49 @@ def _staffing_dir() -> Path:
     return Path(os.getenv("STAFFING_DIR") or Path(__file__).resolve().parents[2] / "data" / "staffing")
 
 
+def _pool_names() -> list[str]:
+    """The recorded pools: fixtures/staffing (quick-commerce) plus one fixtures/staffing-<template> per searched template."""
+    root = pool_path("staffing").parents[1]
+    return ["staffing", *sorted(p.parent.name for p in root.glob("staffing-*/pool.json"))]
+
+
+def recorded_pool() -> list[dict]:
+    """Every recorded applicant, once each (by profile URL)."""
+    seen: dict[str, dict] = {}
+    for name in _pool_names():
+        for r in load_pool(name)[0]:
+            u = norm_url(profile_url(r))
+            if u and u not in seen:
+                seen[u] = r
+    return list(seen.values())
+
+
+async def grow_pool(roles: list[Role], per_role: int, name: str, progress=None) -> dict:
+    """Search Crustdata live for these roles (uses credits; pages already in the Crustdata cache are free) and add the
+    new people to the recording `name`."""
+    client = crustdata()
+    if client is None or getattr(client, "mode", "replay") == "replay":
+        raise HTTPException(409, "searching Crustdata needs CRUSTDATA_API_KEY and CRUSTDATA_MODE=cache or live on the backend")
+    known = {norm_url(profile_url(r)) for r in recorded_pool()}
+    fresh = await fetch_shift_pool(client, per_role=per_role, roles=roles, progress=progress)
+    old, meta = load_pool(name)
+    merged = {norm_url(profile_url(r)): r for r in old}
+    for r in fresh:
+        merged.setdefault(norm_url(profile_url(r)), r)
+    new = [r for r in fresh if norm_url(profile_url(r)) not in known]
+    if fresh:
+        save_pool(name, list(merged.values()), {**meta, "source": "crustdata person/search", "fetched": datetime.now().isoformat(),
+                                                "per_role": max(per_role, meta.get("per_role") or 0),
+                                                "roles": sorted({*(meta.get("roles") or []), *(r.id for r in roles)})}, compact=True)
+    return {"found": len(fresh), "new": len(new), "by_role": dict(Counter(r["_family"] for r in fresh)),
+            "new_by_role": dict(Counter(r["_family"] for r in new)), "pool": name, "total": len(recorded_pool())}
+
+
 async def _staffing_pool(source: str, roles: list[Role] | None = None) -> list[dict]:
     """The recorded Crustdata pool. source=live searches Crustdata first (costs credits) and adds to the recording."""
     if source == "live":
-        client = crustdata()
-        if client is None or getattr(client, "mode", "replay") == "replay":
-            raise HTTPException(409, "a live search needs CRUSTDATA_API_KEY and CRUSTDATA_MODE=cache or live")
-        fresh = await fetch_shift_pool(client, per_role=250, roles=roles)
-        old, meta = load_pool("staffing")
-        merged = {norm_url(profile_url(r)): r for r in old}
-        for r in fresh:
-            merged.setdefault(norm_url(profile_url(r)), r)
-        pool = list(merged.values())
-        if fresh:
-            save_pool("staffing", pool, {**meta, "source": "crustdata person/search", "fetched": datetime.now().isoformat(),
-                                         "roles": sorted({*(meta.get("roles") or []), *(r.id for r in roles or [])})})
-        return pool
-    pool, _ = load_pool("staffing")
+        await grow_pool(roles or template(DEFAULT_TEMPLATE), 250, "staffing")
+    pool = recorded_pool()
     if not pool:
         raise HTTPException(409, "no recorded applicant pool yet: run with source=live (or scripts/run_talent.py --live)")
     return pool
@@ -323,7 +352,7 @@ async def _staffing(req: StaffingRun, emit) -> dict:
             raise HTTPException(422, "upload a CSV of applications first")
         up = _upload(req.upload_id)
         apps = copy.deepcopy(up["applications"])
-        pool, _ = load_pool("staffing")
+        pool = recorded_pool()
         closed, n_live = False, req.live_lookups
         src = {"source": "upload", "file": up.get("name"), "rows": len(apps), "records": len(pool)}
     else:
@@ -377,9 +406,52 @@ def _sse(req: StaffingRun):
 
 @router.get("/staffing/templates")
 async def staffing_templates():
+    counts = Counter(r.get("_family") for r in recorded_pool() if r.get("_family"))
     return {"templates": [{**{k: v for k, v in t.items() if k != "roles"}, "roles": [r.model_dump() for r in template(t["id"])]} for t in TEMPLATES],
             "default": DEFAULT_TEMPLATE, "cities": list(ALL_CITIES), "csv_columns": CSV_COLUMNS,
-            "recorded_roles": sorted({r.get("_family") for r in load_pool("staffing")[0] if r.get("_family")})}
+            "recorded_roles": sorted(counts), "pool_by_role": dict(counts), "pool_total": sum(counts.values())}
+
+
+class GrowRequest(BaseModel):
+    roles: list[Role] | None = Field(None, max_length=40)
+    template: str | None = None
+    per_role: int = Field(300, ge=10, le=2000)
+
+
+@router.post("/staffing/pool/grow")
+async def staffing_grow(req: GrowRequest, x_admin_token: str | None = Header(default=None)):
+    """Search Crustdata live for more applicants for these roles (uses credits) and add them to the recorded pool.
+    text/event-stream: one {"type":"role"} per role searched, then {"type":"done", ...counts}."""
+    _admin(x_admin_token)
+    try:
+        roles = req.roles or template(req.template or DEFAULT_TEMPLATE)
+    except KeyError:
+        raise HTTPException(404, f"no template {req.template}")
+    tid = req.template or "custom"
+    name = "staffing" if tid == DEFAULT_TEMPLATE else f"staffing-{re.sub(r'[^a-z0-9-]', '', tid)}"
+    if _grow_lock.locked():
+        raise HTTPException(409, "a Crustdata search is already running")
+
+    async def gen():
+        async with _grow_lock:
+            q: asyncio.Queue = asyncio.Queue()
+
+            async def prog(role_id: str, n: int) -> None:
+                await q.put({"type": "role", "role": role_id, "found": n})
+            task = asyncio.create_task(grow_pool(roles, req.per_role, name, prog))
+            while not task.done() or not q.empty():
+                try:
+                    yield f"data: {json.dumps(await asyncio.wait_for(q.get(), 0.5))}\n\n"
+                except asyncio.TimeoutError:
+                    continue
+            try:
+                yield f"data: {json.dumps({'type': 'done', **task.result()})}\n\n"
+            except HTTPException as e:
+                yield f"data: {json.dumps({'type': 'error', 'message': e.detail})}\n\n"
+            except Exception as e:  # noqa: BLE001
+                yield f"data: {json.dumps({'type': 'error', 'message': f'{type(e).__name__}: {e}'})}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 @router.post("/staffing/run/stream")
@@ -425,8 +497,7 @@ async def staffing_upload(req: UploadRequest, x_admin_token: str | None = Header
     if not apps:
         raise HTTPException(422, errors[0]["error"] if errors else "the CSV has no applications")
     uid = hashlib.sha256(req.csv.encode()).hexdigest()[:12]
-    pool, _ = load_pool("staffing")
-    known = {norm_url(profile_url(r)) for r in pool}
+    known = {norm_url(profile_url(r)) for r in recorded_pool()}
     rec = {"id": uid, "name": req.name, "at": datetime.now().isoformat(timespec="seconds"), "applications": apps, "errors": errors}
     _uploads[uid] = rec
     try:
@@ -446,7 +517,7 @@ async def staffing_upload(req: UploadRequest, x_admin_token: str | None = Header
 async def staffing_sample(n: int = Query(300, ge=1, le=5000), lies: float = Query(0.1, ge=0, le=0.9), seed: int = 11,
                           template_id: str = Query(DEFAULT_TEMPLATE, alias="template")):
     """A sample applications CSV built from the recorded pool (real people, a few planted lies), to try the upload."""
-    pool, _ = load_pool("staffing")
+    pool = recorded_pool()
     if not pool:
         raise HTTPException(409, "no recorded applicant pool yet")
     try:
