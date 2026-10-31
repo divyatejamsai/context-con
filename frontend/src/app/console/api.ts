@@ -58,6 +58,9 @@ export interface Scorecard {
   sponsor_checks_failed: number;
   ledger_entries: number;
   last_activity: string | null;
+  work_filed?: number;
+  work_by_kind?: [string, number][];
+  recent_work?: { seq: number; ts: string; kind: string; summary: string | null; sources: number }[];
 }
 
 export interface Review {
@@ -76,6 +79,8 @@ export interface Agent {
   employee_no: number;
   name: string;
   role: string;
+  job?: string | null;
+  runtime?: "in-house" | "external" | string;
   status: AgentStatus;
   reason: string | null;
   suspended_by: string | null;
@@ -172,7 +177,7 @@ export const api = {
   roles: () => req<{ roles: Role[]; scopes: Scope[] }>("/agents/roles"),
   scenarios: () => req<{ scenarios: Scenario[] }>("/passport/scenarios").then((r) => r.scenarios),
   ledger: (agentId?: string) => req<LedgerView>(`/ledger${agentId ? `?agent_id=${encodeURIComponent(agentId)}` : ""}`),
-  onboard: (b: { name: string; role: string; sponsor: Sponsor; scopes?: Scope[]; days?: number }) =>
+  onboard: (b: { name: string; role: string; sponsor: Sponsor; scopes?: Scope[]; days?: number; job?: string; runtime?: string }) =>
     post<{ agent: Agent; verdict: Verdict }>("/agents", b),
   payroll: () => post<Verdict[]>("/agents/recheck"),
   recheck: (id: string) => post<{ agent: Agent; verdict: Verdict }>(`/agents/${id}/recheck`),

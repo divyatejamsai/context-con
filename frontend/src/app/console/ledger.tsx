@@ -17,7 +17,12 @@ const KIND_LABEL: Record<string, string> = {
   "agent.scopes_changed": "Scopes changed",
   "agent.scope_denied": "Scope refused",
   "agent.scopes_checked": "Sponsor checked for new scopes",
+  "work.outreach_run": "Work filed: outreach run",
+  "work.vendor_brief": "Work filed: vendor brief",
+  "work.resume_check": "Work filed: resume check",
 };
+
+const kindLabel = (k: string) => KIND_LABEL[k] ?? (k.startsWith("work.") ? `Work filed: ${k.slice(5).replace(/_/g, " ")}` : k);
 
 // ---- independent check in the browser --------------------------------------------------------
 // Mirrors backend/app/agents/ledger.py: hash = sha256(canonical JSON of every field except "hash"),
@@ -108,7 +113,7 @@ export function LedgerExplorer({ agents, onChain }: { agents: Agent[]; onChain: 
         </select>
         <select value={kind} onChange={(e) => setKind(e.target.value)} className={cn(inputCls, "w-auto min-w-[180px]")}>
           <option value="">All events</option>
-          {kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k] ?? k}</option>)}
+          {kinds.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
         </select>
         <label className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground">
           <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} className="accent-[var(--primary)]" />
@@ -166,7 +171,7 @@ export function LedgerTimeline({
       {entries.map((e) => {
         const p = e.payload as {
           agent_id?: string; decision?: "allow" | "block"; reason?: string; scope?: string | null; from?: string[]; to?: string[] | { name?: string; company?: string };
-          notes?: string;
+          notes?: string; summary?: string; signed?: boolean;
         };
         const bad = firstBad !== null && firstBad !== undefined && e.seq >= firstBad;
         const who = p.agent_id && names?.get(p.agent_id);
@@ -176,7 +181,7 @@ export function LedgerTimeline({
             <span className={cn("absolute -left-[24.5px] top-1.5 size-2 rounded-full ring-4 ring-panel", bad ? "bg-contradicted" : e.kind.includes("revoked") ? "bg-contradicted" : "bg-border-strong")} />
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[10.5px] text-faint">#{e.seq}</span>
-              <span className="text-[13px] font-[510]">{KIND_LABEL[e.kind] ?? e.kind}</span>
+              <span className="text-[13px] font-[510]">{kindLabel(e.kind)}</span>
               {who && <span className="text-[12px] text-muted-foreground">{who}</span>}
               {p.decision && <DecisionBadge decision={p.decision} />}
               {p.scope && <ScopeChip scope={p.scope as Scope} />}
@@ -186,6 +191,12 @@ export function LedgerTimeline({
             {recipient && <p className="mt-0.5 text-[12.5px] text-secondary">to {recipient.name} at {recipient.company}</p>}
             {p.reason && <p className="mt-0.5 text-[12.5px] text-secondary">{p.reason}</p>}
             {p.notes && <p className="mt-0.5 text-[12.5px] text-secondary">{p.notes}</p>}
+            {e.kind.startsWith("work.") && p.summary && (
+              <p className="mt-0.5 text-[12.5px] text-secondary">
+                {p.summary}
+                {p.signed && <span className="ml-2 font-mono text-[10.5px] text-faint">signed by the agent</span>}
+              </p>
+            )}
             {p.from && Array.isArray(p.to) && <p className="mt-0.5 font-mono text-[11px] text-secondary">{p.from.join(", ")} → {p.to.join(", ")}</p>}
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className={cn("font-mono text-[10.5px]", bad ? "text-contradicted" : "text-faint")} title={`hash ${e.hash}\nprev ${e.prev_hash}`}>

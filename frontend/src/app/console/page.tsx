@@ -13,7 +13,7 @@ import {
   type Verdict,
 } from "./api";
 import {
-  AgentMark, Button, DecisionBadge, Field, ScopeChip, ScopeToggle, StatusPill, VerdictList, ago, cardCls, checkLabel, day, inputCls,
+  AgentMark, Button, DecisionBadge, Field, RuntimeBadge, ScopeChip, ScopeToggle, StatusPill, VerdictList, ago, cardCls, checkLabel, day, inputCls,
 } from "./parts";
 import { VerifyView } from "./verify";
 import { GuardView } from "./guard";
@@ -365,7 +365,9 @@ function AgentRow({ agent: a, selected, onClick }: { agent: Agent; selected: boo
           <span className="flex items-baseline gap-2">
             <span className="truncate text-[14px] font-[590]">{a.name}</span>
             <span className="font-mono text-[10.5px] text-faint">#{a.employee_no}</span>
+            <RuntimeBadge runtime={a.runtime} />
           </span>
+          {a.job && <span className="block truncate text-[12px] text-secondary">{a.job}</span>}
           <span className="block truncate text-[12px] text-muted-foreground">
             {a.role} · for <span className="text-secondary">{s.name}</span>, {s.company}
           </span>
@@ -506,10 +508,12 @@ function AgentDetail({
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-[20px] font-[620] tracking-[-0.02em]">{a.name}</h2>
               <StatusPill status={a.status} />
+              <RuntimeBadge runtime={a.runtime} />
             </div>
             <p className="text-[12.5px] text-muted-foreground">
               {a.role} · employee #{a.employee_no} · onboarded {day(a.onboarded_at)}
             </p>
+            {a.job && <p className="mt-0.5 text-[12.5px] text-secondary">{a.job}</p>}
           </div>
         </div>
         {!gone && (
@@ -732,13 +736,32 @@ function ReviewsTab({ agent: a, busy, act }: { agent: Agent; busy: string | null
     <div className="grid gap-8 2xl:grid-cols-[minmax(0,1fr)_minmax(0,400px)]">
       <div>
         <h3 className="text-[14px] font-[590]">Scorecard</h3>
-        <p className="text-[12px] text-faint">Counted from the ledger: what the Send Guard let through and what it stopped.</p>
+        <p className="text-[12px] text-faint">Counted from the ledger: what the Send Guard let through and what it stopped, and the work this agent filed.</p>
         <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-border-strong sm:grid-cols-4">
           <Tile k="Messages checked" v={card?.messages_checked} />
           <Tile k="Allowed" v={card?.allowed} tone="text-verified" />
           <Tile k="Blocked" v={card?.blocked} tone={card?.blocked ? "text-contradicted" : undefined} />
           <Tile k="Sponsor checks" v={card?.sponsor_checks} sub={card?.sponsor_checks_failed ? `${card.sponsor_checks_failed} failed` : undefined} />
         </div>
+        {!!card?.recent_work?.length && (
+          <div className="mt-4">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[12.5px] font-[590]">Work filed</span>
+              <span className="text-[11.5px] text-faint">
+                {card.work_filed} total{card.work_by_kind?.length ? ` · ${card.work_by_kind.map(([k, n]) => `${n} ${k.replace(/_/g, " ")}`).join(", ")}` : ""}
+              </span>
+            </div>
+            <ul className="mt-1.5 divide-y divide-border rounded-lg border border-border-strong">
+              {card.recent_work.map((w) => (
+                <li key={w.seq} className="flex items-start gap-3 px-3 py-2">
+                  <span className="mt-px rounded border border-border-strong px-1 font-mono text-[10.5px] text-muted-foreground">{w.kind.replace(/_/g, " ")}</span>
+                  <span className="min-w-0 flex-1 text-[12.5px] text-secondary">{w.summary}</span>
+                  <span className="shrink-0 text-[11px] text-faint">{w.sources} sources · #{w.seq}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {!!card?.block_reasons.length && (
           <ul className="mt-3 space-y-1">
             {card.block_reasons.map(([name, n]) => (
@@ -857,6 +880,8 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
   const [scopes, setScopes] = useState<Scope[]>(role?.default_scopes ?? []);
   const [sponsor, setSponsor] = useState<Sponsor>(scenarios[0]?.sponsor ?? { name: "", profile_url: "", company: "", company_domain: "", title: "" });
   const [days, setDays] = useState(30);
+  const [job, setJob] = useState(first ? "Sources candidates for open roles and drafts outreach" : "");
+  const [runtime, setRuntime] = useState<"in-house" | "external">("in-house");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [result, setResult] = useState<{ agent: Agent; verdict: Verdict }>();
@@ -872,7 +897,7 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
     setBusy(true);
     setError(undefined);
     try {
-      const r = await api.onboard({ name, role: roleKey, sponsor: { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null }, scopes, days });
+      const r = await api.onboard({ name, role: roleKey, sponsor: { ...sponsor, company_domain: sponsor.company_domain || null, title: sponsor.title || null }, scopes, days, job: job.trim() || undefined, runtime });
       setResult(r);
       onDone(r.agent.agent_id);
     } catch (err) {
@@ -909,6 +934,26 @@ function OnboardForm({ roles, scenarios, first, onDone }: { roles: Role[]; scena
         <Field label="Name">
           <input required value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Sourced" />
         </Field>
+
+        <Field label="Job" hint="One line on what it does. Shown in the roster.">
+          <input value={job} onChange={(e) => setJob(e.target.value)} className={inputCls} placeholder="Researches vendors before procurement calls" />
+        </Field>
+
+        <div>
+          <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Runs</span>
+          <div className="inline-flex rounded-md border border-border-strong bg-background p-0.5 text-[12px]">
+            {(["in-house", "external"] as const).map((r) => (
+              <button
+                type="button"
+                key={r}
+                onClick={() => setRuntime(r)}
+                className={cn("h-7 rounded px-3 font-[510] transition", runtime === r ? "bg-elevated text-foreground shadow-[0_0_0_1px_var(--border-strong)]" : "text-muted-foreground hover:text-foreground")}
+              >
+                {r === "in-house" ? "In-house" : "External (over MCP)"}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
           <span className="mb-1 block text-[12px] font-[510] text-muted-foreground">Role</span>

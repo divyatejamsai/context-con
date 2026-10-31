@@ -67,6 +67,15 @@ export function ScopeChip({ scope, muted }: { scope: Scope; muted?: boolean }) {
   );
 }
 
+export function RuntimeBadge({ runtime }: { runtime?: string }) {
+  if (runtime !== "external") return null;
+  return (
+    <span className="inline-flex h-[18px] items-center rounded border border-border-strong px-1 text-[10.5px] font-[510] text-muted-foreground" title="Runs outside Countersign and reaches it over MCP">
+      External
+    </span>
+  );
+}
+
 /** Monogram for an AI employee. Neutral by default; tinted by status so a suspended agent reads at a glance. */
 export function AgentMark({ agent, size = "md" }: { agent: Pick<Agent, "name" | "status">; size?: "md" | "lg" }) {
   return (

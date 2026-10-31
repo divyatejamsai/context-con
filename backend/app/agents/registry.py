@@ -375,7 +375,8 @@ def _days_left(p: Passport) -> int:
 # ---- reviews ---------------------------------------------------------------------------------
 
 def scorecard(agent_id: str) -> dict:
-    """What the agent actually did, read from the ledger: guard verdicts, what got blocked and why."""
+    """What the agent actually did, read from the ledger: guard verdicts, what got blocked and why, and the work
+    it filed (work.* entries)."""
     get_agent(agent_id)
     rows = ledger.entries(agent_id)
     sends = [e for e in rows if "guard" in e.get("kind", "") or "send" in e.get("kind", "")]
@@ -386,6 +387,7 @@ def scorecard(agent_id: str) -> dict:
             if c.get("status") != "pass":
                 reasons[c.get("name", "unknown")] += 1
     checks = [e for e in rows if e.get("kind") == "passport.verified"]
+    work = [e for e in rows if e.get("kind", "").startswith("work.")]  # filed by agents via MCP record_work
     return {
         "messages_checked": len(sends),
         "allowed": len(sends) - len(blocked),
@@ -393,6 +395,11 @@ def scorecard(agent_id: str) -> dict:
         "block_reasons": reasons.most_common(),
         "sponsor_checks": len(checks),
         "sponsor_checks_failed": sum(1 for e in checks if (e.get("payload") or {}).get("decision") == "block"),
+        "work_filed": len(work),
+        "work_by_kind": Counter(e["kind"].removeprefix("work.") for e in work).most_common(),
+        "recent_work": [{"seq": e.get("seq"), "ts": e.get("ts"), "kind": e["kind"].removeprefix("work."),
+                         "summary": (e.get("payload") or {}).get("summary"), "sources": len(e.get("sources") or [])}
+                        for e in work[-5:][::-1]],
         "ledger_entries": len(rows),
         "last_activity": max((e.get("ts", "") for e in rows), default=None),
     }

@@ -151,9 +151,12 @@ async def test_review_snapshots_scorecard_and_applies_decision(fake):
     ledger.append("guard.verdict", {"agent_id": aid, "decision": "block", "checks": [
         {"name": "claims_in_body_true", "status": "fail"}]})
 
+    ledger.append("work.vendor_brief", {"agent_id": aid, "summary": "Brief on Grewon", "details": {}, "signed": True})
+
     card = registry.scorecard(aid)
     assert (card["messages_checked"], card["allowed"], card["blocked"]) == (2, 1, 1)
     assert card["block_reasons"] == [("claims_in_body_true", 1)]
+    assert card["work_filed"] == 1 and card["recent_work"][0]["summary"] == "Brief on Grewon"
 
     agent = await registry.add_review(aid, "Priya", "restrict", "one false claim", scopes=["data.read"])
     assert agent["passport"]["scopes"] == ["data.read"]
