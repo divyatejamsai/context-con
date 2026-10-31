@@ -25,6 +25,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -94,6 +95,28 @@ def _sse(payload: str) -> str:
 async def _stream(brief: str):
     async for ev in run(brief):
         yield _sse(ev.model_dump_json())
+
+
+class VerifyBody(BaseModel):
+    seal_id: str | None = None
+    text: str | None = None
+
+
+@app.get("/api/verify/{seal_id}")
+async def verify_seal(seal_id: str):
+    """Public, no login: is the message behind this seal genuine, from an agent in good standing, within its scope?"""
+    from .agents import seal
+    from .agents.api import crustdata
+    return await seal.verify(seal_id, None, crustdata())
+
+
+@app.post("/api/verify")
+async def verify_text(body: VerifyBody):
+    """Public, no login: paste the message you received (with its footer), or send seal_id + text, for a verdict.
+    Receiving agents call this before trusting another company's agent."""
+    from .agents import seal
+    from .agents.api import crustdata
+    return await seal.verify(body.seal_id, body.text, crustdata())
 
 
 @app.get("/api/health")

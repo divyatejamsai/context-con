@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import contextvars
+import hashlib
 import importlib.util
 import inspect
 import json
@@ -237,6 +238,8 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
         cur = store.get_approval(approval_id)
         raise ValueError(f"approval is {cur['status'] if cur else 'unknown'}")
     mcp = mcp or InprocMCP()
+    if a.get("action") == "sign_offer":
+        return await _sign_offer(a, by, mcp, body.strip() if edited else None)
     try:
         rec = registry.get_agent(a["agent_id"])
         pol = store.policy(a["agent_id"])["budget"]
@@ -272,6 +275,58 @@ async def execute_approval(approval_id: str, by: str, mcp: Any = None, body: str
     return out
 
 
+async def _sign_offer(a: dict, by: str, mcp: Any, edited: str | None) -> dict:
+    """The employer approved an offer letter. Re-check the agent's passport for contract.sign right now (a sponsor who
+    left since the draft voids it), then the agent signs the document's hash with its own key and the signature, the
+    hash and the approver go on the ledger. Nothing is emailed: the signed letter is written to data/offers/."""
+    from ..agents.models import Passport
+    from ..fleet.demo import store_dir
+    rec = registry.get_agent(a["agent_id"])
+    if edited:
+        store.update_approval(a["approval_id"], body=edited, edited_by=by, original_body=a["body"])
+        a["body"] = edited
+    doc = a["body"]
+    sha = hashlib.sha256(doc.encode()).hexdigest()
+    try:
+        v = await mcp.tool("verify_agent", {"agent_id": a["agent_id"], "scope": "contract.sign"})
+    except Exception as e:  # noqa: BLE001 - fail closed
+        v = {"decision": "block", "checks": [{"name": "verify_agent", "status": "unverifiable", "detail": str(e)}]}
+    sealed = doc
+    if v.get("decision") == "allow" and rec["status"] == "active":
+        from ..agents import seal
+        p = Passport.model_validate(rec["passport"])
+        sig = sign_message(p, registry.private_key(a["agent_id"]), doc)
+        seal_id, sealed = seal.issue(p, sig, doc, "contract.sign", "offer_letter", a["to"])
+        d = store_dir() / "offers"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"{a['approval_id']}.txt").write_text(sealed + f"\n\nApproved by {by}. sha256 {sha}\n")
+        entry = ledger.append("offer.signed", {"agent_id": a["agent_id"], "task_id": a["task_id"], "to": a["to"],
+                                               "sha256": sha, "agent_signature": sig, "approved_by": by,
+                                               "passport_check": v.get("ledger_entry"), "edited": bool(edited)})
+        status, result = "signed", {"signed": True, "sha256": sha, "signature": sig, "ledger_entry": entry,
+                                    "checks": v.get("checks", []), "seal_id": seal_id,
+                                    "verify_url": f"{seal.base_url()}/verify/{seal_id}"}
+    else:
+        failed = [f"{c['name']}: {c['detail']}" for c in v.get("checks", []) if c.get("status") != "pass"]
+        entry = ledger.append("offer.refused", {"agent_id": a["agent_id"], "task_id": a["task_id"], "sha256": sha,
+                                                "approved_by": by, "why": failed[:3] or [rec["status"]]})
+        status, result = "blocked_at_send", {"signed": False, "error": "; ".join(failed[:2]) or f"agent is {rec['status']}",
+                                             "ledger_entry": entry, "checks": v.get("checks", [])}
+    store.update_approval(a["approval_id"], status=status, result=result)
+
+    def fn(t):
+        o = t["output"].get("offer")
+        if o:
+            o.update(state="signed" if status == "signed" else "refused at signing", sha256=sha, signed_by=by,
+                     signed_at=store.now(), letter=sealed if status == "signed" else doc,
+                     verify_url=result.get("verify_url"))
+    store.task_mutate(a["task_id"], fn)
+    store.task_step(a["task_id"], f"Offer {'signed' if status == 'signed' else 'NOT signed'}: approved by {by}; "
+                                  + ("passport re-checked for contract.sign, document hash signed and on the ledger"
+                                     if status == "signed" else result["error"]), "control")
+    return store.get_approval(a["approval_id"])
+
+
 def reject_approval(approval_id: str, by: str, note: str | None = None) -> dict:
     a = store.get_approval(approval_id)
     if not a or a["status"] != "pending":
@@ -281,6 +336,8 @@ def reject_approval(approval_id: str, by: str, note: str | None = None) -> dict:
     out = store.update_approval(approval_id, status="rejected", decided_by=by, decided_at=store.now(), note=note,
                                 result={"sent": False, "approval_entry": entry})
     _sync_send(a["task_id"], approval_id, "rejected")
+    if a.get("action") == "sign_offer":
+        store.task_mutate(a["task_id"], lambda t: (t["output"].get("offer") or {}).update(state="rejected", signed_by=by))
     return out
 
 
