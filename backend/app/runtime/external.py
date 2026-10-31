@@ -23,6 +23,8 @@ from .kinds import KINDS
 from .worker import METER, Meter, RuntimeCtx
 
 MAX_SKEW = 300
+_seen: dict[str, float] = {}  # signature -> expiry: a captured key change can't be replayed inside the skew window
+ONE_SHOT = {"rotate_key"}  # claim/progress/complete are idempotent or refused when repeated, so only these dedupe
 
 
 class AgentAuthError(PermissionError):
@@ -45,6 +47,15 @@ def authenticate(action: str, agent_id: str, task_id: str | None, ts: int, text:
         raise AgentAuthError("stale or future timestamp: sign the call with the current time")
     if not verify_message_signature(p, signed_text(action, agent_id, task_id, ts, text), signature or ""):
         raise AgentAuthError("signature does not match this agent's key")
+    if action not in ONE_SHOT:
+        return rec
+    now = time.time()
+    for s, exp in list(_seen.items()):
+        if exp < now:
+            _seen.pop(s, None)
+    if signature in _seen:
+        raise AgentAuthError("this exact signed call was already used: sign each call fresh")
+    _seen[signature] = now + 2 * MAX_SKEW
     return rec
 
 

@@ -62,12 +62,10 @@ class RevokeRequest(BaseModel):
     reason: str
 
 
-def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
-    """Issuing and revoking passports needs COUNTERSIGN_ADMIN_TOKEN (header x-admin-token) when it is set.
-    Unset = local dev/demo mode, open. Verify and ledger reads are always public: anyone may check an agent."""
-    want = os.getenv("COUNTERSIGN_ADMIN_TOKEN")
-    if want and not (x_admin_token and hmac.compare_digest(x_admin_token, want)):
-        raise HTTPException(401, "admin token required (x-admin-token)")
+# Issuing and revoking passports needs an admin (workspace admin/owner session, or COUNTERSIGN_ADMIN_TOKEN) once
+# auth is on; see app/accounts/authz.py. Verify stays public: anyone may check an agent.
+from ..accounts.authz import require_admin, require_operate, require_read  # noqa: E402,F401  (re-exported)
+from ..accounts import authz  # noqa: E402
 
 
 @router.get("/passport/issuer")
@@ -106,13 +104,16 @@ async def scenarios():
 
 
 @router.get("/ledger")
-async def ledger_view(agent_id: str | None = None, kind: str | None = None):
+async def ledger_view(agent_id: str | None = None, kind: str | None = None, p=Depends(require_read)):
+    """A signed-in user sees only their workspace's entries; chain_ok is always for the whole file."""
     ok, bad = ledger.verify_chain()
-    return {"chain_ok": ok, "first_bad_seq": bad, "entries": ledger.entries(agent_id, kind)}
+    ids = authz.visible_agent_ids(p)
+    rows = [r for r in ledger.entries(agent_id, kind) if authz.entry_visible(r, ids, p.workspace_id)]
+    return {"chain_ok": ok, "first_bad_seq": bad, "entries": rows}
 
 
 # Other workstreams' routers, included when their modules exist.
-for _mod in ("guard_api", "registry_api"):
+for _mod in ("guard_api", "enroll_api", "registry_api"):  # enroll_api first: /agents/enrollments is not an id
     try:
         _m = __import__(f"{__package__}.{_mod}", fromlist=["router"])
         router.include_router(_m.router)

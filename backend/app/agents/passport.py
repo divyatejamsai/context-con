@@ -83,23 +83,50 @@ def signing_bytes(p: Passport) -> bytes:
 
 
 def issue_passport(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope], days: int = 30,
-                   *, agent_id: str | None = None, now: datetime | None = None, record: bool = True) -> tuple[Passport, bytes]:
-    """Returns (passport, agent private key raw bytes). The private key is shown once and never stored here."""
+                   *, agent_id: str | None = None, now: datetime | None = None, record: bool = True,
+                   public_key: str | None = None) -> tuple[Passport, bytes]:
+    """Returns (passport, agent private key raw bytes). The private key is shown once and never stored here.
+
+    public_key (base64 raw Ed25519): the agent made its own key pair and only sent the public half, so the
+    passport binds that key and the returned private key is b"" (Agaxes never had it)."""
     now = now or datetime.now(timezone.utc)
-    agent_key = Ed25519PrivateKey.generate()
+    if public_key is not None:
+        public_key = normalise_public_key(public_key)
+    agent_key = None if public_key is not None else Ed25519PrivateKey.generate()
     p = Passport(
         agent_id=agent_id or f"agt_{uuid.uuid4().hex[:12]}",
         agent_name=agent_name, role=role, sponsor=sponsor, scopes=list(dict.fromkeys(scopes)),
         issued_at=now.isoformat(timespec="seconds"),
         expires_at=(now + timedelta(days=days)).isoformat(timespec="seconds"),
-        public_key=_b64(_pub_raw(agent_key)),
+        public_key=public_key if public_key is not None else _b64(_pub_raw(agent_key)),
         issuer_key_id=issuer_key_id(),
     )
     p.issuer_signature = _b64(issuer_key().sign(signing_bytes(p)))
     if record:
         ledger.append("passport.issued", {"agent_id": p.agent_id, "passport": p.model_dump(exclude={"issuer_signature"})})
+    if agent_key is None:
+        return p, b""
     raw = agent_key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
     return p, raw
+
+
+def normalise_public_key(public_key: str) -> str:
+    """Base64 of a raw 32-byte Ed25519 public key, or ValueError."""
+    try:
+        raw = _unb64(public_key.strip())
+        Ed25519PublicKey.from_public_bytes(raw)
+    except Exception as e:  # noqa: BLE001
+        raise ValueError("public_key must be a base64 raw Ed25519 public key (32 bytes)") from e
+    return _b64(raw)
+
+
+def verify_raw(public_key: str, text: str, signature: str) -> bool:
+    """Signature by `public_key` over `text` (used for proof of possession at enrollment and key rotation)."""
+    try:
+        Ed25519PublicKey.from_public_bytes(_unb64(public_key)).verify(_unb64(signature), text.encode())
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
 
 
 def sign_message(passport: Passport, agent_private_key: bytes, body: str) -> str:

@@ -183,7 +183,8 @@ def _record_check(rec: dict, v: Verdict, kind: str = "agent.checked") -> Verdict
 # ---- lifecycle -------------------------------------------------------------------------------
 
 def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | None = None, days: int = 30, *,
-            job: str | None = None, runtime: str = "in-house") -> dict:
+            job: str | None = None, runtime: str = "in-house", workspace_id: str | None = None,
+            public_key: str | None = None) -> dict:
     """Issues a passport and adds the agent as active. The API runs recheck() right after, so an agent with a
     sponsor who can't vouch for it shows up suspended instead of silently active. job is a one-line description of
     the work; runtime says where the agent runs ("in-house", or "external" for agents that only reach us over MCP)."""
@@ -193,10 +194,16 @@ def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | 
     role_title = ROLES[key]["title"] if key else role.strip()
     scopes = list(scopes) if scopes else list(ROLES[key]["default_scopes"] if key else ["data.read"])
     check_ceiling(role_title, scopes)
-    passport, private_key = pp.issue_passport(agent_name.strip(), role_title, sponsor, scopes, days)
+    try:
+        passport, private_key = pp.issue_passport(agent_name.strip(), role_title, sponsor, scopes, days,
+                                                  public_key=public_key)
+    except ValueError as e:
+        raise RegistryError(str(e))
+    custody = "agent" if public_key is not None else "agaxes"
     entry = ledger.append("agent.onboarded", {"agent_id": passport.agent_id, "agent_name": passport.agent_name,
                                                "role": role_title, "sponsor": _dump(sponsor), "scopes": scopes,
-                                               "expires_at": passport.expires_at, "runtime": runtime})
+                                               "expires_at": passport.expires_at, "runtime": runtime,
+                                               "workspace_id": workspace_id, "key_custody": custody})
     rec = {
         "agent_id": passport.agent_id,
         "employee_no": 0,
@@ -211,7 +218,10 @@ def onboard(agent_name: str, role: str, sponsor: Sponsor, scopes: list[Scope] | 
         "last_checked": None,
         "last_verdict": None,
         "passport": _dump(passport),
-        "private_key": base64.b64encode(private_key).decode(),
+        # key_custody "agent": the agent made its own key and Agaxes only holds the public half (enrollment).
+        "private_key": base64.b64encode(private_key).decode() if private_key else None,
+        "key_custody": custody,
+        "workspace_id": workspace_id,
         "reviews": [],
         "ledger_entries": [entry],
     }
@@ -235,9 +245,13 @@ def get_agent(agent_id: str) -> dict:
 
 
 def private_key(agent_id: str) -> bytes:
-    """For the agent runtime (e.g. Sourced signing its outreach before the guard). Not exposed over HTTP."""
+    """For the agent runtime (e.g. Sourced signing its outreach before the guard). Not exposed over HTTP.
+    Agents that hold their own key (enrolled) have none here: they sign on their own machine."""
     with _lock:
-        return base64.b64decode(_get(_load(), agent_id)["private_key"])
+        rec = _get(_load(), agent_id)
+    if not rec.get("private_key"):
+        raise RegistryError(f"{rec['name']} holds its own key: Agaxes can't sign for it")
+    return base64.b64decode(rec["private_key"])
 
 
 async def recheck(agent_id: str, client) -> Verdict:
@@ -257,11 +271,11 @@ async def recheck(agent_id: str, client) -> Verdict:
     return v
 
 
-async def recheck_all(client) -> list[Verdict]:
-    """The payroll run: every agent that isn't offboarded gets a live sponsor check."""
+async def recheck_all(client, only: set[str] | None = None) -> list[Verdict]:
+    """The payroll run: every agent that isn't offboarded gets a live sponsor check (only: limit to these ids)."""
     out = []
     for a in list_agents():
-        if a["status"] != "offboarded":
+        if a["status"] != "offboarded" and (only is None or a["agent_id"] in only):
             out.append(await recheck(a["agent_id"], client))
     return out
 
@@ -336,8 +350,9 @@ async def set_scopes(agent_id: str, scopes: list[Scope], client, by: str = "spon
     if added and rec["status"] != "active":
         raise RegistryError(f"{rec['name']} is suspended; reinstate it before granting more scopes")
     # record=False: a passport the sponsor can't back is never issued, so it stays off the ledger
+    own_key = rec.get("key_custody") == "agent"
     new, key = pp.issue_passport(old.agent_name, old.role, old.sponsor, scopes, _days_left(old), agent_id=agent_id,
-                                 record=False)
+                                 record=False, public_key=old.public_key if own_key else None)
 
     v = None
     if added:
@@ -357,13 +372,38 @@ async def set_scopes(agent_id: str, scopes: list[Scope], client, by: str = "spon
         rec = _get(agents, agent_id)
         if v is not None:
             _record_check(rec, v, "agent.scopes_checked")
-        rec["passport"], rec["private_key"] = _dump(new), base64.b64encode(key).decode()
+        rec["passport"], rec["private_key"] = _dump(new), (base64.b64encode(key).decode() if key else None)
         rec["ledger_entries"].append(ledger.append("passport.issued", {
             "agent_id": agent_id, "passport": new.model_dump(exclude={"issuer_signature"})}))
         rec["ledger_entries"].append(ledger.append("agent.scopes_changed", {
             "agent_id": agent_id, "from": list(old.scopes), "to": scopes, "by": by}, _sources(v) if v else []))
         _save(agents)
         return public(rec), v
+
+
+def rotate_key(agent_id: str, new_public_key: str, by: str = "agent") -> dict:
+    """Re-issue the passport bound to a new agent-held key, same scopes and expiry. After this Agaxes holds no
+    private key for the agent, and anything signed with the old key stops verifying."""
+    with _lock:
+        agents = _load()
+        rec = _get(agents, agent_id)
+        if rec["status"] == "offboarded":
+            raise RegistryError(f"{rec['name']} is offboarded")
+        old = Passport(**rec["passport"])
+        try:
+            new, _ = pp.issue_passport(old.agent_name, old.role, old.sponsor, list(old.scopes), _days_left(old),
+                                       agent_id=agent_id, record=False, public_key=new_public_key)
+        except ValueError as e:
+            raise RegistryError(str(e))
+        if new.public_key == old.public_key:
+            raise RegistryError("the new key is the same as the current one")
+        rec["passport"], rec["private_key"], rec["key_custody"] = _dump(new), None, "agent"
+        rec["ledger_entries"].append(ledger.append("passport.issued", {
+            "agent_id": agent_id, "passport": new.model_dump(exclude={"issuer_signature"})}))
+        rec["ledger_entries"].append(ledger.append("passport.key_rotated", {
+            "agent_id": agent_id, "old_key": old.public_key, "new_key": new.public_key, "by": by}))
+        _save(agents)
+        return public(rec)
 
 
 def _days_left(p: Passport) -> int:
