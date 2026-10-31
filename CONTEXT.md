@@ -90,6 +90,7 @@ Source files: `yc-hackathon/ContextCon 03_ IIT Bombay · The Themes.pdf`, `yc-ha
 ## 3. Decision log
 | Time (IST) | Decision | Why | By |
 |---|---|---|---|
+| ~11:16 | **PENDING user decision:** explore an agent-era infra pivot under the "Infrastructure for agents" theme. Options: (1) Agent Passport, a signed credential for an agent acting for a human, verified live via Crustdata (principal real, still employed, domain matches company, title carries authority); (2) Send Guard, an MCP pre-send check reusing the verifier to block false or stale claims; (3) AI employee manager (weak Crustdata fit, high risk); (4) hash-chained provenance log. Recommended by the "Rethink the hackathon idea" thread: **"Countersign" = 1+2 with 4 built in**, as an MCP server + verify page, with the hiring agent ("Sourced") as its first client and kept untouched as the fallback submission. Go/no-go 14:00 IST | User wants to think beyond the hiring agent | pending |
 | ~11:13 | UI look changed from Dossier to "Sourced" | User found Dossier too generic | dummyanaxes (via WS4) |
 | ~11:13 | Use the already-billed GCP project for Vertex instead of linking billing to the original one | User asked to fix Gemini now; avoids touching billing accounts | Claude (under the user's "fix gemini" ask) |
 | ~11:00 | Keep repo public and merge real person fixtures into main (chosen over making the repo private) | Replay mode and demo work from the repo alone | dummyanaxes |
