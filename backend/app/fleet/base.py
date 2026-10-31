@@ -1,4 +1,4 @@
-"""What every fleet agent shares: its identity, its Crustdata access, and its three calls to Countersign over MCP.
+"""What every fleet agent shares: its identity, its Crustdata access, and its three calls to Agaxes over MCP.
 
     clock_in(scope)            verify_agent: passport + live sponsor checks before the agent does any work
     send(to, body, scope)      signs locally, then send_message: Send Guard decides, allowed mail goes to the outbox

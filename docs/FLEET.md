@@ -1,7 +1,7 @@
-# The fleet: real AI employees for Countersign to manage
+# The fleet: real AI employees for Agaxes to manage
 
-Countersign is infrastructure for AI employees, so the demo needs more than one. These are working agents with
-different jobs, sponsors and scopes. Each reads Crustdata and calls Gemini itself, and reaches Countersign only
+Agaxes is infrastructure for AI employees, so the demo needs more than one. These are working agents with
+different jobs, sponsors and scopes. Each reads Crustdata and calls Gemini itself, and reaches Agaxes only
 over the MCP server (`backend/mcp_server.py`), the same way an outside agent would. Code: `backend/app/fleet/`.
 
 | # | Agent | Job | Sponsor (real Crustdata profile) | Scopes | What happens |
