@@ -753,7 +753,7 @@ function AgentHistory({ agent: a }: { agent: Agent }) {
         <p className="text-[12.5px] text-muted-foreground">{view.entries.length} entries about {a.name}, newest first.</p>
         <ExportButtons agentId={a.agent_id} />
       </div>
-      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} />
+      <LedgerTimeline entries={[...view.entries].reverse()} firstBad={view.first_bad_seq} names={new Map([[a.agent_id, a.name]])} />
     </div>
   );
 }
