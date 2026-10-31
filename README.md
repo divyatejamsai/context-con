@@ -35,7 +35,7 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8000
+echo NEXT_PUBLIC_API_URL=http://localhost:8000 > .env.local   # optional, this is the default
 npm run dev                  # open http://localhost:3000, toggle "Live" top-right (or /?mode=live)
 ```
 
