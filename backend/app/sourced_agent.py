@@ -23,10 +23,12 @@ import os
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from .accounts import authz
+from .accounts.authz import require_operate
 from .agents import ledger, registry
 from .agents.api import crustdata
 from .agents.graph import Graph
@@ -207,13 +209,15 @@ async def _sse(brief: str, agent_id: str, autosend: bool | None = None):
         yield f"data: {json.dumps(d, default=str)}\n\n"
 
 
-@router.post("/agents/{agent_id}/run")
+@router.post("/agents/{agent_id}/run", dependencies=[Depends(require_operate)])
 async def run_post(agent_id: str, req: RunRequest, autosend: bool | None = None):
+    authz.check_agent(agent_id)
     return StreamingResponse(_sse(req.brief, agent_id, autosend), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
-@router.get("/agents/{agent_id}/run")
+@router.get("/agents/{agent_id}/run", dependencies=[Depends(require_operate)])  # EventSource: ?token=<admin token>
 async def run_get(agent_id: str, brief: str = Query(..., min_length=1), autosend: bool | None = None):
+    authz.check_agent(agent_id)
     return StreamingResponse(_sse(brief, agent_id, autosend), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
@@ -236,7 +240,7 @@ class ResumeResponse(BaseModel):
     ledger_entry: str | None = None
 
 
-@router.post("/verify_resume", response_model=ResumeResponse)
+@router.post("/verify_resume", response_model=ResumeResponse, dependencies=[Depends(require_operate)])
 async def verify_resume(req: ResumeRequest):
     from .verify.verifier import verify_candidate
 

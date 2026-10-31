@@ -1,7 +1,8 @@
 """Append-only, hash-chained ledger (docs/COUNTERSIGN.md part 4).
 
 Each line of the JSONL file is {seq, ts, kind, payload, sources, prev_hash, hash}, where
-hash = sha256(canonical JSON of every other field). Editing, deleting or reordering any line breaks
+hash = sha256(canonical JSON of every other field). Entries written while serving a signed-in request also carry
+`actor` (who, from their session or the admin token, never from the request body), covered by the same hash. Editing, deleting or reordering any line breaks
 the chain from that line on, and verify_chain() reports the first bad seq.
 """
 from __future__ import annotations
@@ -126,10 +127,22 @@ def append(kind: str, payload: dict, sources: list[Source] | list[dict] | None =
             "sources": srcs,
             "prev_hash": prev,
         }
+        actor = _actor()
+        if actor:
+            entry["actor"] = actor
         entry["hash"] = entry_hash(entry)
         with p.open("a") as f:
             f.write(canonical(entry) + "\n")
     return entry["hash"]
+
+
+def _actor() -> dict | None:
+    try:
+        from ..accounts.authz import current
+    except ImportError:
+        return None
+    p = current()
+    return p.actor() if p is not None and p.via != "open" else None
 
 
 def verify_chain(p: Path | None = None) -> tuple[bool, int | None]:

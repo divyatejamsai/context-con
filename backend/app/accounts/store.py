@@ -259,6 +259,38 @@ class AccountStore:
             self._db.commit()
         return self.user(row["user_id"])
 
+    # ---- workspace roles ---------------------------------------------------
+    def set_role(self, company_id: str, user_id: str, role: str) -> dict:
+        """Change a member's role. A workspace always keeps at least one owner."""
+        with self._lock:
+            row = self._db.execute("SELECT * FROM users WHERE id = ? AND company_id = ?", (user_id, company_id)).fetchone()
+            if row is None:
+                raise AuthError("not_found", "No such member in this workspace.", 404)
+            if row["workspace_role"] == "owner" and role != "owner" and self._owners(company_id) <= 1:
+                raise AuthError("last_owner", "Make someone else an owner first: a workspace needs one.", 409)
+            self._db.execute("UPDATE users SET workspace_role = ? WHERE id = ?", (role, user_id))
+            self._db.commit()
+        return self.user(user_id)
+
+    def remove_member(self, company_id: str, user_id: str) -> dict:
+        """Removes the person from the workspace and signs them out everywhere."""
+        with self._lock:
+            row = self._db.execute("SELECT * FROM users WHERE id = ? AND company_id = ?", (user_id, company_id)).fetchone()
+            if row is None:
+                raise AuthError("not_found", "No such member in this workspace.", 404)
+            if row["workspace_role"] == "owner" and self._owners(company_id) <= 1:
+                raise AuthError("last_owner", "The last owner can't be removed.", 409)
+            gone = _user(row)
+            self._db.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            self._db.execute("DELETE FROM password_resets WHERE user_id = ?", (user_id,))
+            self._db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self._db.commit()
+        return gone
+
+    def _owners(self, company_id: str) -> int:
+        return self._db.execute("SELECT COUNT(*) FROM users WHERE company_id = ? AND workspace_role = 'owner'",
+                                (company_id,)).fetchone()[0]
+
     def user(self, user_id: str) -> dict:
         return _user(self._db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())
 

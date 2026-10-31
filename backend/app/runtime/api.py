@@ -14,7 +14,9 @@
     POST /api/runtime/schedules/{id}/toggle, DELETE /api/runtime/schedules/{id}
     PUT  /api/runtime/payroll                     {enabled?, every_minutes?};  POST /api/runtime/payroll/run
 
-Writes need COUNTERSIGN_ADMIN_TOKEN (x-admin-token) when it is set, like the rest of Countersign's admin routes.
+Who may call what (app/accounts/authz.py), once auth is on: reads need viewer; assigning, cancelling, retrying,
+approving, rejecting, pausing and resuming need member; suspend, policy, schedules and payroll need admin. A signed-in
+user only sees and touches their own workspace's agents, tasks and approvals.
 """
 from __future__ import annotations
 
@@ -24,7 +26,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..agents import ledger
-from ..agents.api import require_admin
+from ..accounts import authz
+from ..agents.api import require_admin, require_operate, require_read
 from ..agents.registry import RegistryError
 from . import receipts, store
 from .kinds import public_kinds
@@ -32,6 +35,32 @@ from .supervisor import Runtime, state
 
 router = APIRouter(prefix="/api/runtime", tags=["runtime"])
 admin = [Depends(require_admin)]
+operate = [Depends(require_operate)]
+
+
+def _scoped_state(st: dict) -> dict:
+    """Drops other workspaces' agents, tasks and approvals from the Work view for a signed-in user."""
+    ids = authz.visible_agent_ids()
+    if ids is None:
+        return st
+    out = {}
+    for k, v in st.items():
+        if isinstance(v, list) and v and isinstance(v[0], dict) and "agent_id" in v[0]:
+            v = [x for x in v if x.get("agent_id") in ids]
+        out[k] = v
+    return out
+
+
+def _own_task(task_id: str) -> None:
+    t = store.get_task(task_id)
+    if t:
+        authz.check_agent(t["agent_id"])
+
+
+def _own_approval(approval_id: str) -> None:
+    a = next((x for x in store.approvals() if x.get("approval_id") == approval_id), None)
+    if a:
+        authz.check_agent(a["agent_id"])
 RUNTIME: Runtime | None = None
 
 
@@ -81,9 +110,9 @@ def _bad(e: Exception) -> HTTPException:
     return HTTPException(400, str(e))
 
 
-@router.get("/state")
+@router.get("/state", dependencies=[Depends(require_read)])
 async def get_state():
-    return state(RUNTIME)
+    return _scoped_state(state(RUNTIME))
 
 
 @router.get("/kinds")
@@ -91,8 +120,9 @@ async def kinds():
     return public_kinds()
 
 
-@router.get("/tasks/{task_id}")
+@router.get("/tasks/{task_id}", dependencies=[Depends(require_read)])
 async def get_task(task_id: str):
+    _own_task(task_id)
     t = store.get_task(task_id)
     if not t:
         raise HTTPException(404, "no such task")
@@ -100,32 +130,36 @@ async def get_task(task_id: str):
     return t
 
 
-@router.post("/tasks", dependencies=admin)
+@router.post("/tasks", dependencies=operate)
 async def assign(req: AssignRequest):
+    authz.check_agent(req.agent_id)
     try:
         return rt().assign(req.agent_id, req.kind, req.input, by=req.by, ref=req.ref)
     except (ValueError, KeyError, RegistryError) as e:
         raise _bad(e)
 
 
-@router.post("/tasks/{task_id}/cancel", dependencies=admin)
+@router.post("/tasks/{task_id}/cancel", dependencies=operate)
 async def cancel(task_id: str, req: By | None = None):
+    _own_task(task_id)
     try:
         return rt().cancel(task_id, (req or By()).by)
     except (ValueError, KeyError) as e:
         raise _bad(e)
 
 
-@router.post("/tasks/{task_id}/retry", dependencies=admin)
+@router.post("/tasks/{task_id}/retry", dependencies=operate)
 async def retry(task_id: str, req: By | None = None):
+    _own_task(task_id)
     try:
         return rt().retry(task_id, (req or By()).by)
     except (ValueError, KeyError, RegistryError) as e:
         raise _bad(e)
 
 
-@router.post("/approvals/{approval_id}/approve", dependencies=admin)
+@router.post("/approvals/{approval_id}/approve", dependencies=operate)
 async def approve(approval_id: str, req: By | None = None):
+    _own_approval(approval_id)
     try:
         req = req or By()
         return await rt().approve(approval_id, req.by, req.body)
@@ -133,8 +167,9 @@ async def approve(approval_id: str, req: By | None = None):
         raise HTTPException(409, str(e))
 
 
-@router.post("/approvals/{approval_id}/reject", dependencies=admin)
+@router.post("/approvals/{approval_id}/reject", dependencies=operate)
 async def reject(approval_id: str, req: By | None = None):
+    _own_approval(approval_id)
     req = req or By()
     try:
         return rt().reject(approval_id, req.by, req.note or req.reason)
@@ -142,8 +177,9 @@ async def reject(approval_id: str, req: By | None = None):
         raise HTTPException(409, str(e))
 
 
-@router.post("/agents/{agent_id}/pause", dependencies=admin)
+@router.post("/agents/{agent_id}/pause", dependencies=operate)
 async def pause(agent_id: str, req: By | None = None):
+    authz.check_agent(agent_id)
     req = req or By()
     try:
         return rt().pause(agent_id, req.by, req.reason)
@@ -151,8 +187,9 @@ async def pause(agent_id: str, req: By | None = None):
         raise _bad(e)
 
 
-@router.post("/agents/{agent_id}/resume", dependencies=admin)
+@router.post("/agents/{agent_id}/resume", dependencies=operate)
 async def resume(agent_id: str, req: By | None = None):
+    authz.check_agent(agent_id)
     try:
         return rt().resume(agent_id, (req or By()).by)
     except (KeyError, RegistryError) as e:
@@ -161,6 +198,7 @@ async def resume(agent_id: str, req: By | None = None):
 
 @router.post("/agents/{agent_id}/suspend", dependencies=admin)
 async def suspend(agent_id: str, req: By):
+    authz.check_agent(agent_id)
     try:
         return rt().suspend(agent_id, req.by, req.reason or "suspended by the employer")
     except (KeyError, RegistryError) as e:
@@ -169,6 +207,7 @@ async def suspend(agent_id: str, req: By):
 
 @router.put("/agents/{agent_id}/policy", dependencies=admin)
 async def policy(agent_id: str, req: PolicyRequest):
+    authz.check_agent(agent_id)
     try:
         return rt().set_policy(agent_id, req.by, require_approval=req.require_approval, budget=req.budget)
     except (KeyError, RegistryError) as e:
@@ -177,6 +216,7 @@ async def policy(agent_id: str, req: PolicyRequest):
 
 @router.post("/schedules", dependencies=admin)
 async def add_schedule(req: ScheduleRequest):
+    authz.check_agent(req.agent_id)
     try:
         return rt().add_schedule(req.agent_id, req.kind, req.input, req.every_minutes, req.by)
     except (ValueError, KeyError, RegistryError) as e:
@@ -188,6 +228,7 @@ async def toggle_schedule(schedule_id: str):
     s = next((x for x in store.schedules() if x["schedule_id"] == schedule_id), None)
     if not s:
         raise HTTPException(404, "no such schedule")
+    authz.check_agent(s["agent_id"])
     out = store.update_schedule(schedule_id, enabled=not s["enabled"],
                                 next_run_at=store.now() if not s["enabled"] else s["next_run_at"])
     ledger.append("runtime.schedule", {"agent_id": s["agent_id"], "schedule_id": schedule_id,
@@ -199,6 +240,8 @@ async def toggle_schedule(schedule_id: str):
 @router.delete("/schedules/{schedule_id}", dependencies=admin)
 async def delete_schedule(schedule_id: str):
     s = next((x for x in store.schedules() if x["schedule_id"] == schedule_id), None)
+    if s:
+        authz.check_agent(s["agent_id"])
     if not s or not store.delete_schedule(schedule_id):
         raise HTTPException(404, "no such schedule")
     ledger.append("runtime.schedule", {"agent_id": s["agent_id"], "schedule_id": schedule_id, "action": "deleted"})
@@ -326,15 +369,18 @@ async def hire(req: HireRequest):
     t = next((x for x in TEMPLATES if x["key"] == req.key), None)
     if not t:
         raise HTTPException(404, "no such template")
-    if any(a["name"] == t["name"] and a["status"] != "offboarded" for a in registry.list_agents()):
+    me = authz.current()
+    mine = [a for a in registry.list_agents() if authz.sees_agent(me, a)]  # this workspace's payroll only
+    if any(a["name"] == t["name"] and a["status"] != "offboarded" for a in mine):
         raise HTTPException(409, f"{t['name']} is already on the payroll")
-    peer = next((a for a in registry.list_agents() if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
+    peer = next((a for a in mine if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
     if peer:
         sponsor = Sponsor.model_validate(peer["passport"]["sponsor"])
     else:
         from ..fleet.roster import PANKAJ as sponsor
     try:
-        rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house")
+        rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house",
+                               workspace_id=me.workspace_id if me else None)
         v = await registry.recheck(rec["agent_id"], crustdata())  # live sponsor check right away
     except RegistryError as e:
         raise HTTPException(400, str(e))
