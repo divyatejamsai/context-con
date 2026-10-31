@@ -239,7 +239,10 @@ def fake_registry(monkeypatch):
         return store[agent_id]
 
     mod.get_agent = get_agent
+    import app.agents
+
     monkeypatch.setitem(sys.modules, "app.agents.registry", mod)
+    monkeypatch.setattr(app.agents, "registry", mod, raising=False)
     return store
 
 

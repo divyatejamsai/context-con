@@ -40,10 +40,13 @@ def identity() -> tuple[Passport, bytes, str]:
     try:
         from . import registry  # WS8
 
-        for a in registry.list_agents():
-            p = a.get("passport") or {}
-            if p.get("agent_name", "").lower() == "sourced" and a.get("status") == "active":
-                return Passport.model_validate(p), registry.private_key(p["agent_id"]), "registry"
+        # Any Sourced in the registry wins, active or not: a suspended Sourced must be blocked by the guard,
+        # never quietly replaced by a fresh local passport.
+        mine = [a for a in registry.list_agents() if (a.get("passport") or {}).get("agent_name", "").lower() == "sourced"]
+        mine.sort(key=lambda a: (a.get("status") == "active", a.get("employee_no", 0)), reverse=True)
+        if mine:
+            p = mine[0]["passport"]
+            return Passport.model_validate(p), registry.private_key(p["agent_id"]), "registry"
     except ImportError:
         pass
     if IDENTITY_PATH.exists():
