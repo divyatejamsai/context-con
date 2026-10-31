@@ -1,0 +1,46 @@
+{
+  "endpoint": "person/search",
+  "request": {
+    "filters": {
+      "op": "and",
+      "conditions": [
+        {
+          "field": "experience.employment_details.current.title",
+          "type": "(.)",
+          "value": "senior server side engineer"
+        },
+        {
+          "op": "or",
+          "conditions": [
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "bangalore"
+            },
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "bengaluru"
+            }
+          ]
+        }
+      ]
+    },
+    "limit": 25,
+    "fields": [
+      "crustdata_person_id",
+      "basic_profile",
+      "experience",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": {
+    "profiles": [],
+    "next_cursor": null,
+    "total_count": 0,
+    "total_count_relation": null,
+    "remarks": []
+  },
+  "fetched_at": "2026-10-31T07:03:55+00:00"
+}

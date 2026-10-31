@@ -1,0 +1,1761 @@
+{
+  "endpoint": "person/search",
+  "request": {
+    "filters": {
+      "op": "and",
+      "conditions": [
+        {
+          "op": "or",
+          "conditions": [
+            {
+              "field": "experience.employment_details.current.title",
+              "type": "(.)",
+              "value": "senior backend engineer"
+            },
+            {
+              "field": "experience.employment_details.current.title",
+              "type": "(.)",
+              "value": "senior software engineer (backend)"
+            },
+            {
+              "field": "experience.employment_details.current.title",
+              "type": "(.)",
+              "value": "senior server-side developer"
+            }
+          ]
+        },
+        {
+          "op": "or",
+          "conditions": [
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "bangalore"
+            },
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "bengaluru"
+            }
+          ]
+        },
+        {
+          "op": "or",
+          "conditions": [
+            {
+              "field": "skills.professional_network_skills",
+              "type": "(.)",
+              "value": "payments"
+            },
+            {
+              "field": "basic_profile.headline",
+              "type": "(.)",
+              "value": "payments"
+            }
+          ]
+        }
+      ]
+    },
+    "limit": 25,
+    "fields": [
+      "crustdata_person_id",
+      "basic_profile",
+      "experience",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": {
+    "profiles": [
+      {
+        "crustdata_person_id": 35011170,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer",
+          "headline": "Senior Backend Engineer | Ex-Visa, ServiceNow | Distributed Systems, Microservices | Payments & Enterprise Platform Systems | Building with LLMs & AI agents | Immediate Joiner",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Shubham A.",
+          "professional_network_name": "Shubham A.",
+          "profile_picture_permalink": "",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1549,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United Kingdom",
+                "company_hq_location": "London, England, United Kingdom",
+                "company_hq_location_address_components": [
+                  "London",
+                  "London",
+                  "Greater London",
+                  "England",
+                  "United Kingdom"
+                ],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/equal-experts",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/120bc9166cc16cf2a318ea75fba1f38386b8852dfd7e796f7e79b80de27ca2b3.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.equalexperts.com",
+                "crustdata_company_id": 1044392,
+                "description": "Client: IG Group\nOwn the architecture of the payments module in IG's agent dashboard: Java/Spring Boot APIs that servicing agents use to move client money across 5 payment rails (card, bank transfer, PayPal, Apple Pay and US rails), each with different authorisation rules, processing 1,000s of withdrawal and deposit requests a day. \nDesigned the withdrawal workflow end to end: multi-account fund selection with balance and margin checks, request queues, payment runs and archival. Server-side eligibility rules block ~15% of requests that would previously have reached the payments team as invalid. \nConsolidated client and account data from 6 upstream systems (Salesforce, Genesys, IGIP) into one low-latency API, replacing 6 separate tool logins for hundreds of internal agents and cutting the time to resolve a payment query by roughly a third. \nBuilt the compliance and privacy layer: card data stays tokenised and never enters the dashboard, verification checks gate every fund movement, and every state change lands in an audit trail — zero compliance findings since launch. \nSenior-most engineer in a squad of 6: review designs, write the decision records, and ship to production every 2 weeks with a 100% on-time release record.",
+                "employment_type": "Full-time",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Equal Experts",
+                "position_id": 2929868756,
+                "professional_network_id": "252335",
+                "seniority_level": "Senior",
+                "start_date": "2025-10-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 654,
+                "company_headcount_range": "501-1000",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Mountain View, California, United States",
+                "company_hq_location_address_components": [
+                  "Mountain View",
+                  "Santa Clara County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/moveworksai",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/59853f6432d6ad56315d76743c4a16a9e9b51afc64f2629b1dd87f8525a57f68.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://moveworks.ai/?utm_source=soc&utm_medium=li",
+                "crustdata_company_id": 631503,
+                "description": "Built the backend integration that captured lead-gen form submissions from the company website and synced them into Marketo in real time, with validation, deduplication, and retry logic to guarantee delivery. \nHired and built the platform's backend team of 6 from scratch in six months, then set its architecture standards and code-review practices that the team still runs on; structured onboarding cut new-engineer ramp-up time by 30%. \nBuilt GitHub Actions CI/CD pipelines that held a 99.5% deployment success rate with zero-downtime releases, drove test-driven development adoption to 85% coverage, and cut post-release defects by 40%. \nAutomated review and approval routing through a Slack/JIRA integration, cutting SLA breaches by 40%.",
+                "employment_type": "Full-time",
+                "end_date": "2025-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Moveworks",
+                "position_id": 2393529618,
+                "professional_network_id": "18311685",
+                "seniority_level": "Senior",
+                "start_date": "2024-02-01T00:00:00",
+                "title": "Senior Software Engineer II",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 34824,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Santa Clara, California, United States",
+                "company_hq_location_address_components": [
+                  "Santa Clara",
+                  "Santa Clara County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/servicenow",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/aba589597fea6bd6a06e78507a7324d4da7fb91a84cf266c99e7450c130a1d14.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.servicenow.com",
+                "crustdata_company_id": 662500,
+                "description": "Built an automated data ingestion and publishing pipeline on an event-driven architecture, cutting manual effort by 75% and scaling throughput 3x. \nStrengthened monitoring and alerting around critical data pipelines so failures surfaced before customers reported them, shortening mean time to detection. \nHandled production escalations on the on-call rotation: triaged customer-impacting incidents, drove root cause analysis with engineering and support teams, and shipped permanent fixes that reduced recurring incident volume. \nLed a large-scale codebase audit: removed 5,000+ lines of dead code, resolved 97% of SonarQube issues and measurably reduced build times. \nDrove the geo-site rollout for ANZ and LATAM regions, automating provisioning and deployment to cut perregion engineering effort by 30%. \nOptimised backend data delivery pipelines, reducing payload sizes and contributing to 20% faster page loads. Owned technical screening and structured mentoring for 5+ new hires in the Centre of Excellence.",
+                "employment_type": "Full-time",
+                "end_date": "2024-02-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "ServiceNow",
+                "position_id": 1994471064,
+                "professional_network_id": "29352",
+                "seniority_level": "Senior",
+                "start_date": "2022-05-01T00:00:00",
+                "title": "Senior Software Engineer (IC3)",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 31513,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Foster City, California, United States",
+                "company_hq_location_address_components": [
+                  "Foster City",
+                  "San Mateo County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/visa",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c75d408c6e508f5ffccc5508826526c5fc6b3fdb866b74d5938f17748c8776a6.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "https://corporate.visa.com/en/careers.html",
+                "crustdata_company_id": 6047212,
+                "description": "Built and owned consumer-facing REST APIs for visa.com across 150+ global markets, sustaining 2M+ daily users at sub-200ms response times with 99.9% uptime. \nBuilt a backend reporting service on top of an existing Elasticsearch index, letting internal teams query by keyword within a chosen region and country to keep result sets manageable across 150+ countries, with matches exported to Excel via a scheduled backend job. Cut retrieval time by 60%. \nOwned production support for these APIs end to end: led incident bridges during high-severity outages, restored service within SLA, and ran post-incident reviews with preventive fixes, using Splunk dashboards for diagnosis. Built a distributed cache invalidation system that reduced propagation delays by 70% across global CDN nodes. Delivered an internal approval-workflow tool that cut processing time by 85% and saved around $100K a year. Redesigned core visa.com UI components in Angular/TypeScript as part of a platform redesign, contributing to a 25% lift in mobile engagement and 18% longer page dwell time.",
+                "employment_type": "Full-time",
+                "end_date": "2022-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Visa",
+                "position_id": 1658166376,
+                "professional_network_id": "2190",
+                "seniority_level": "Senior",
+                "start_date": "2019-10-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 29703,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "",
+                "company_hq_location": "Temporary P.O. (W.B.B.S.E), Nabadiganta IT, Bidhan Nagar CK Market, Sech Bhawan, West Bengal, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Business Consulting and Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Business Consulting and Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/pwc-india",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f2cbaf547bf37bbffbee55ed98648838e21713382f3af12c78eb77d142404b9b.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.pwc.in",
+                "crustdata_company_id": 1032977,
+                "description": "Upgraded backend services for a major bank's enterprise platform, reducing production incidents by 40% and improving system performance by 15%. \nBuilt server-side personalisation logic for user segmentation; pilot deployments showed a 22% lift in engagement.",
+                "employment_type": "Full-time",
+                "end_date": "2019-10-01T00:00:00",
+                "function_category": "Consulting",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "PwC India",
+                "position_id": 1447785280,
+                "professional_network_id": "1092713",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-11-01T00:00:00",
+                "title": "Technology Consultant",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 23993,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Boston, Massachusetts, United States",
+                "company_hq_location_address_components": [
+                  "Boston",
+                  "Suffolk County",
+                  "Massachusetts",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Business Consulting and Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Business Consulting and Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/publicissapient",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3397a1c2a82f246a38c6bdc524ad05d0eae0fd06612af134a48cb6e34faf7370.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://publicissapient.com/",
+                "crustdata_company_id": 701616,
+                "description": "Built a reusable component and template framework adopted across multiple Fortune 500 client platforms, cutting new-page and campaign turnaround time in half. \nIntegrated third-party media APIs and optimised asset-serving pipelines, cutting load times by 30% through caching and CDN configuration. \nEstablished code quality standards with static analysis and automated testing (JUnit/Mockito), reducing production defects by 35%.",
+                "employment_type": "Full-time",
+                "end_date": "2018-10-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Noida"
+                },
+                "name": "Publicis Sapient",
+                "position_id": 1321844687,
+                "professional_network_id": "10801655",
+                "seniority_level": "Entry Level",
+                "start_date": "2015-09-01T00:00:00",
+                "title": "Associate Technology",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 3
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/shubham-asthana3092"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 79011908,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer",
+          "headline": "SSE | ex-Airtel Payments Bank | BIT Mesra",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Swagat Patra",
+          "professional_network_name": "swagat patra",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/194eafcd78276ba96ef194ca7a05212c95c87dbc564a800e21eb783a9b37b105.jpg",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 5760,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United Kingdom",
+                "company_hq_location": "Southwark Cathedral, Old Kent Road, New Kent Road, Newington, London Bridge, Southwark, Lambeth, Lambeth North, Waterloo, Westminster Bridge, South Bank, Borough, Bermondsey, England, United Kingdom",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/moniepoint-inc",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e31a6e296968cfec0c1b7ba25395fe05aa72068207fdb13f8e07785752983fec.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.moniepoint.com",
+                "crustdata_company_id": 900405,
+                "description": "Built and launched the Moniemarket logistics platform from scratch, enabling direct manufacturer-to-retailer transactions. Developed a remote sales platform for loan processing, allowing field officers to submit applications on behalf of business owners. Owned end-to-end system design and development: UI integration (Figma), schema design, validations, idempotency, async processing, distributed locking and transaction management. Designed modular, scalable services using status-driven workflows and Strategy design pattern. Ensured data consistency across microservices using event-driven architecture, Outbox pattern and fault-tolerant retry strategies.",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "name": "Moniepoint Group",
+                "position_id": 2662375394,
+                "professional_network_id": "88068264",
+                "seniority_level": "Senior",
+                "start_date": "2025-06-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1609,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Santa Clara, California, United States",
+                "company_hq_location_address_components": [
+                  "Santa Clara",
+                  "Santa Clara County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/edelman-financial-engines",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/fda76288b9405dab98deb8ca9b34bfccc42b96c4d871c95b6bd962c8e213271a.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.edelmanfinancialengines.com/",
+                "crustdata_company_id": 1155071,
+                "description": "Working as part of team handling onboarding of millions of company-sponsored employee 401k accounts. Involved in validation, cleansing of data records, aws sdk upgrade. Integrated Lambda, Amazon DynamoDB with secondary indexing. Built a UI dashboard for efficient range-based querying (vanilla js).",
+                "employment_type": "",
+                "end_date": "2025-05-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Edelman Financial Engines",
+                "position_id": 2250386486,
+                "professional_network_id": "58931",
+                "seniority_level": "Entry Level",
+                "start_date": "2023-04-01T00:00:00",
+                "title": "SSE",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 6834,
+                "company_headcount_range": "5001-10000",
+                "company_headquarters_country": "United States of America",
+                "company_hq_location": "Mc Lean, Virginia, United States",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/cvent",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ba3caaa1f0ce00163e45c256159a5153561e6b0e2ffbe7fdb32d8953aa68f3c1.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://utm.io/uowED",
+                "crustdata_company_id": 1036970,
+                "description": "Vendor Recommendation utility (Recommending vendors to suppliers based on ratings, prices and categories using Priority Queue with backtracking) which fetched the recommended vendors for each category with minimal latency and duplicacy - handling. Involved in migration of vendor data from NA to EU for GDPR compliance. Created apis for adding vendor contacts and sending updates.",
+                "employment_type": "",
+                "end_date": "2023-01-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Gurugram, Haryana, India"
+                },
+                "name": "Cvent",
+                "position_id": 1961928198,
+                "professional_network_id": "18125",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-05-01T00:00:00",
+                "title": "SSE",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 7138,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Palam Road, Haryana, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/airtelpaymentsbank",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/5b461674af15886de5a63cdebf67508245c410ff9e57adb862373f93361895eb.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "https://www.airtelpayments.bank.in",
+                "crustdata_company_id": 1131730,
+                "description": "Utilities Vertical (Involved in the integration of new features into Airtel Thanks App). Wrote scripts to generate queries for on-boarding of schools pan-India. Handled integration and deployment of Redbus into Thanks app. Fixed a persistent issue with recharge data packs using cron job and handling duplicate entries without changing schema.",
+                "employment_type": "",
+                "end_date": "2022-05-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "name": "Airtel Payments Bank",
+                "position_id": 2943199875,
+                "professional_network_id": "13361480",
+                "seniority_level": "Entry Level",
+                "start_date": "2021-03-01T00:00:00",
+                "title": "SDE 2",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1559,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United States of America",
+                "company_hq_location": "Guaynabo, Puerto Rico, Puerto Rico",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Technology, Information and Internet",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/careerbuildercom",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/241ef6560b8f8329b01e083a84a184d0081f07cea81697317a0eafcafb65612e.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.careerbuilder.com",
+                "crustdata_company_id": 821782,
+                "description": "Email Subscriptions Module (Handling of users and their job and notification preferences, mapping candidates to talent networks). Integrated AWS Lambda functions for scheduled jobs and for unpausing of paused notifications. Integrated retrials in case of error responses which reduced the error rates from 12% to 3.5%. Was included in the \"CB Employees of the Month newsletter\" for integration of Kafka Implemented schema changes using nested JSON in SQL. Rewrote auth token generator npm library.",
+                "employment_type": "",
+                "end_date": "2021-03-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Noida, Uttar Pradesh, India"
+                },
+                "name": "CareerBuilder",
+                "position_id": 1544788491,
+                "professional_network_id": "4162",
+                "seniority_level": "Entry Level",
+                "start_date": "2019-04-01T00:00:00",
+                "title": "Software Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "Epricer India (Portal for displaying products available in a particular country with pricing and features' specifications). Used Future and Executor for parallel processing. Code migration from Angular.js to Angular 4 (TypeScript). Fetching data from REST APIs and displaying prices and products in an interactive format.",
+                "employment_type": "",
+                "end_date": "2018-12-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "IBM India Pvt Ltd",
+                "position_id": 2943199873,
+                "professional_network_id": null,
+                "seniority_level": "Entry Level",
+                "start_date": "2016-10-01T00:00:00",
+                "title": "Associate System Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/swagat-patra-jp832"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 104376411,
+        "basic_profile": {
+          "current_title": "Senior Backend Software Engineer",
+          "headline": "Technical Product Management | Product Ownership | E-commerce & Payments | IIM Mumbai EMBA | 6+ Years in Digital Products & Engineering",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Ayushi Kushwaha",
+          "normalized_title": {
+            "confident": true,
+            "department": "Engineering & Technology",
+            "matched_title": "Senior Backend Software Engineer",
+            "similarity": 0.9999,
+            "sub_department": "Software Engineering"
+          },
+          "professional_network_name": "Ayushi Kushwaha",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/4d238918bea7ffdafd47a8346148e134295b1f5514bdf7c8305bcb5c31a520ad.jpg"
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 27218,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "Chile",
+                "company_hq_location": "Las Condes, Santiago Metropolitan Region, Chile",
+                "company_hq_location_address_components": [
+                  "Las Condes",
+                  "Las Condes",
+                  "Santiago Province",
+                  "Santiago Metropolitan Region",
+                  "Chile"
+                ],
+                "company_industries": [
+                  "Retail"
+                ],
+                "company_professional_network_industry": "Retail",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/falabellaretail",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0ff116caffa5969f370ce8fd14fcbea5d74abfd76f4334bf8390d7e575279a7b.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.falabella.com",
+                "crustdata_company_id": 6033731,
+                "description": "Product-focused technology professional and IIM Mumbai EMBA candidate with 6+ years of experience building scalable digital products across e-commerce, payments, order management and airline loyalty. Currently a Senior Software Engineer at Falabella, driving end-to-end product and engineering delivery across payments, cancellations, refunds and fulfilment. Experienced in requirement discovery, customer journey analysis, product prioritization, stakeholder management, technical feasibility and translating business problems into scalable solutions. Combine strong engineering expertise with product thinking and business strategy, with hands-on experience working across Product, Engineering and QA teams. Targeting Technical Product Manager, Product Owner and Platform Product roles.",
+                "employment_type": "Full-time",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Falabella",
+                "position_id": 2710048555,
+                "professional_network_id": "20882",
+                "seniority_level": "Senior",
+                "start_date": "2025-04-01T00:00:00",
+                "title": "Senior Backend Software Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 77103,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Atlanta, Georgia, United States",
+                "company_hq_location_address_components": [
+                  "Atlanta",
+                  "Fulton County",
+                  "Georgia",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Airlines and Aviation",
+                  "Transportation, Logistics, Supply Chain and Storage"
+                ],
+                "company_professional_network_industry": "Airlines and Aviation",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/delta-air-lines",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/744c1ad755be2704e48b2fb6d595731d3c5659ffe3afb0c80d82d07c42635811.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.delta.com",
+                "crustdata_company_id": 681753,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": "2025-03-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Delta Air Lines",
+                "position_id": 2268227513,
+                "professional_network_id": "2272",
+                "seniority_level": "Entry Level",
+                "start_date": "2023-10-01T00:00:00",
+                "title": "Developer 1",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 77103,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Atlanta, Georgia, United States",
+                "company_hq_location_address_components": [
+                  "Atlanta",
+                  "Fulton County",
+                  "Georgia",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Airlines and Aviation",
+                  "Transportation, Logistics, Supply Chain and Storage"
+                ],
+                "company_professional_network_industry": "Airlines and Aviation",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/delta-air-lines",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/744c1ad755be2704e48b2fb6d595731d3c5659ffe3afb0c80d82d07c42635811.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.delta.com",
+                "crustdata_company_id": 681753,
+                "description": "- Developed and maintained business rules using Red Hat Decision Manager (RHDM) to streamline decision-making processes.\n\n-Implemented and managed decision tables, decision trees, and rule flows within RHDM to optimize business logic.\n\n-Conducted rule evaluations, testing, and performance tuning to ensure efficient and accurate decision executions.\n\n-Assisted in the integration of RHDM with existing systems and applications, enabling seamless rule execution.\n\n-Stayed updated on RHDM features and best practices, contributing to the continuous improvement of rule management.",
+                "employment_type": "Full-time",
+                "end_date": "2023-10-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Delta Air Lines",
+                "position_id": 1984065283,
+                "professional_network_id": "2272",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-06-01T00:00:00",
+                "title": "Associate Developer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 538821,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "New York, New York, United States",
+                "company_hq_location_address_components": [
+                  "New York",
+                  "New York",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Business Consulting and Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Business Consulting and Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/deloitte",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7a6db6a026a81e773b27ea0933d12bb1d04e52181c5ae951f043a12b8c094c28.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.deloitte.com/",
+                "crustdata_company_id": 6038606,
+                "description": "- Responsible for backend development for loan system. Working on Kotlin/Gradle and Reactive Programming.\n- Work for Client - AXIS BANK .\n- Have thorough knowledge of Kotlin, Gradle, React, Java, Spring framework, Swagger, Spring Webflux, JWT token, Maven, Hibernate.",
+                "employment_type": "Full-time",
+                "end_date": "2022-05-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Deloitte",
+                "position_id": 1764323482,
+                "professional_network_id": "1038",
+                "seniority_level": "Entry Level",
+                "start_date": "2021-03-01T00:00:00",
+                "title": "Analyst",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 83541,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Dharmaram College, Tavarekere, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/accentureindia",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/07ca3374eebb954741428b1dc7e7427ac32eec4fdfd130428f9d5ee6c9f3bdad.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.accenture.com/india",
+                "crustdata_company_id": 1088826,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": "2021-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "name": "Accenture in India",
+                "position_id": 2624203905,
+                "professional_network_id": "9215331",
+                "seniority_level": "Entry Level",
+                "start_date": "2020-08-01T00:00:00",
+                "title": "Application Development Associate",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 4652,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Houston, Texas, United States",
+                "company_hq_location_address_components": [
+                  "Houston",
+                  "Harris County",
+                  "Texas",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/highradius",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/03904e626039b1d369c847adb559c81572e86123d7fd1b6d44d05df99ea5341e.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.highradius.com/",
+                "crustdata_company_id": 665643,
+                "description": "- Responsible for Account Based Marketing\n- Reach out to leads by inbound and outbound marketing\n- Learnt about cold calling, campaigns etc.\n- Responsible for In-depth Research and reaching out to prospects through emails and calls for selling the autonomous systems.",
+                "employment_type": "Internship",
+                "end_date": "2020-04-01T00:00:00",
+                "function_category": "Finance",
+                "is_default": false,
+                "name": "HighRadius",
+                "position_id": 1635633898,
+                "professional_network_id": "835110",
+                "seniority_level": "Entry Level",
+                "start_date": "2019-07-01T00:00:00",
+                "title": "Financial Technology Adivsor",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/ayushi-kushwaha-10a5a9184"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 110067854,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer",
+          "headline": "Senior Backend Engineer @ Robora | NestJS, FastAPI, Server Management",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Shivam S.",
+          "professional_network_name": "Shivam S.",
+          "profile_picture_permalink": "",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 11,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Charlotte, North Carolina, United States",
+                "company_hq_location_address_components": [
+                  "Charlotte",
+                  "Mecklenburg County",
+                  "North Carolina",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/roborafinancial",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/66bb037f02a3e4d127a30a28979fe0ab7faec7fea075476357c0f3ae0be8440c.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://roborafinancial.com/",
+                "crustdata_company_id": 2828895,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Robora",
+                "position_id": 2978939414,
+                "professional_network_id": "104754177",
+                "seniority_level": "Senior",
+                "start_date": "2026-06-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 12,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "India",
+                "company_hq_location": "HSR Layout, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/fellofinance",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eefc325cf54ff327c90b1ea6c8f31165cbc18a6aa70282c780105ad408753f30.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://fello.in",
+                "crustdata_company_id": 610125,
+                "description": "- Successfully integrated PhonePe Payment Service Provider(PSP) for custom payment page for upi \n intent and netbanking to enhance transaction efficiency and user experience.\n\n- SuperFello‐ Its a gamified loyality program which categorise user on three level . Each level has task which gives user’s certain badges,rewards and benefits on completion of task , which eventually increase user engagement and improve retention .\n\n- Implemented dynamic Payment Service Provider(PSP) switching based on success rate of PSP, leading to a remarkable increase in payment success rate from 70% to over 98%. Additionally, refactored payment logic to decouple it from business logic, ensuring scalability and improved user experience.\n\n- Observability system : Successfully implemented Signoz for comprehensive Logs and Application Performance Monitoring(APM),elevating system observability. This strategic integration streamlined issue detection, optimizing system reliability and reduce infra cost.",
+                "employment_type": "Full-time",
+                "end_date": "2026-04-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bangalore Urban, Karnataka, India"
+                },
+                "name": "Fello",
+                "position_id": 2196442091,
+                "professional_network_id": "68856332",
+                "seniority_level": "Entry Level",
+                "start_date": "2023-05-01T00:00:00",
+                "title": "Back End Developer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 827,
+                "company_headcount_range": "501-1000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Gurgaon Kty., Khandsa Road, Urban Estate (Gurgaon), Arjun Nagar, Gurgaon H.O, Gurgaon South City I, New Colony (Gurgaon), Gurgaon Sector 17, Mini Sectt., Basai Road, Shivaji Nagar (Gurgaon), Haryana, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Retail"
+                ],
+                "company_professional_network_industry": "Retail",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/1knetworks",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/9e2a1bf9e840ad942d113cbabdb79ad6284ba73c89b94dd129c9bf416e8fd943.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.1knetworks.in",
+                "crustdata_company_id": 622951,
+                "description": "- RetailerApp : Built this app server side system ground up with the goal of providing a first‐class gateway experience to retailer users into our systems.\n\n- Order Processing System‐Develop the order processing system, which uses the FXFO‐(first variable first out) logic for inventory assignment to the picklist of orders. Picklist generation through FXFO reduce the liquidation of the inventory.\n\n- Picker Application : Worked on the development and architecture of the picker app for warehouse team to assign multiple orders for picking to the picker.\n\n- Krankend‐API‐Gateway : Leveraged krakend to implement an api gateway, and a unified authentication service based on oauth.",
+                "employment_type": "Full-time",
+                "end_date": "2023-05-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Gurugram, Haryana, India"
+                },
+                "name": "1K",
+                "position_id": 2196437549,
+                "professional_network_id": "14570321",
+                "seniority_level": "Senior",
+                "start_date": "2022-02-01T00:00:00",
+                "title": "Senior Engineering Associate",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/shivam-s-12ss"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 130860832,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer",
+          "headline": "Senior Backend Engineer — Payments, Ledgers & Settlement Infrastructure | TypeScript · Node.js · Python · PostgreSQL · Kafka | Event-Driven Systems | 7+ yrs | Open to remote roles worldwide",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Vijay Wankhede",
+          "professional_network_name": "Vijay Wankhede",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/81c58f3063a4c08dcf71aef4a34d3b18035f2be12cad677a0a301fd81712e1b7.jpg",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 4,
+                "company_headcount_range": "2-10",
+                "company_headquarters_country": "Singapore",
+                "company_hq_location": "Cecil Street, Singapore",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/catalysis-labs",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/0c55b5a8b9e92e4cd1b5740d080c6032a876fba03c5223a5d7a3402825a691cc.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://catalysis.network/",
+                "crustdata_company_id": 8755472,
+                "description": "DeFi coverage protocol, backed by Hashed Emergent. Live on Ethereum mainnet. Remote.\n\n- Led backend architecture from zero as senior technical partner across product and engineering, service topology, API contracts, data models, rollout strategy.\n- Architected event-driven TypeScript services on Kubernetes (AWS EKS) with NestJS and functional error handling (fp-ts Either/Task), backed by Kafka, PostgreSQL and Redis, holding sub-second read paths under sustained load.\n- Owned the Router middleware end-to-end: idempotent write paths, optimistic concurrency, replay-safe Kafka consumers guaranteeing exactly-once semantics for restake, reward and slashing flows.\n- Shipped a signature-based settlement flow on EIP-2771 meta-transactions (off-chain signer, validation pipeline, on-chain adapter), removing wallet friction while preserving cryptographic auditability.\n- Stood up the reliability stack from scratch of Prometheus, Grafana, structured JSON logs, Sentry, 99.9% SLOs on critical write paths and authored the team's on-call runbooks.\n- Built the AI layer on top of the platform: a retrieval-augmented assistant over internal docs, transaction history and live system state; a tool-calling agent on the Anthropic Claude API that triages operational queries via MCP and escalates on low confidence; and an LLM eval harness (golden datasets, LLM-as-judge) wired into CI so prompt and model changes run regression tests before shipping.\n- Implemented inference cost and latency controls, prompt and semantic caching on Redis, model routing between a small fast model and a frontier model, per-request token budgets and instrumented the stack with Langfuse and Prometheus.\n- Integrated Claude Code and Cursor across the team, building custom agent skills for codegen, architectural review and adversarial test generation.\n- Mentored engineers, ran weekly design reviews, set shared TypeScript and functional-programming standards.",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Singapore"
+                },
+                "name": "Catalysis Labs",
+                "position_id": 2613199885,
+                "professional_network_id": "107839581",
+                "seniority_level": "Senior",
+                "start_date": "2025-05-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1,
+                "company_headcount_range": "2-10",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/synthrai",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8c61242594ddb326bbbe7f7ff70c17ecb53ce5ff6c643a806c887330f43eb305.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "",
+                "crustdata_company_id": 7436052,
+                "description": "Cross-chain transfer and payments protocol. $4.22M raised (Outlier Ventures, Waterdrip Capital, NGC Ventures, Kronos Research). Remote.\n\n- Owned the full backend for a production cross-chain transfer and payments product across Axelar and LayerZero for relayer service, event indexer, off-chain verification layer, and the REST/GraphQL APIs serving end users and partner integrations.\n- Lifted transfer completion rate 30% by re-architecting the message pipeline on Apache Kafka with consumer groups, dead-letter queues and exactly-once semantics, eliminating stuck transfers and exposing real-time status to users.\n- Built a TypeScript/NestJS event indexer ingesting logs from five EVM chains: Ethereum, Polygon, Optimism, Arbitrum, BNB Smart Chain into PostgreSQL, with reorg handling, backfill and a Redis-backed cursor store for resumable consumption.\n- Defined SLIs/SLOs for relay latency and indexer lag on a Grafana + Prometheus stack built from scratch, with alerting that paged before users saw degradation.\n- Hardened the off-chain verification layer against timing and data-integrity exploits using deterministic replay tests and invariant checks in CI; led security review for every backend change.\n- Set TypeScript standards, reviewed every backend PR, and onboarded three engineers across the relayer and indexer codebases.",
+                "employment_type": "",
+                "end_date": "2025-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Dubai, United Arab Emirates"
+                },
+                "name": "Synthr",
+                "position_id": 2015973095,
+                "professional_network_id": "105194753",
+                "seniority_level": "Senior",
+                "start_date": "2023-07-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 2,
+                "company_headcount_range": "2-10",
+                "company_headquarters_country": "Singapore",
+                "company_hq_location": "Cecil Street, Singapore",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/nexosphere-finance",
+                "company_profile_picture_permalink": "",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.nexospherefinance.com/",
+                "crustdata_company_id": 71083566,
+                "description": "Early-stage crypto payments startup. Remote.\n\n- Built the payments confirmation pipeline in Go and Python handling thousands of transaction events per minute, with idempotent processing, mempool monitoring and per-merchant configurable confirmation thresholds.\n- Designed the merchant-facing REST API and webhook delivery system in FastAPI, HMAC-signed payloads, exponential-backoff retries, dead-letter queue for poison messages.\n- Cut p99 read latency 60% migrating the core ledger from single-node PostgreSQL to a replicated, partitioned setup with read replicas, unblocking customer-facing analytics.\n- Containerised services with Docker, deployed to AWS, built GitHub Actions CI/CD with automated migrations and the structured logging that became the team's incident response baseline.",
+                "employment_type": "",
+                "end_date": "2023-06-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "United States"
+                },
+                "name": "Nexosphere Finance",
+                "position_id": 1876619203,
+                "professional_network_id": "112838240",
+                "seniority_level": "Entry Level",
+                "start_date": "2021-08-01T00:00:00",
+                "title": "Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 328,
+                "company_headcount_range": "201-500",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "San Jose, California, United States",
+                "company_hq_location_address_components": [
+                  "San Jose",
+                  "Santa Clara County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/deqodesolutions",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4666b0d52fc5797e25b34cc4b7d101d772715db08127759cc17fa3fa23dbbe00.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.deqode.com",
+                "crustdata_company_id": 11387,
+                "description": "Software consultancy, 200+ engineers. Fintech, supply-chain and DeFi clients.\n\n- Client engagement — Volmex Finance (on-chain volatility derivatives; backed by Alameda Research, Three Arrows Capital, DWF Labs, IOSG Ventures): highest-volume contributor to the v1 protocol repository, building and deploying index-factory, protocol and position-token contracts across Ethereum and Polygon. Shipped through Certik and Coinspect security audits; the resulting BVIV/EVIV indices are now distributed via Bloomberg, TradingView and LSEG.\n- Built TypeScript/Node.js backend services on NestJS for fintech and supply-chain clients — JWT auth with refresh rotation, RBAC, audit logging, and high-volume on-chain event listeners ingesting into PostgreSQL.\n- Raised backend test coverage on the flagship project from 35% to 80% with Jest and Supertest integration suites, catching a class of race conditions before production.\n- Worked directly with clients on API design, system trade-offs and deployment planning.",
+                "employment_type": "",
+                "end_date": "2021-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Indore, India"
+                },
+                "name": "Deqode",
+                "position_id": 1571799438,
+                "professional_network_id": "14527570",
+                "seniority_level": "Entry Level",
+                "start_date": "2019-02-01T00:00:00",
+                "title": "Solutions Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/wankhedevijay"
+          },
+          "twitter_identifier": {
+            "slug": "wankhede__"
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 229911322,
+        "basic_profile": {
+          "current_title": "Senior Software Engineer — Backend & Platform",
+          "headline": "Founding Engineer | Backend + Infra | Built fintech payments at ₹90Cr/mo & EKS at 2M req/day | Node.js · TypeScript · Python · AWS · Kubernetes · NACH · NBFC",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Shreyans Sonthalia",
+          "normalized_title": {
+            "confident": true,
+            "department": "Engineering & Technology",
+            "matched_title": "Senior Software Engineer Backend",
+            "similarity": 0.9834,
+            "sub_department": "Software Engineering"
+          },
+          "professional_network_name": "Shreyans Sonthalia",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/62846e92f704fa10f8dab27f03461699fabcf660fe2bf0f5553aeb4f77211807.jpg"
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": true,
+                "company_headcount_latest": 507,
+                "company_headcount_range": "201-500",
+                "company_headquarters_country": "India",
+                "company_hq_location": "HSR Layout, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/propelld",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ff843fe4b3f82a7ab1d328195ed05e9326a14f9909e326b945d000a0bf59bedd.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://propelld.com/site",
+                "crustdata_company_id": 6636,
+                "description": "• Designed & shipped an automated lender-reallocation engine that re-routes rejected applications to eligible lenders — recovers 13% of rejections (~₹6.52Cr/month, ~652 apps) with zero manual review.\n\n• Built JIT NACH presentation as a Kubernetes Job across multiple lenders (incl. ABFL): 2L+ presentations worth ₹90Cr+/month, with idempotency, double-debit prevention, and failure recovery.\n\n• Led Edgro NBFC infra from greenfield to production — VPC, EKS, MongoDB (managed + self-hosted), CI/CD, observability. Serves 2M+ requests/day with zero-downtime cutover.\n\n• Project Milkyway: zero-downtime RDS Blue/Green migration (io1 1TB → gp3 200GB), <1 min switchover, 88% cost cut ($633 → $76/month, ~$6,683/yr saved), IOPS held at 3000.\n\n• Cut total AWS spend 25–30% via RI planning, ECR lifecycle policies, and replacing CloudWatch with self-managed Prometheus + Grafana.\n\n• Owned the Communications Platform end-to-end — RabbitMQ priority queues for WhatsApp/Email/SMS, EMI reminder scheduling, Digio webhook handling.\n\n• Built Edgro onboarding backend: credit consent flow, PAN blacklist API, PAN encryption-at-rest, co-applicant risk, audit-traceable consent revocation.\n\n• Mitigated a live DDoS using AWS Athena + Glue for log analysis and writing WAF rules in real time.\n\n• Led VAPT security audits — cut audit cycle time 50% YoY; integrated ClamAV scanning, executed secrets cleanup, enforced WAF IP whitelisting.\n\n• Wrote Jenkins Shared Libraries standardising CI/CD across 100+ services; rebuilt Docker pipeline with multi-stage builds (60–70% smaller images).\n\n• Support-ticket reduction: daily volume from 20–25 → 2–3. Designed BCP/DR for all of Propelld infra. Led & mentored a 4-person platform team.\n\nStack: Node.js, TypeScript, AWS (EKS, RDS, WAF, Athena, Glue), Kubernetes, Helm, Terraform, Jenkins, Prometheus, Grafana, MySQL, MongoDB, RabbitMQ.",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "propelld",
+                "position_id": 2180450564,
+                "professional_network_id": "13297947",
+                "seniority_level": "Senior",
+                "start_date": "2023-05-01T00:00:00",
+                "title": "Senior Software Engineer — Backend & Platform",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 3
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": true,
+                "company_headcount_latest": 507,
+                "company_headcount_range": "201-500",
+                "company_headquarters_country": "India",
+                "company_hq_location": "HSR Layout, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/propelld",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ff843fe4b3f82a7ab1d328195ed05e9326a14f9909e326b945d000a0bf59bedd.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://propelld.com/site",
+                "crustdata_company_id": 6636,
+                "description": "• Architected and executed migration of 100+ microservices from bare VMs to EKS across dev, staging, and production — scaled to handle 3× traffic growth with zero downtime.\n\n• Built the company's Jenkins CI/CD pipeline from scratch, cutting manual deployment effort 70%+ and enabling rapid automated releases across the engineering team.\n\n• Set up Prometheus + Grafana monitoring from scratch for services, infra, and application-level metrics.\n\n• Implemented AWS WAF rate limiting and IP whitelisting, hardening edge security for all public-facing services.\n\n• Integrated HyperVerge into the InstaKYC flow, lifting identity-verification accuracy from 6% to 17%.\n\n• Developed a shared MySQL utility library using connection-pool promises — reduced total DB connection count and improved query throughput under concurrent load.\n\n• Built a loan-journey event tracking system giving product and ops visibility into TAT and application blockers at each stage of the loan funnel.\n\nStack: Node.js, TypeScript, MySQL, AWS, EKS, Jenkins, Docker, Terraform, Prometheus, Grafana.",
+                "employment_type": "",
+                "end_date": "2023-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "India"
+                },
+                "name": "propelld",
+                "position_id": 1923945214,
+                "professional_network_id": "13297947",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-03-01T00:00:00",
+                "title": "Software Engineer — Backend & Platform",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1683,
+                "company_headcount_range": "501-1000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "JP Nagar III Phase, J P Nagar, Yelachenahalli, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Hospitals and Health Care"
+                ],
+                "company_professional_network_industry": "Hospitals and Health Care",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/practo-technologies-pvt-ltd",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ecff20e72f5ae2072959ca5b9d1dc68eee0db3ec27325a1a356e31f2214cbe10.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.practo.com",
+                "crustdata_company_id": 5727,
+                "description": "• Built an E-Invoice generation system for Middle East clients to meet regional tax compliance requirements — covered invoice numbering, VAT breakdown, and regulator-compliant XML output.\n\n• Integrated third-party APIs to onboard a major enterprise client under a tight delivery deadline.\n\nStack: Java, Spring Boot, PostgreSQL, AWS.",
+                "employment_type": "",
+                "end_date": "2022-02-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "Practo",
+                "position_id": 1833002938,
+                "professional_network_id": "2390063",
+                "seniority_level": "Entry Level",
+                "start_date": "2021-09-01T00:00:00",
+                "title": "Software Development Engineer - 1",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "The Sustainable Development Goals are the blueprint to achieve a better and more sustainable future for all. They address the global challenges we face, including those related to poverty, inequality, climate, environmental degradation, prosperity, and peace and justice.",
+                "employment_type": "",
+                "end_date": "2021-09-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "YLIUNSDG",
+                "position_id": 1522416671,
+                "professional_network_id": null,
+                "seniority_level": "Senior",
+                "start_date": "2019-08-01T00:00:00",
+                "title": "Secretary and  Lead Developer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1683,
+                "company_headcount_range": "501-1000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "JP Nagar III Phase, J P Nagar, Yelachenahalli, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Hospitals and Health Care"
+                ],
+                "company_professional_network_industry": "Hospitals and Health Care",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/practo-technologies-pvt-ltd",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ecff20e72f5ae2072959ca5b9d1dc68eee0db3ec27325a1a356e31f2214cbe10.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.practo.com",
+                "crustdata_company_id": 5727,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2021-08-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "India"
+                },
+                "name": "Practo",
+                "position_id": 1755114414,
+                "professional_network_id": "2390063",
+                "seniority_level": "In Training",
+                "start_date": "2021-03-01T00:00:00",
+                "title": "Software Development Intern",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "The Mobileand Web Innovation lab in DSCE works on new and upcoming advancements in the field of Mobile and Web  Development . We conduct workshops for the students to make them aware about these technologies,help them apply the knowledge using projects and organize hackathons to encourage people to build products and research on cutting edge tech.",
+                "employment_type": "",
+                "end_date": "2021-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Mobile and Web Innovation Lab",
+                "position_id": 1522413504,
+                "professional_network_id": null,
+                "seniority_level": "Senior",
+                "start_date": "2019-08-01T00:00:00",
+                "title": "Team Lead",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1778,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "New York, New York, United States",
+                "company_hq_location_address_components": [
+                  "New York",
+                  "New York",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Non-profit Organizations",
+                  "Consumer Services"
+                ],
+                "company_professional_network_industry": "Non-profit Organizations",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/association-for-computing-machinery",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbab03f2189033a6cbf0b2eb9a9297071be3fdbef33a9618c0af35a6fed30578.jpg",
+                "company_status": "active",
+                "company_type": "Nonprofit",
+                "company_website": "https://linktr.ee/theofficialacm",
+                "crustdata_company_id": 1386860,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2021-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "India"
+                },
+                "name": "ACM, Association for Computing Machinery",
+                "position_id": 1642207146,
+                "professional_network_id": "785681",
+                "seniority_level": "Entry Level",
+                "start_date": "2019-08-01T00:00:00",
+                "title": "Webmaster",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "• Built a serverless backend framework from scratch on AWS Lambda, API Gateway, Cognito, RDS, and S3 — covering auth, API management, and schema design. Cut fixed backend infra costs by 60%.\n\n• Led a small team and owned architecture decisions across authentication, API design, and database schema.\n\nStack: Node.js, AWS Lambda, API Gateway, Cognito, RDS, S3.",
+                "employment_type": "",
+                "end_date": "2021-01-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "India"
+                },
+                "name": "TuitionBud ",
+                "position_id": 1726462162,
+                "professional_network_id": null,
+                "seniority_level": "Senior",
+                "start_date": "2020-09-01T00:00:00",
+                "title": "Lead Backend Developer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 17,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Doddakallasandra, Konanakunte, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Commercial and Industrial Equipment Rental",
+                  "Equipment Rental Services",
+                  "Real Estate and Equipment Rental Services"
+                ],
+                "company_professional_network_industry": "Commercial and Industrial Equipment Rental",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/settlrs",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/466344091e7f1f9c2cb3d9b94073c21e855acf5a3db6fb2f799a577125dac76d.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.settlrs.com",
+                "crustdata_company_id": 610571,
+                "description": "Working as a Full-Stack Developer for the company.",
+                "employment_type": "",
+                "end_date": "2019-08-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Settlrs",
+                "position_id": 1471421263,
+                "professional_network_id": "13419088",
+                "seniority_level": "Entry Level",
+                "start_date": "2019-03-01T00:00:00",
+                "title": "Web Developer Internship",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 15,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "India",
+                "company_hq_location": "JP Nagar III Phase, J P Nagar, Yelachenahalli, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Non-profit Organization Management"
+                ],
+                "company_professional_network_industry": "Non-profit Organization Management",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/team-arcis",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/71dadb958c0e3f09bf87c845305ab1144a68b706ac6bf43ef3e085bbb91a7517.jpg",
+                "company_status": "active",
+                "company_type": "Nonprofit",
+                "company_website": "https://teamarcis.com/",
+                "crustdata_company_id": 3979242,
+                "description": "I worked as a Web Developer for the Team and developed the official website for the team.",
+                "employment_type": "",
+                "end_date": "2018-11-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Team Arcis",
+                "position_id": 1409708715,
+                "professional_network_id": "13402744",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-09-01T00:00:00",
+                "title": "Web Developer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "Worked as a front-end app developer for 2 months during my summer break.",
+                "employment_type": "",
+                "end_date": "2018-08-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Guwahati Area, India"
+                },
+                "name": "Happy Housekeeping",
+                "position_id": 1409708599,
+                "professional_network_id": "13688048",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-06-01T00:00:00",
+                "title": "Application Developer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/shreyans-sonthalia-13413b169"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 238437821,
+        "basic_profile": {
+          "current_title": "Senior Software Engineer (Backend)",
+          "headline": "Senior Backend Engineer | Java · Spring Boot · GenAI | Visa Payments & Sabre Travel | FinTech",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Agrim Maheshwari",
+          "normalized_title": {
+            "confident": true,
+            "department": "Engineering & Technology",
+            "matched_title": "Senior Software Engineer Backend",
+            "similarity": 0.999,
+            "sub_department": "Software Engineering"
+          },
+          "professional_network_name": "Agrim Maheshwari",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/eab80b779a8a88d1e3c262cf89fd99c0c457ea54d137b66fdbdb55ca9134d963.jpg"
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 704639,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "Ireland",
+                "company_hq_location": "Dublin 2, Ireland",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Business Consulting and Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Business Consulting and Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/accenture",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7a2444d65136e9e18f0f5efabcfc8f8e26d310670c25edf373c6aca147eaa922.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.accenture.com",
+                "crustdata_company_id": 12287,
+                "description": "Client: Visa Inc. | Domain: Payments & Campaign Platforms\n\n• Backend engineer for business-critical payment and campaign management systems used at enterprise scale\n• Owned backend feature implementation for campaign services using Java and Spring Boot\n• Led development of reusable campaign templates, reducing average campaign creation time by ~70%\n• Supported high-availability and disaster-recovery readiness across dual data centers\n• Improved system reliability and observability, sustaining 99.9% uptime\n• Reduced outage response time by ~40% through monitoring and alerting enhancements",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Accenture",
+                "position_id": 2385324658,
+                "professional_network_id": "1033",
+                "seniority_level": "Senior",
+                "start_date": "2024-04-01T00:00:00",
+                "title": "Senior Software Engineer (Backend)",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 373698,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Electronics City, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/infosys",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/90026645acac7ae47b542367e368a6533bc49a7f7e98c0a62774a433a4d49b05.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "https://www.infosys.com",
+                "crustdata_company_id": 2199,
+                "description": "Client: Sabre Corporation | Travel-Tech Platforms\n\n• Developed and scaled backend services for core travel workflows including bookings and subscriptions\n• Designed and optimized REST APIs using Java and Spring Boot\n• Improved API latency by ~25% through backend and database optimizations\n• Reduced production defects by ~30% via unit and integration testing\n• Collaborated with product and QA teams to deliver backend features in Agile environments",
+                "employment_type": "",
+                "end_date": "2024-04-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "India"
+                },
+                "name": "Infosys",
+                "position_id": 1921910598,
+                "professional_network_id": "1283",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-01-01T00:00:00",
+                "title": "Specialist Programmer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 373698,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Electronics City, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/infosys",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/90026645acac7ae47b542367e368a6533bc49a7f7e98c0a62774a433a4d49b05.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "https://www.infosys.com",
+                "crustdata_company_id": 2199,
+                "description": "• Contributed to backend development for enterprise applications using Java and Spring\n• Built RESTful services and enhanced existing backend modules\n• Strengthened fundamentals in backend engineering, SQL, and Agile development practices",
+                "employment_type": "",
+                "end_date": "2021-12-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Infosys",
+                "position_id": 1834745746,
+                "professional_network_id": "1283",
+                "seniority_level": "Entry Level",
+                "start_date": "2020-09-01T00:00:00",
+                "title": "Digital Specialist Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/agrimmaheshwari"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      }
+    ],
+    "next_cursor": null,
+    "total_count": 7,
+    "total_count_relation": null,
+    "remarks": []
+  },
+  "fetched_at": "2026-10-31T07:03:33+00:00"
+}

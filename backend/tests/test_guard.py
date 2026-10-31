@@ -23,6 +23,11 @@ def _isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("ISSUER_KEY_PATH", str(tmp_path / "issuer.key"))
     monkeypatch.setenv("OUTBOX_PATH", str(tmp_path / "outbox.jsonl"))
     monkeypatch.setenv("LLM_MODE", "mock")
+    # Pin everything a developer's .env or backend/data/ could change (the MCP subprocess inherits this env).
+    monkeypatch.setenv("CRUSTDATA_MODE", "replay")
+    monkeypatch.setenv("AGENTS_PATH", str(tmp_path / "agents.json"))
+    monkeypatch.setenv("SOURCED_IDENTITY_PATH", str(tmp_path / "sourced_identity.json"))
+    monkeypatch.setenv("CRUSTDATA_CACHE_DIR", str(tmp_path / "cache"))
 
 
 def agent(scenario="authorised_founder"):

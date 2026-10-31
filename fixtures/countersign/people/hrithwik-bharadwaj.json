@@ -1,0 +1,382 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Backend Engineer",
+  "first_name": "Hrithwik",
+  "headline": "Senior Backend Engineer",
+  "languages": [
+   "English, Kannada, Hindi, Tamil"
+  ],
+  "last_name": "Bharadwaj",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Hrithwik Bharadwaj",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Backend Engineer",
+   "similarity": 0.9998999834060669,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Hrithwik Bharadwaj",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/1b2ec8f9d9985c74024aba69f99035c9e3a3b9bcad50d0c8a3673c00e38ef8ce.jpg",
+  "summary": ""
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "Bachelor of Engineering",
+    "description": "",
+    "end_year": 2021,
+    "field_of_study": "Computer and Information Sciences, General",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/5592c9fb73b701be12fa1b4a9b57a4fb06e4d73c633168f00d8cb33ac6bebca9.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQGpFYtpNvOlqQ/company-logo_400_400/company-logo_400_400/0/1631357528454?e=1788393600&v=beta&t=9E5qkkIYgMgM1m7JPIOFIZm_AXlD_pg3TN4uajSEt1c",
+    "location": {
+     "city": "Udbur",
+     "continent": "Asia",
+     "country": "India",
+     "raw": "Mananthavadi Rd, Vidayaranya Puram",
+     "state": "Karnataka"
+    },
+    "professional_network_id": "18452522",
+    "school": "The National Institute Of Engineering, Mysore",
+    "start_year": 2017
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "ShopOS is an AI-native content engine purpose-built for modern commerce that helps eCommerce/DTC brands and retail businesses create, manage, market, and sell anything like a pro.ShopOS lets you design complete content systems that generate studio-quality images, videos, marketing assets, website text, product listings, A+ content, catalogs, social media creatives, ads, and more.With curated models and scenes, brand-memory intelligence, a huge template library, and dedicated spaces for every commerce use case, ShopOS adapts to your brand’s unique needs—so every generation is pixel-perfect, 100% on-brand, hyper-real, and converts better (otherwise, what’s the point?).All of this is done at scale to help your brand improve conversions, grow faster, and deliver a best-in-class user experience across all sales and marketing channels.- Run A/B tests on images, videos, and text on your PDP listings- Go beyond personalization, individualize your content for each user or segment- Enable occasional/seasonal content refreshes with zero hassle...and a lot more.Learn more abour ShopOS at https://shopos.ai or send us a note at hi@shopos.ai",
+     "company_headcount_latest": 81,
+     "company_headcount_range": "51-200",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/96358136",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f96e6e64047f8d5baa23ee18871b03b79631e012405cb75faa12c685b7741ee6.jpg",
+     "company_status": "active",
+     "company_website": "https://shopos.ai/",
+     "company_website_domain": "shopos.ai",
+     "crustdata_company_id": 4464382,
+     "description": "we at shopos.ai are building agentic ecommerce.",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru"
+     },
+     "name": "ShopOS",
+     "position_id": 2695405034,
+     "professional_network_id": "96358136",
+     "seniority_level": "Senior",
+     "start_date": "2025-08-01T00:00:00+00:00",
+     "title": "Senior Backend Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "TransFi helps businesses and individuals access better ways to move money. Combining industry-leading coverage of currencies and payment methods, our platform delivers compliant payouts, collections, and ramp services across Asia, Europe, LatAm, Africa, and North America. In our pursuit to advance economic prosperity through borderless finance, TransFi is making international money movement faster, less expensive, and more reliable than ever.",
+     "company_headcount_latest": 146,
+     "company_headcount_range": "51-200",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/82241573",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8c837120ff989fcd11d2014102e26b1cf535e3d7f0775f7585a99c2d4e6da4fe.jpg",
+     "company_status": "active",
+     "company_website": "http://www.transfi.com",
+     "company_website_domain": "transfi.com",
+     "crustdata_company_id": 707184,
+     "description": "",
+     "employment_type": "",
+     "end_date": "2026-07-01T00:00:00+00:00",
+     "function_category": "Legal",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "TransFi",
+     "position_id": 2978334901,
+     "professional_network_id": "82241573",
+     "seniority_level": "Director",
+     "start_date": "2026-04-01T00:00:00+00:00",
+     "title": "Director of Engineering - Payments & Compliance",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "TransFi helps businesses and individuals access better ways to move money. Combining industry-leading coverage of currencies and payment methods, our platform delivers compliant payouts, collections, and ramp services across Asia, Europe, LatAm, Africa, and North America. In our pursuit to advance economic prosperity through borderless finance, TransFi is making international money movement faster, less expensive, and more reliable than ever.",
+     "company_headcount_latest": 146,
+     "company_headcount_range": "51-200",
+     "company_industries": [
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Technology, Information and Internet",
+     "company_professional_network_profile_url": "https://linkedin.com/company/82241573",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/8c837120ff989fcd11d2014102e26b1cf535e3d7f0775f7585a99c2d4e6da4fe.jpg",
+     "company_status": "active",
+     "company_website": "http://www.transfi.com",
+     "company_website_domain": "transfi.com",
+     "crustdata_company_id": 707184,
+     "description": "built borderless instant payments for the world on stablecoin rails",
+     "employment_type": "",
+     "end_date": "2025-03-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "TransFi",
+     "position_id": 2384322041,
+     "professional_network_id": "82241573",
+     "seniority_level": "Senior",
+     "start_date": "2024-04-01T00:00:00+00:00",
+     "title": "Tech Lead - Payments",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "At UNext, our mission is simple yet profound: to make higher education affordable and accessible for all. We provide a full-stack tech platform for universities and colleges to offer online courses and degree programs.Our focus is to bring higher education to a rising number of learners looking to level up in their careers. The online programs offered on our platform, through universities, are designed for re-skilling, up-skilling, and workforce development.Our endeavor is to empower our learners and university partners to achieve tangible outcomes and make a significant impact. We aspire to serve as a lifelong learning companion for our learner community, unlocking their full potential without constraints related to cost or location.",
+     "company_headcount_latest": 1050,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "E-Learning Providers",
+      "Education"
+     ],
+     "company_professional_network_industry": "E-Learning Providers",
+     "company_professional_network_profile_url": "https://linkedin.com/company/69909249",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c607c5563284bbaec2488fbe959a3380cf3dbc0a9e56ad68bc52c5dc3aed3289.jpg",
+     "company_status": "active",
+     "company_website": "http://www.u-next.com",
+     "company_website_domain": "u-next.com",
+     "crustdata_company_id": 1089659,
+     "description": "- Delivered a secure and cost effective Coding Platform within 3 months, capable of serving more than 100K concurrent users through event driven architecture.\n- Implemented a custom SSO solution to seamlessly authenticate learners from our LMS Platform to our Coding Platform. (Has had 240K+ Redirections with 0 failures so far).\n- Designed impactful AI use cases like “Error Message Simplifier” which reduced debugging time by 30% for more than 20,000 users of our Coding Platform.",
+     "employment_type": "",
+     "end_date": "2024-04-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "UNext Learning",
+     "position_id": 2283151630,
+     "professional_network_id": "69909249",
+     "seniority_level": "Senior",
+     "start_date": "2023-10-01T00:00:00+00:00",
+     "title": "Senior Software Engineer",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    },
+    {
+     "company_description": "At UNext, our mission is simple yet profound: to make higher education affordable and accessible for all. We provide a full-stack tech platform for universities and colleges to offer online courses and degree programs.Our focus is to bring higher education to a rising number of learners looking to level up in their careers. The online programs offered on our platform, through universities, are designed for re-skilling, up-skilling, and workforce development.Our endeavor is to empower our learners and university partners to achieve tangible outcomes and make a significant impact. We aspire to serve as a lifelong learning companion for our learner community, unlocking their full potential without constraints related to cost or location.",
+     "company_headcount_latest": 1050,
+     "company_headcount_range": "501-1000",
+     "company_industries": [
+      "E-Learning Providers",
+      "Education"
+     ],
+     "company_professional_network_industry": "E-Learning Providers",
+     "company_professional_network_profile_url": "https://linkedin.com/company/69909249",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c607c5563284bbaec2488fbe959a3380cf3dbc0a9e56ad68bc52c5dc3aed3289.jpg",
+     "company_status": "active",
+     "company_website": "http://www.u-next.com",
+     "company_website_domain": "u-next.com",
+     "crustdata_company_id": 1089659,
+     "description": "- Built core LMS modules - Analytics, Assignments, Quiz, Discussion Forum, Activity Logs, Ratings, Bookmarks  (used by over 50K+ learners).\n- Improved response times for Core API’s by 3x via optimised DB queries, parallel networks calls, redesigned schemas and indexes.\n- Developed a custom scheduler using Node.js and MongoDB to publish exam results on a specific date for our LMS product. (Successfully scheduled over 40K+ jobs).",
+     "employment_type": "",
+     "end_date": "2023-09-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "UNext Learning",
+     "position_id": 1841132455,
+     "professional_network_id": "69909249",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-09-01T00:00:00+00:00",
+     "title": "Software Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "deep linking for influencers",
+     "company_headcount_latest": null,
+     "company_headcount_range": "myself only",
+     "company_industries": [
+      "Software Development",
+      "Technology, Information and Internet",
+      "Technology, Information and Media"
+     ],
+     "company_professional_network_industry": "Software Development",
+     "company_professional_network_profile_url": "https://linkedin.com/company/20433274",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/c1c5a380e28b43c3bfe5c7160a19e548508f0b10e34112eb26ce9977e4915d55.jpg",
+     "company_status": "active",
+     "company_website": "https://app.tapthe.link",
+     "company_website_domain": "tapthe.link",
+     "crustdata_company_id": 4554457,
+     "description": "GOT ACQUIRED\n\n- Built PaytmJar - Easiest Way to Receive Money via a link to your Bank Account with Zero Fees. (10,000 + Links Created)\n\n- Built Deep Linking Product which supports Instagram, Tiktok, Amazon, Spotify/Apple Music Deep Linking. (1M+ Redirects Every Month)\n\n- Built Custom Domain Solution for the Deep Linking Product\n\n- Built Analytics for Deep Links which helps creators understand which platforms are they getting clicks from and where are their audience located.\n\n- Built a Notion to Blog with 100 score on Lighthouse and superb SEO.",
+     "employment_type": "",
+     "end_date": "2022-02-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "TapTheLink",
+     "position_id": 2047120836,
+     "professional_network_id": "20433274",
+     "seniority_level": "Entry Level",
+     "start_date": "2021-02-01T00:00:00+00:00",
+     "title": "Builder",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Deshik Labs is a product development consultancy that specializes in customized hardware for automation , computation, security,test equipments, and other work specific/personal needs. We are resourceful in mechatronics, electrical engineering, software engineering, design research, and prototyping. To put it in simpler terms, we make products that look good, work better, address the needs of users, and make a substantial impact on the market, all the while meeting the demands and needs of our clients. We not only come up with innovative ideas and concepts, we make them work.",
+     "company_headcount_latest": 2,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Design Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Design Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/14423774",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/349534eae4164851d5eaba2b84c2c6a8b1419881485bea857ee9a7f69c737a16.jpg",
+     "company_status": "active",
+     "company_website": "http://www.deshik.in/",
+     "company_website_domain": "deshik.in",
+     "crustdata_company_id": 1089248,
+     "description": "Focused on building efficient software solutions to clients by working with an efficient and hard-working team.\n\nSkills Learnt:\n*Latest Tech frameworks\n*Problem-solving \n*UI Mockups\n*Team Management and Communication skill.\n\nContributions\n*Built good relation with clients\n*Spread positivity to build a more happy productive team\n*Generated 3-4 leads",
+     "employment_type": "",
+     "end_date": "2020-01-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "Deshik Labs",
+     "position_id": 1492539646,
+     "professional_network_id": "14423774",
+     "seniority_level": "In Training",
+     "start_date": "2018-10-01T00:00:00+00:00",
+     "title": "Intern",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    },
+    {
+     "company_description": "Onyx is the official E-cell of National Institute of Engineering (NIE), Mysore that provide a platform for young minds to explore the world of business and innovation with various entrepreneurial activities.",
+     "company_headcount_latest": 25,
+     "company_headcount_range": "11-50",
+     "company_industries": [
+      "Education Administration Programs",
+      "Health and Human Services",
+      "Government Administration"
+     ],
+     "company_professional_network_industry": "Education Administration Programs",
+     "company_professional_network_profile_url": "https://linkedin.com/company/14539667",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/fb9559a5dd9a7f78ce009628da0bb646f2e33e6333948bbadd4303a1fd962c24.jpg",
+     "company_status": "active",
+     "company_website": "http://www.onyx-nie.org/",
+     "company_website_domain": "onyx-nie.org",
+     "crustdata_company_id": 1092460,
+     "description": "As a Core member, at Onyx the E-cell of NIE, Mysuru, My task was to show some light towards entrepreneurship to my peers and friends around Mysuru by conducting fun meaningful events which helped engineering students set a path towards entrepreneurial journey right from using frameworks like SWOT Analysis, Grab,5W1H etc, to write a B-Plan or leaving students with intense pressure to see how they handle the situation as an entrepreneur.\nKey Learnings from Onyx :\n1)Communication Skills and Confidence\n2)Leadership \n3)Design Thinking and Marketing",
+     "employment_type": "",
+     "end_date": "2018-07-01T00:00:00+00:00",
+     "function_category": "",
+     "is_default": false,
+     "location": {
+      "raw": ""
+     },
+     "name": "Onyx E-cell",
+     "position_id": 1413853203,
+     "professional_network_id": "14539667",
+     "seniority_level": "Entry Level",
+     "start_date": "2017-08-01T00:00:00+00:00",
+     "title": "Core Member",
+     "years_at_company": "Less than 1 year",
+     "years_at_company_raw": 0.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Engineering Leadership",
+   "SASS",
+   "Microservices",
+   "Namespaces",
+   "Event Driven",
+   "Distributed Systems",
+   "WebSocket",
+   "People Management",
+   "Amazon Web Services (AWS)",
+   "Node",
+   "Next.js",
+   "Full-Stack Development",
+   "PubSub",
+   "Project Management",
+   "Python (Programming Language)",
+   "Unit Testing",
+   "Nginx",
+   "Software Design",
+   "Shell Scripting",
+   "React.js",
+   "Redis",
+   "TypeScript",
+   "Progressive Web Applications (PWAs)",
+   "Event Management",
+   "Digital Marketing",
+   "Agile Project Management",
+   "Recruiting",
+   "Music",
+   "Blogging",
+   "Flask",
+   "C++",
+   "Adobe Photoshop",
+   "Adobe Illustrator",
+   "Adobe Premiere Pro",
+   "HTML",
+   "JavaScript",
+   "MongoDB",
+   "Team Management",
+   "Public Speaking",
+   "Leadership",
+   "Startup Development",
+   "Express.js",
+   "Violinist",
+   "Video Editing",
+   "Node.js",
+   "Firebase",
+   "Web Development"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/hrithwik-bharadwaj"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 1556432
+}

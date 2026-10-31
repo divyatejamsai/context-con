@@ -1,0 +1,198 @@
+{
+ "basic_profile": {
+  "current_title": "Senior Software Engineer (Backend)",
+  "first_name": "Agrim",
+  "headline": "Senior Backend Engineer | Java · Spring Boot · GenAI | Visa Payments & Sabre Travel | FinTech",
+  "languages": [],
+  "last_name": "Maheshwari",
+  "location": {
+   "city": "Bengaluru",
+   "continent": "Asia",
+   "country": "India",
+   "full_location": null,
+   "raw": "Bengaluru, Karnataka, India",
+   "state": "Karnataka"
+  },
+  "name": "Agrim Maheshwari",
+  "normalized_title": {
+   "confident": true,
+   "department": "Engineering & Technology",
+   "matched_title": "Senior Software Engineer Backend",
+   "similarity": 0.9990000128746033,
+   "sub_department": "Software Engineering"
+  },
+  "professional_network_name": "Agrim Maheshwari",
+  "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/eab80b779a8a88d1e3c262cf89fd99c0c457ea54d137b66fdbdb55ca9134d963.jpg",
+  "summary": "Senior Backend Engineer with 5+ years of experience building and scaling high-availability, production-grade backend systems using Java and Spring Boot for business-critical platforms in payments, finance, and travel domains.\n\nCurrently working with Visa’s Campaign Management Systems through Accenture, where I contribute to backend services that operate at enterprise scale with strict reliability, availability, and performance requirements. My work has directly supported 99.9% uptime, reduced incident response time by ~40%, and improved system readiness through failover and resilience-focused designs.\n\nI specialize in microservices-based architectures, RESTful APIs, and backend automation, with hands-on experience improving system stability, observability, and time-to-market. I’ve delivered reusable backend components and templates that enabled faster rollout of global campaigns with reduced manual effort.\n\nPreviously at Infosys, I worked on large-scale platforms for Sabre Corporation, designing and optimizing backend services for booking, subscriptions, and itinerary management—cutting API latency by ~25% and reducing production defects by ~30% through better testing and code quality practices.\n\nCertified AWS Cloud Practitioner, I bring a product mindset, strong ownership, and the ability to collaborate effectively across engineering, QA, and product teams in Agile environments. I’m interested in backend roles where scale, reliability, and system design are core to the problem being solved."
+ },
+ "education": {
+  "schools": [
+   {
+    "activities_and_societies": "",
+    "degree": "B.tech",
+    "description": "",
+    "end_year": 2020,
+    "field_of_study": "Computer science and engineering",
+    "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/9ef78331fe01ce0c7c86423594046cea9c65f9f5b129198c45187aaa89f4d2bb.jpg",
+    "institute_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQHI0f14ntECcg/company-logo_400_400/company-logo_400_400/0/1686147679710/graphic_era_official_logo?e=1780531200&v=beta&t=nI2Hh4OhKzjGcYKh4G1_w9sZhtG0_VhEIxKhoW4WfW8",
+    "location": {
+     "city": null,
+     "continent": "Asia",
+     "country": "India",
+     "raw": "566/6 Bell Road Clement Town",
+     "state": "Uttarakhand"
+    },
+    "professional_network_id": "3715404",
+    "school": "Graphic Era Deemed to be University",
+    "start_year": 2016
+   }
+  ]
+ },
+ "experience": {
+  "employment_details": {
+   "current": [
+    {
+     "company_description": "Accenture helps the world’s leading enterprises reinvent by building their digital core and unleashing the power of AI to create value at speed for organizations across industries. Our strategy is to be the reinvention partner of choice for our clients and lead in the safe, widespread adoption of AI, and to be the most client-focused, AI-enabled, great place to work in the world. We bring together the talent of our approximately 814,000 people with proprietary assets and platforms, deep process and industry expertise, and leading ecosystem relationships to deliver end-to-end solutions and measurable outcomes at scale. Through our Reinvention Services, we offer broad expertise across Cybersecurity, Digital Core, Finance, Industry and Enterprise, Song, Supply Chain and Engineering, and Talent, with advanced capabilities in AI and Data, Industry and Process, and Technology. We serve approximately 9,000 clients and generated approximately $74 billion in FY26 revenue. Visit us at accenture.com.This LinkedIn company page is moderated. When engaging with Accenture, we encourage everyone to:- Use common courtesy and be respectful of others.- Create your own original content and avoid content that you know to be fraudulent.- Never repost someone else's copyrighted work, unless you have permission.- Never post personal, identifying, or confidential information.We reserve the right to delete comments or posts we deem to be:- Profane, obscene, inappropriate, offensive, abusive material.- Spam, repeated comments and commercial messages and personal advertisements.- Discriminatory or that contain hateful speech of any kind regarding age, gender, race, religion, nationality, sexual orientation, gender identity or disability.- Threats; personal attacks; abusive, defamatory, derogatory, or inflammatory language; or stalking or harassment of any individual, entity or organization.- False, inaccurate, libelous, or otherwise misleading in any way.",
+     "company_headcount_latest": 704639,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "Business Consulting and Services",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "Business Consulting and Services",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1033",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7a2444d65136e9e18f0f5efabcfc8f8e26d310670c25edf373c6aca147eaa922.jpg",
+     "company_status": "active",
+     "company_website": "http://www.accenture.com",
+     "company_website_domain": "accenture.com",
+     "crustdata_company_id": 12287,
+     "description": "Client: Visa Inc. | Domain: Payments & Campaign Platforms\n\n• Backend engineer for business-critical payment and campaign management systems used at enterprise scale\n• Owned backend feature implementation for campaign services using Java and Spring Boot\n• Led development of reusable campaign templates, reducing average campaign creation time by ~70%\n• Supported high-availability and disaster-recovery readiness across dual data centers\n• Improved system reliability and observability, sustaining 99.9% uptime\n• Reduced outage response time by ~40% through monitoring and alerting enhancements",
+     "employment_type": "",
+     "end_date": null,
+     "function_category": "Engineering",
+     "is_default": true,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Accenture",
+     "position_id": 2385324658,
+     "professional_network_id": "1033",
+     "seniority_level": "Senior",
+     "start_date": "2024-04-01T00:00:00+00:00",
+     "title": "Senior Software Engineer (Backend)",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    }
+   ],
+   "past": [
+    {
+     "company_description": "Infosys is a global leader in next-generation digital services and consulting. We enable clients in more than 50 countries to navigate their digital transformation. With over three decades of experience in managing the systems and workings of global enterprises, we expertly steer our clients through their digital journey. We do it by enabling the enterprise with an AI-powered core that helps prioritize the execution of change. We also empower the business with agile digital at scale to deliver unprecedented levels of performance and customer delight. Our always-on learning agenda drives their continuous improvement through building and transferring digital skills, expertise, and ideas from our innovation ecosystem.Visit www.infosys.com to see how Infosys (NYSE: INFY) can help your enterprise navigate your next.",
+     "company_headcount_latest": 373698,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1283",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/90026645acac7ae47b542367e368a6533bc49a7f7e98c0a62774a433a4d49b05.jpg",
+     "company_status": "active",
+     "company_website": "https://www.infosys.com",
+     "company_website_domain": "infosys.com",
+     "crustdata_company_id": 2199,
+     "description": "Client: Sabre Corporation | Travel-Tech Platforms\n\n• Developed and scaled backend services for core travel workflows including bookings and subscriptions\n• Designed and optimized REST APIs using Java and Spring Boot\n• Improved API latency by ~25% through backend and database optimizations\n• Reduced production defects by ~30% via unit and integration testing\n• Collaborated with product and QA teams to deliver backend features in Agile environments",
+     "employment_type": "",
+     "end_date": "2024-04-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "India"
+     },
+     "name": "Infosys",
+     "position_id": 1921910598,
+     "professional_network_id": "1283",
+     "seniority_level": "Entry Level",
+     "start_date": "2022-01-01T00:00:00+00:00",
+     "title": "Specialist Programmer",
+     "years_at_company": "3 to 5 years",
+     "years_at_company_raw": 2.0
+    },
+    {
+     "company_description": "Infosys is a global leader in next-generation digital services and consulting. We enable clients in more than 50 countries to navigate their digital transformation. With over three decades of experience in managing the systems and workings of global enterprises, we expertly steer our clients through their digital journey. We do it by enabling the enterprise with an AI-powered core that helps prioritize the execution of change. We also empower the business with agile digital at scale to deliver unprecedented levels of performance and customer delight. Our always-on learning agenda drives their continuous improvement through building and transferring digital skills, expertise, and ideas from our innovation ecosystem.Visit www.infosys.com to see how Infosys (NYSE: INFY) can help your enterprise navigate your next.",
+     "company_headcount_latest": 373698,
+     "company_headcount_range": "10001+",
+     "company_industries": [
+      "IT Services and IT Consulting",
+      "Professional Services"
+     ],
+     "company_professional_network_industry": "IT Services and IT Consulting",
+     "company_professional_network_profile_url": "https://linkedin.com/company/1283",
+     "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/90026645acac7ae47b542367e368a6533bc49a7f7e98c0a62774a433a4d49b05.jpg",
+     "company_status": "active",
+     "company_website": "https://www.infosys.com",
+     "company_website_domain": "infosys.com",
+     "crustdata_company_id": 2199,
+     "description": "• Contributed to backend development for enterprise applications using Java and Spring\n• Built RESTful services and enhanced existing backend modules\n• Strengthened fundamentals in backend engineering, SQL, and Agile development practices",
+     "employment_type": "",
+     "end_date": "2021-12-01T00:00:00+00:00",
+     "function_category": "Engineering",
+     "is_default": false,
+     "location": {
+      "raw": "Bengaluru, Karnataka, India"
+     },
+     "name": "Infosys",
+     "position_id": 1834745746,
+     "professional_network_id": "1283",
+     "seniority_level": "Entry Level",
+     "start_date": "2020-09-01T00:00:00+00:00",
+     "title": "Digital Specialist Engineer",
+     "years_at_company": "1 to 2 years",
+     "years_at_company_raw": 1.0
+    }
+   ]
+  }
+ },
+ "skills": {
+  "professional_network_skills": [
+   "Java",
+   "Spring Boot",
+   "Backend Development",
+   "Microservices",
+   "High Availability Systems",
+   "REST APIs",
+   "SQL",
+   "MySQL",
+   "Multithreading",
+   "Object-Oriented Programming (OOP)",
+   "Design Patterns",
+   "Back-End Web Development",
+   "Java Application Development",
+   "Spring MVC",
+   "Spring Data",
+   "Hibernate",
+   "JPA",
+   "Unit Testing",
+   "Integration Testing",
+   "JUnit",
+   "Git",
+   "Maven",
+   "IntelliJ IDEA",
+   "Postman API",
+   "Jenkins",
+   "Docker",
+   "Core Java"
+  ]
+ },
+ "social_handles": {
+  "dev_platform_identifier": {
+   "profile_url": null
+  },
+  "professional_network_identifier": {
+   "profile_url": "https://www.linkedin.com/in/agrimmaheshwari"
+  },
+  "twitter_identifier": {
+   "slug": ""
+  }
+ },
+ "crustdata_person_id": 238437821
+}
