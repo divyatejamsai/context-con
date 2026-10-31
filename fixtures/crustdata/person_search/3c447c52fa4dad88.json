@@ -1,0 +1,1376 @@
+{
+  "endpoint": "person/search",
+  "request": {
+    "filters": {
+      "op": "and",
+      "conditions": [
+        {
+          "field": "experience.employment_details.current.title",
+          "type": "(.)",
+          "value": "Backend Engineer"
+        },
+        {
+          "op": "or",
+          "conditions": [
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "Bangalore"
+            },
+            {
+              "field": "basic_profile.location.country",
+              "type": "(.)",
+              "value": "Bangalore"
+            },
+            {
+              "field": "basic_profile.location.city",
+              "type": "(.)",
+              "value": "Bengaluru"
+            },
+            {
+              "field": "basic_profile.location.country",
+              "type": "(.)",
+              "value": "Bengaluru"
+            }
+          ]
+        }
+      ]
+    },
+    "limit": 5,
+    "fields": [
+      "crustdata_person_id",
+      "basic_profile",
+      "experience",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": {
+    "profiles": [
+      {
+        "crustdata_person_id": 314613,
+        "basic_profile": {
+          "current_title": "Backend Engineer",
+          "headline": "Building Tech at Fam | Ex-entrepreneur | IIT Roorkee",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Vinod Sonagara",
+          "professional_network_name": "Vinod Sonagara",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/07b24c62e98c8c570de963e1172d67ebd77aa4c9c8488e0da1b7f291b5ed748b.jpg",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1503,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "HSR Layout, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Financial Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/famappbytrio",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/92968debc5f01ff4cee3f721b4ca79d1b0f73656a4752b948c57907936167f5e.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://famapp.in",
+                "crustdata_company_id": 13599234,
+                "description": "",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Fam",
+                "position_id": 2704414624,
+                "professional_network_id": "14618763",
+                "seniority_level": "Entry Level",
+                "start_date": "2025-05-01T00:00:00",
+                "title": "Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 21,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "St. John's Medical College, Koramangala I Block, Koramangala, Agara, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Technology, Information and Internet",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/newtral-io",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbabdb9517fec2a043a79ad3678d6e3e58bf73dd034cd8ebb11b7594912d8fa6.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://newtral.ai/",
+                "crustdata_company_id": 917316,
+                "description": "",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Consulting",
+                "is_default": false,
+                "name": "Newtral",
+                "position_id": 2618506144,
+                "professional_network_id": "82832151",
+                "seniority_level": "Entry Level",
+                "start_date": "2025-04-01T00:00:00",
+                "title": "Advisor",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 21,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "St. John's Medical College, Koramangala I Block, Koramangala, Agara, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Technology, Information and Internet",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/newtral-io",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbabdb9517fec2a043a79ad3678d6e3e58bf73dd034cd8ebb11b7594912d8fa6.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://newtral.ai/",
+                "crustdata_company_id": 917316,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2025-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Newtral",
+                "position_id": 2093307359,
+                "professional_network_id": "82832151",
+                "seniority_level": "Owner / Partner",
+                "start_date": "2023-01-01T00:00:00",
+                "title": "Co-Founder",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 21,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Kundalahalli, Rameshnagar, Doddanekkundi, Marathahalli Colony, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Capital Markets",
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Capital Markets",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/trinkerr",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/58874800d72001005548371bc376432917e731d2b90de492ba610858ed868ba3.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://trin.kr/installapp",
+                "crustdata_company_id": 6037484,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2022-12-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bangalore Urban, Karnataka, India"
+                },
+                "name": "Trinkerr",
+                "position_id": 1914340857,
+                "professional_network_id": "73821388",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-01-01T00:00:00",
+                "title": "Backend Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 313,
+                "company_headcount_range": "201-500",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "San Francisco, California, United States",
+                "company_hq_location_address_components": [
+                  "San Francisco",
+                  "San Francisco County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/leena-ai",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/91492474dd4badfb5de312662ab53cf9c207fd5381abdcc0c2428c47307c4a1c.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://leena.ai/",
+                "crustdata_company_id": 632040,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2022-01-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Gurugram, Haryana, India"
+                },
+                "name": "Leena AI",
+                "position_id": 1774763958,
+                "professional_network_id": "13370785",
+                "seniority_level": "Entry Level",
+                "start_date": "2021-04-01T00:00:00",
+                "title": "Backend Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 98,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Bridgewater, New Jersey, United States",
+                "company_hq_location_address_components": [
+                  "Bridgewater",
+                  "Somerset County",
+                  "New Jersey",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Hospitals and Health Care"
+                ],
+                "company_professional_network_industry": "Hospitals and Health Care",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/supplycopia",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f4acf75c03bfb76890f2d92e737db4a6a1b51f5e3857777e587ac699637d3116.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.supplycopia.com",
+                "crustdata_company_id": 961697,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2021-04-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Noida Area, India"
+                },
+                "name": "SupplyCopia",
+                "position_id": 1571032086,
+                "professional_network_id": "5003032",
+                "seniority_level": "Entry Level",
+                "start_date": "2020-01-01T00:00:00",
+                "title": "Backend Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/vinod-sonagara"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 949728,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer",
+          "headline": "Backend @Primetrace/Crafto",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Vishvajeet Singh",
+          "professional_network_name": "Vishvajeet singh",
+          "profile_picture_permalink": "",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 188,
+                "company_headcount_range": "201-500",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Singasandra, Madivala, Bommanahalli (Bangalore), Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/primetrace",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/91f248bae85ff3596514d1ab2a5a1015ea0ac0050015280e94d89beb44aba45d.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://primetrace.com/",
+                "crustdata_company_id": 28297307,
+                "description": "",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bangalore Urban"
+                },
+                "name": "Primetrace",
+                "position_id": 2464094286,
+                "professional_network_id": "112154070",
+                "seniority_level": "Senior",
+                "start_date": "2024-08-01T00:00:00",
+                "title": "Senior Backend Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 66,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Austin, Texas, United States",
+                "company_hq_location_address_components": [
+                  "Austin",
+                  "Travis County",
+                  "Texas",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Technology, Information and Internet",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/apty",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/d12d787e92344553259767dc1ff00acdb5486224f4b3a006bf8e31cde8087fca.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://apty.ai/",
+                "crustdata_company_id": 635120,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2024-04-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "Apty",
+                "position_id": 1995421860,
+                "professional_network_id": "13459888",
+                "seniority_level": "Entry Level",
+                "start_date": "2022-07-01T00:00:00",
+                "title": "Software Development Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 7100,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Gurgaon Kty., Khandsa Road, Urban Estate (Gurgaon), Arjun Nagar, Gurgaon H.O, Gurgaon South City I, New Colony (Gurgaon), Gurgaon Sector 17, Mini Sectt., Basai Road, Shivaji Nagar (Gurgaon), Haryana, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Technology, Information and Internet",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/1mg",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fe4434f7afb92ec606bb7df4414580ae181550bed5cb0c37a25156ada66447f.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.1mg.com/",
+                "crustdata_company_id": 5736,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2022-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "name": "Tata 1mg",
+                "position_id": 1888773785,
+                "professional_network_id": "5230742",
+                "seniority_level": "In Training",
+                "start_date": "2021-12-01T00:00:00",
+                "title": "SDE intern",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 30035,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Shivaji Housing Society, Govt. Polytechnic, Model Colony, Mahārāshtra, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/persistent-systems",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3d0b5d5c2c61b6ee6edd7a05254eeca5cde2c12ed02d8335a04325a9be2c771b.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "http://www.persistent.com",
+                "crustdata_company_id": 3647,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2021-08-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Pune, Maharashtra, India"
+                },
+                "name": "Persistent Systems",
+                "position_id": 1795790800,
+                "professional_network_id": "5034",
+                "seniority_level": "In Training",
+                "start_date": "2021-06-01T00:00:00",
+                "title": "Summer Intern",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/vishvajeet-singh-89ba79182"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 1003550,
+        "basic_profile": {
+          "current_title": "Lead Backend Engineer",
+          "headline": "Lead Software Engineer @ YP Club | Technology Lead | Native Mobile Development | Linux & Cloud Native Automation",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Amal Shaji",
+          "normalized_title": {
+            "confident": true,
+            "department": "Engineering & Technology",
+            "matched_title": "Lead Backend Engineer",
+            "similarity": 0.9999,
+            "sub_department": "Software Engineering"
+          },
+          "professional_network_name": "Amal Shaji",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/2fecab9fab23d3a4d84ef4d403f15f1a91f1019c970827ccd985ceab76ea2a60.jpg"
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 43,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "United Arab Emirates",
+                "company_hq_location": "Dubai, Dubai, United Arab Emirates",
+                "company_hq_location_address_components": [
+                  "Dubai",
+                  "Dubai",
+                  "United Arab Emirates"
+                ],
+                "company_industries": [
+                  "Think Tanks",
+                  "Research Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Think Tanks",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/ypclub",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/444956da377e06814236325ce57c6089af6cd3ee0f402fa777b403bb7caa0f22.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.ypclub.com",
+                "crustdata_company_id": 1327642,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Dubai, United Arab Emirates"
+                },
+                "name": "YP Club",
+                "position_id": 2762572144,
+                "professional_network_id": "81771540",
+                "seniority_level": "Senior",
+                "start_date": "2025-11-01T00:00:00",
+                "title": "Lead Backend Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 43,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "United Arab Emirates",
+                "company_hq_location": "Dubai, Dubai, United Arab Emirates",
+                "company_hq_location_address_components": [
+                  "Dubai",
+                  "Dubai",
+                  "United Arab Emirates"
+                ],
+                "company_industries": [
+                  "Think Tanks",
+                  "Research Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Think Tanks",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/ypclub",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/444956da377e06814236325ce57c6089af6cd3ee0f402fa777b403bb7caa0f22.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.ypclub.com",
+                "crustdata_company_id": 1327642,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": "2025-11-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Dubai, United Arab Emirates"
+                },
+                "name": "YP Club",
+                "position_id": 2706592965,
+                "professional_network_id": "81771540",
+                "seniority_level": "Senior",
+                "start_date": "2025-08-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 20,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "India",
+                "company_hq_location": "St. John's Medical College, Koramangala I Block, Koramangala, Agara, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/moonhive",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e2e600e9323b85d79c700979137c7de04ebe096547ef29039c25b23f73c34c41.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.moonhive.in/",
+                "crustdata_company_id": 707762,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": "2025-08-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "Moonhive",
+                "position_id": 2594939661,
+                "professional_network_id": "35884086",
+                "seniority_level": "Senior",
+                "start_date": "2023-03-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "",
+                "employment_type": "Full-time",
+                "end_date": "2025-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Vive",
+                "position_id": 2279699079,
+                "professional_network_id": null,
+                "seniority_level": "CXO",
+                "start_date": "2023-09-01T00:00:00",
+                "title": "Chief Executive Officer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1,
+                "company_headcount_range": "2-10",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/procheckout",
+                "company_profile_picture_permalink": "",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://procheckout.in/",
+                "crustdata_company_id": 69858391,
+                "description": "",
+                "employment_type": "Self-employed",
+                "end_date": "2025-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "name": "ProCheckout",
+                "position_id": 2184290351,
+                "professional_network_id": "105019046",
+                "seniority_level": "CXO",
+                "start_date": "2023-05-01T00:00:00",
+                "title": "Chief Executive Officer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 0,
+                "company_headcount_range": "",
+                "company_headquarters_country": "",
+                "company_hq_location": "",
+                "company_hq_location_address_components": [],
+                "company_industries": [],
+                "company_professional_network_industry": "",
+                "company_professional_network_profile_url": "",
+                "company_profile_picture_permalink": "",
+                "company_status": null,
+                "company_type": "",
+                "company_website": "",
+                "crustdata_company_id": 0,
+                "description": "",
+                "employment_type": "Freelance",
+                "end_date": "2023-01-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "Freelance",
+                "position_id": 2899390616,
+                "professional_network_id": null,
+                "seniority_level": "Entry Level",
+                "start_date": "2018-09-01T00:00:00",
+                "title": "React, React Native, Android, Backend Developer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 4
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/amal-shaji-in"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 1061757,
+        "basic_profile": {
+          "current_title": "Senior Backend Engineer ( Quantitative Developer )",
+          "headline": "Senior Software Engineer | Python | Microservices | AI Generalist | Quantitative Developer",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Shreehari Aramanadka",
+          "professional_network_name": "Shreehari Aramanadka",
+          "profile_picture_permalink": "",
+          "normalized_title": null
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 1129,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United Kingdom",
+                "company_hq_location": "London, England, United Kingdom",
+                "company_hq_location_address_components": [
+                  "London",
+                  "London",
+                  "Greater London",
+                  "England",
+                  "United Kingdom"
+                ],
+                "company_industries": [
+                  "Investment Management",
+                  "Capital Markets",
+                  "Financial Services"
+                ],
+                "company_professional_network_industry": "Investment Management",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/brevan-howard",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e31dae9c7dd288360abbd07d56bf985b7a5e80eca63777c518496fff0888eada.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.brevanhoward.com",
+                "crustdata_company_id": 6035792,
+                "description": "Merlin, QuestAPI, Level Monitor\n\n+ Architected a self-service platform for historical market data backpopulation and snapshot generation, enabling large-scale backtesting workflows for quantitative research.\n+ Led migration of market data from a legacy vendor-hosted database to an in-house platform, redesigning bulk-update workflows and improving data processing efficiency.\n+ Designed and maintained data pipelines for daily market data generation, intraday snapshots, end-of-day processing, and multi-currency instrument ingestion.\n+ Integrated enterprise SSO into internal research platforms and established engineering standards through automated quality controls and CI/CD processes.\n+ Increased automated test coverage of critical backtesting systems from 10% to 80% and built real-time monitoring solutions for market threshold tracking and risk visibility.",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Brevan Howard",
+                "position_id": 2476748186,
+                "professional_network_id": "17873",
+                "seniority_level": "Senior",
+                "start_date": "2024-09-01T00:00:00",
+                "title": "Senior Backend Engineer ( Quantitative Developer )",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 968,
+                "company_headcount_range": "501-1000",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "New York, New York, United States",
+                "company_hq_location_address_components": [
+                  "New York",
+                  "New York",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/impactanalytics",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ae81482d0ae79f66126f7ff01fbb1d47e682a1b290319a433853a32103d8512e.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.impactanalytics.ai",
+                "crustdata_company_id": 635195,
+                "description": "InventorySmart\n\n+ Designed and built a custom query builder in python for PostgresSQL. \n+ Proposed and built a generic framework for data validation.\n+ Code reviews, participation in hiring software engineers, mentoring juniors and interns. \n+ Proposed organisation wide branching strategy for the client/feature specific releases.",
+                "employment_type": "",
+                "end_date": "2024-09-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Impact Analytics",
+                "position_id": 2476747305,
+                "professional_network_id": "4867362",
+                "seniority_level": "Senior",
+                "start_date": "2024-06-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 4675,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "United Kingdom",
+                "company_hq_location": "London, England, United Kingdom",
+                "company_hq_location_address_components": [
+                  "London",
+                  "London",
+                  "Greater London",
+                  "England",
+                  "United Kingdom"
+                ],
+                "company_industries": [
+                  "Market Research",
+                  "Advertising Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Market Research",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/yougov",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/80faca5f8c9219159c64be58fa032105caff19aad12ae80017f3592b4895024c.jpg",
+                "company_status": "active",
+                "company_type": "Public Company",
+                "company_website": "https://yougov.com",
+                "crustdata_company_id": 6042921,
+                "description": "YouGov Platform Product - SaaS - Profiles Lite, BrandIndex Lite, Codebook\n\n+ Building scalable backend services for delivering top notch market research data insights. \n+ Designing workflows for handling various processes for building SaaS products. \n+ Architect custom cli based data pipelines for data extractions and automations. \n+ Design architecture for codebook revamp. Improved average api response time of apis from 4s to below 200ms.\n+ Maintaining codebase with 100% test case coverage.\n+ TDD, Test planning.",
+                "employment_type": "",
+                "end_date": "2024-06-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "YouGov",
+                "position_id": 1681025761,
+                "professional_network_id": "109731",
+                "seniority_level": "Entry Level",
+                "start_date": "2020-09-01T00:00:00",
+                "title": "Software Engineer - Python",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 3
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 3131,
+                "company_headcount_range": "5001-10000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Yeswanthpura, Yeshwanthpur Bazar, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Education"
+                ],
+                "company_professional_network_industry": "Education",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/k12-techno-services-pvt.-ltd.",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fa966d1190f8a08609e81fa68b8a613a392ea01f2beb66d7797ea61361fc674.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.k12technoservices.com/",
+                "crustdata_company_id": 6325,
+                "description": "Eduvate ERP\n\n+ Participation in architecting backend system for enterprise level educational ERP system.\n+ DevOps engineering for the server architecture and automations of data pipelines.\n+ Improved performance of educational erp, by implementing caching and optimizing api designs.\n+ Being responsible for end to end delivery of edTech ERP components.\n+ Mentoring and guiding junior team members in terms of software development life cycle best practices.",
+                "employment_type": "",
+                "end_date": "2020-09-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "K12 Techno Services Pvt. Ltd.",
+                "position_id": 1461365868,
+                "professional_network_id": "1289979",
+                "seniority_level": "Senior",
+                "start_date": "2019-03-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 3131,
+                "company_headcount_range": "5001-10000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Yeswanthpura, Yeshwanthpur Bazar, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Education"
+                ],
+                "company_professional_network_industry": "Education",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/k12-techno-services-pvt.-ltd.",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6fa966d1190f8a08609e81fa68b8a613a392ea01f2beb66d7797ea61361fc674.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.k12technoservices.com/",
+                "crustdata_company_id": 6325,
+                "description": "Eduvate ERP\n\n+ Being a full stack web developer, involved in design and implementation of core features of School ERP System.\n+ Brain storming for DB schema modelling.\n+ Involved in REST API design discussion.\n+ Participated in code reviews.\n+ Played key role in DB migrations.\n+ Hotfix expert.",
+                "employment_type": "",
+                "end_date": "2019-03-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "K12 Techno Services Pvt. Ltd.",
+                "position_id": 1360852800,
+                "professional_network_id": "1289979",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-09-01T00:00:00",
+                "title": "Software Developer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 124350,
+                "company_headcount_range": "10001+",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Round Rock, Texas, United States",
+                "company_hq_location_address_components": [
+                  "Round Rock",
+                  "Williamson County",
+                  "Texas",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Computer Hardware Manufacturing",
+                  "Computers and Electronics Manufacturing",
+                  "Manufacturing"
+                ],
+                "company_professional_network_industry": "Computer Hardware Manufacturing",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/delltechnologies",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/2106871b7bc048f4fd32781c950c44d06631acb7ac9322bf63bbd3dd268787ff.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.delltechnologies.com",
+                "crustdata_company_id": 1239024,
+                "description": "SAP Technical\n\n+ Developed a dashboard using Django, for monitoring operational status of SAP servers.\n+ Formulated idea on full fledged automation tool for report generation.",
+                "employment_type": "",
+                "end_date": "2018-09-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru, Karnataka, India"
+                },
+                "name": "Dell Technologies",
+                "position_id": 1337932738,
+                "professional_network_id": "15088102",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-07-01T00:00:00",
+                "title": "Software Development Analyst",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/shreehari-a"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      },
+      {
+        "crustdata_person_id": 1061761,
+        "basic_profile": {
+          "current_title": "Backend engineer",
+          "headline": "Building Deccan AI",
+          "location": {
+            "city": "Bengaluru",
+            "continent": "Asia",
+            "country": "India",
+            "full_location": "Bengaluru, Karnataka, India",
+            "raw": "Bengaluru, Karnataka, India",
+            "state": "Karnataka"
+          },
+          "name": "Raja S.",
+          "normalized_title": {
+            "confident": true,
+            "department": "Engineering & Technology",
+            "matched_title": "Backend Engineer",
+            "similarity": 0.9997,
+            "sub_department": "Software Engineering"
+          },
+          "professional_network_name": "Raja S.",
+          "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/21d3463aae418f5d47398347be073bbbb8fe949ab63f01e58e1f5dd0d43fba8a.jpg"
+        },
+        "experience": {
+          "employment_details": {
+            "current": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 566,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "United States",
+                "company_hq_location": "Mountain View, California, United States",
+                "company_hq_location_address_components": [
+                  "Mountain View",
+                  "Santa Clara County",
+                  "California",
+                  "United States"
+                ],
+                "company_industries": [
+                  "Software Development",
+                  "Technology, Information and Internet",
+                  "Technology, Information and Media"
+                ],
+                "company_professional_network_industry": "Software Development",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/ai-deccan",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7170ed04efdb59efc1ca17721cf37374f0aa57e0f338915561255a38ddb9e015.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.deccan.ai/",
+                "crustdata_company_id": 2196601,
+                "description": "",
+                "employment_type": "",
+                "end_date": null,
+                "function_category": "Engineering",
+                "is_default": true,
+                "location": {
+                  "raw": "Bangalore Urban"
+                },
+                "name": "Deccan AI",
+                "position_id": 2951514507,
+                "professional_network_id": "104833915",
+                "seniority_level": "Entry Level",
+                "start_date": "2026-06-01T00:00:00",
+                "title": "Backend engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ],
+            "past": [
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 4347,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Devasandra, Krishnarajapuram, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Research Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Research Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/samsungrndindiabangalore",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b67ad746568865a944a1c9174c3b4da982a4773d0edac7f0518c830ae62f7dbe.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://research.samsung.com/sri-b",
+                "crustdata_company_id": 1051030,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2026-05-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru"
+                },
+                "name": "Samsung R&D Institute India - Bangalore",
+                "position_id": 2352654783,
+                "professional_network_id": "33926293",
+                "seniority_level": "CXO",
+                "start_date": "2024-03-01T00:00:00",
+                "title": "Chief Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 4347,
+                "company_headcount_range": "1001-5000",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Devasandra, Krishnarajapuram, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Research Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Research Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/samsungrndindiabangalore",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b67ad746568865a944a1c9174c3b4da982a4773d0edac7f0518c830ae62f7dbe.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://research.samsung.com/sri-b",
+                "crustdata_company_id": 1051030,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2024-03-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "name": "Samsung R&D Institute India - Bangalore",
+                "position_id": 1971044608,
+                "professional_network_id": "33926293",
+                "seniority_level": "Senior",
+                "start_date": "2022-05-01T00:00:00",
+                "title": "Lead Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 14,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Ramamurthy Nagar, Krishnarajapuram R S, Doorvaninagar, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Advertising Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Advertising Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/zapr",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6d0ac4e3993cb40d1176c327ed1d066cd3994b8d2d771b7d472f7ec849144805.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.zapr.in",
+                "crustdata_company_id": 9487,
+                "description": "",
+                "employment_type": "",
+                "end_date": "2022-05-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bangalore Urban, Karnataka, India"
+                },
+                "name": "Zapr Media Labs (acquired by Samsung)",
+                "position_id": 1907911120,
+                "professional_network_id": "9364978",
+                "seniority_level": "Senior",
+                "start_date": "2022-01-01T00:00:00",
+                "title": "Technical Lead",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 14,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Ramamurthy Nagar, Krishnarajapuram R S, Doorvaninagar, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Advertising Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Advertising Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/zapr",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6d0ac4e3993cb40d1176c327ed1d066cd3994b8d2d771b7d472f7ec849144805.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.zapr.in",
+                "crustdata_company_id": 9487,
+                "description": "- Designed and implemented panel tv viewership pipeline involving spark and sql workloads along with a mentee.\n- Involved in doing POC for running kubernetes workloads, developed internal tools and services required for smooth functioning of kubernetes cluster including networking, authentication, application secret handling and docker image build process\n- Designed and implemented a data workflow orchestration tool using Apache airflow and Kubernetes\n- Designed and built a generic benchmarking tool for apache spark which analyses memory and cpu consumption and network traffic to recommend improvements.\n- Involved in mentoring a intern and two software engineers on  several projects",
+                "employment_type": "",
+                "end_date": "2022-01-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Zapr Media Labs (acquired by Samsung)",
+                "position_id": 1495572243,
+                "professional_network_id": "9364978",
+                "seniority_level": "Senior",
+                "start_date": "2019-06-01T00:00:00",
+                "title": "Senior Software Engineer",
+                "years_at_company": "3 to 5 years",
+                "years_at_company_raw": 2
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 14,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Ramamurthy Nagar, Krishnarajapuram R S, Doorvaninagar, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Advertising Services",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "Advertising Services",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/zapr",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6d0ac4e3993cb40d1176c327ed1d066cd3994b8d2d771b7d472f7ec849144805.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://www.zapr.in",
+                "crustdata_company_id": 9487,
+                "description": "- Responsible for development and maintenance of TV-advertisement detection data pipeline.\n- Improved runtime of several batch Apache spark workloads by benchmarking and implementing necessary code changes\n- Built a new batch match aggregator leveraging data analysis to improve accuracy and precision of in-house ad-detection time series aggregation system.\n- Experimented and used SIMD instruction set to increase data parallelism of low level string matching algorithms used, saving matching costs by 30%.",
+                "employment_type": "",
+                "end_date": "2019-06-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Zapr Media Labs (acquired by Samsung)",
+                "position_id": 1192519683,
+                "professional_network_id": "9364978",
+                "seniority_level": "Entry Level",
+                "start_date": "2018-01-01T00:00:00",
+                "title": "Software Engineer",
+                "years_at_company": "1 to 2 years",
+                "years_at_company_raw": 1
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 195,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Arabic College, Venkateshapura, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Retail Apparel and Fashion",
+                  "Retail"
+                ],
+                "company_professional_network_industry": "Retail Apparel and Fashion",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/silqtech",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4d1f8fd8f00bbed049b24841546bf5eff8420ea46427cc8f5d41ffc2486f30b9.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://silqtech.ai/",
+                "crustdata_company_id": 6079,
+                "description": "- Designed and implemented Random Forest algorithm which improved the overall user conversion by 10%\n- Enhanced the existing Linear Regression models by adding more features using Feature Engineering\n- Implemented Item-Item Collaborative Filtering Algorithm for user recommendation for cross sell\n- Responsible for building and deploying the microservice throughout staging and production",
+                "employment_type": "",
+                "end_date": "2017-12-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "SilqTech",
+                "position_id": 1047425557,
+                "professional_network_id": "2905042",
+                "seniority_level": "Entry Level",
+                "start_date": "2017-06-01T00:00:00",
+                "title": "Software Development Engineer",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 195,
+                "company_headcount_range": "51-200",
+                "company_headquarters_country": "India",
+                "company_hq_location": "Arabic College, Venkateshapura, Karnātaka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "Retail Apparel and Fashion",
+                  "Retail"
+                ],
+                "company_professional_network_industry": "Retail Apparel and Fashion",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/silqtech",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4d1f8fd8f00bbed049b24841546bf5eff8420ea46427cc8f5d41ffc2486f30b9.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "https://silqtech.ai/",
+                "crustdata_company_id": 6079,
+                "description": "- As a part of retention team, built reports for critical business metrics which helped in making critical business decision\n- Implemented Coupon recommendation for users during checkout to increase user retention\n- Developed User Segmentation tool which automatically queries the user database with given parameters and creates Email campaign with those users.",
+                "employment_type": "",
+                "end_date": "2017-03-01T00:00:00",
+                "function_category": "",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "SilqTech",
+                "position_id": 933597578,
+                "professional_network_id": "2905042",
+                "seniority_level": "In Training",
+                "start_date": "2017-01-01T00:00:00",
+                "title": "Engineering Intern",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              },
+              {
+                "business_email_verified": false,
+                "company_headcount_latest": 25,
+                "company_headcount_range": "11-50",
+                "company_headquarters_country": "India",
+                "company_hq_location": "HSR Layout, Karnataka, India",
+                "company_hq_location_address_components": [],
+                "company_industries": [
+                  "IT Services and IT Consulting",
+                  "Professional Services"
+                ],
+                "company_professional_network_industry": "IT Services and IT Consulting",
+                "company_professional_network_profile_url": "https://www.linkedin.com/company/sphata-systems",
+                "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3fdbe919a40f9c9205a1cea561d1887a6bcfb3f4104adff11ff87fe946196e4c.jpg",
+                "company_status": "active",
+                "company_type": "Privately Held",
+                "company_website": "http://www.sphata.com",
+                "crustdata_company_id": 3167021,
+                "description": "- Worked with data mining of social profiles in twitter and Facebook and generate summaries based on the data\n- Was responsible for packaging of Hybrid mobile application \"DigiWise\" developed in cordova PhoneGap\n- Published the developed application in the iOS AppStore and Android Play Store",
+                "employment_type": "",
+                "end_date": "2015-06-01T00:00:00",
+                "function_category": "Engineering",
+                "is_default": false,
+                "location": {
+                  "raw": "Bengaluru Area, India"
+                },
+                "name": "Sphata Systems",
+                "position_id": 1134395223,
+                "professional_network_id": "2444085",
+                "seniority_level": "In Training",
+                "start_date": "2015-06-01T00:00:00",
+                "title": "Mobile App Engineer Intern",
+                "years_at_company": "Less than 1 year",
+                "years_at_company_raw": 0
+              }
+            ]
+          },
+          "recently_changed_jobs": false
+        },
+        "social_handles": {
+          "dev_platform_identifier": {
+            "profile_url": null
+          },
+          "professional_network_identifier": {
+            "profile_url": "https://www.linkedin.com/in/raja-sudhan"
+          },
+          "twitter_identifier": {
+            "slug": ""
+          }
+        }
+      }
+    ],
+    "next_cursor": "H4sIALx65WoC_xXMOQrDMBBA0asY1Sm0eCRNrhKCmUXChbGILRch5O5R2v_gf8zrKsd7WelczX0yjHbOVnBmroVAQSVkq4QJAZCEKoqHlMkHitWrQFEPjkJhxyxobpM529HH6-FsdCm650i9ddoWadf-lwHx-wNxA516egAAAA==",
+    "total_count": 1066,
+    "total_count_relation": null,
+    "remarks": []
+  },
+  "fetched_at": "2026-10-31T05:21:01+00:00"
+}

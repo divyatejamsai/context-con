@@ -1,0 +1,166 @@
+{
+  "basic_profile": {
+    "current_title": "Backend & DevOps Engineer",
+    "first_name": "Vinayak",
+    "headline": "Backend & DevOps Engineer | Previous Co-Founder at Ortigan",
+    "languages": [
+      "Php (Full professional proficiency)"
+    ],
+    "last_name": "Kalushe",
+    "location": {
+      "city": "Hyderabad",
+      "continent": "Asia",
+      "country": "India",
+      "full_location": null,
+      "raw": "Hyderabad, Telangana, India",
+      "state": "Telangana"
+    },
+    "name": "Vinayak Kalushe",
+    "professional_network_name": "Vinayak Kalushe",
+    "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/b3fc20b412069fa17ae621e6fb02eae27e29c60124c3d191a00124f079a1db73.jpg",
+    "summary": ""
+  },
+  "education": {
+    "schools": [
+      {
+        "activities_and_societies": "",
+        "degree": "Bachelor of Engineering - BE, Computer Science",
+        "description": "",
+        "end_year": 2020,
+        "field_of_study": "Web Development",
+        "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6736d99ba9ebc0022d15c8210a5429f370eb1b5bd35f60a2dde4fe9d8bcc8bb4.jpg",
+        "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQFRxdXydVinnw/company-logo_400_400/company-logo_400_400/0/1631355916675?e=1747872000&v=beta&t=30Y89nOw67KfUvukV7LEUw7ZgLmKjIXWuN_JGWxi784",
+        "location": {
+          "city": "Chhatrapati Sambhajinagar",
+          "continent": "Asia",
+          "country": "India",
+          "raw": "MGM Campus, N-6 CIDCO",
+          "state": "Maharashtra"
+        },
+        "professional_network_id": "6973745",
+        "school": "Jawaharlal Nehru Engineering College",
+        "start_year": 2015
+      }
+    ]
+  },
+  "experience": {
+    "employment_details": {
+      "current": [
+        {
+          "company_description": "KIOT Innovations is the go-to IoT platform for enterprises to launch smart IoT appliances, devices with integrated cloud, mobile, web & voice applications, a full stack platform to launch IoT products & solutions.With 200+ customers across Home appliances, Energy, Automotive, Healthcare & Government domains, we are proud technology partner shaping future with scalable, interoperable and cost-effective IoT Solutions",
+          "company_headcount_latest": 108,
+          "company_headcount_range": "51-200",
+          "company_industries": [
+            "Appliances, Electrical, and Electronics Manufacturing",
+            "Manufacturing"
+          ],
+          "company_professional_network_industry": "Appliances, Electrical, and Electronics Manufacturing",
+          "company_professional_network_profile_url": "https://linkedin.com/company/13255543",
+          "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b3d0be2dfe854a95ea6671026a9949afd76f2c1007461d797710de2f2e48987f.jpg",
+          "company_status": "active",
+          "company_website": "http://kiot.io/",
+          "company_website_domain": "kiot.io",
+          "crustdata_company_id": 6533485,
+          "description": "",
+          "employment_type": "",
+          "end_date": null,
+          "function_category": "Engineering",
+          "is_default": true,
+          "location": {
+            "raw": "Hyderabad, Telangana, India"
+          },
+          "name": "KIoT",
+          "position_id": 2472136900,
+          "professional_network_id": "13255543",
+          "seniority_level": "Entry Level",
+          "start_date": "2024-09-01T00:00:00+00:00",
+          "title": "Backend & DevOps Engineer",
+          "years_at_company": "3 to 5 years",
+          "years_at_company_raw": 2.0
+        }
+      ],
+      "past": [
+        {
+          "company_description": "Ortigan is a software development company and multidisciplinary design firm. Pillars of which are a family of tech enthusiasts who are committed to working with modern-day technologies & methodologies to delivering fast, scalable & secure web applications for any and every use case there is in a completely agile manner. We excel in developing modern-day Software As A Service (SaaS) based applications for small businesses and emerging startups. Our development team is capable of delivering real-time, high-performance, secure, and scalable web-based applications that help our clients digitally transform their businesses.Our Design unit is committed to deliver more than the actual requirements and to make the user experience at its best. We excel in designing custom illustrations, Brand Guidelines,  elementary design, and all sorts of graphics there are. After all, functionality makes the product usable, but its good design turns it Desirable and what makes people stay, Turning ideas into reality which is adored by masses and target audience equally.            Our approach towards projects is for every problem there exists a solution and for every solution there exists a better one! A Team of Seven, Ortigan stands behind every type of business firmly, supporting its digital backbone in whatever aspect the use case might present.    We embrace the beautiful struggle involved in building young and promising businesses and support those at the forefront of change & believe you and us together can build something which is vibrant as well as extremely useful at its core. We are the team that backs The Team. With specialists in key disciplines, including designing, system design, and system architecture, and corporate strategy. Our intention is to partner with entrepreneurs to give them the best foundations to succeed.",
+          "company_headcount_latest": 2,
+          "company_headcount_range": "2-10",
+          "company_industries": [
+            "IT Services and IT Consulting",
+            "Professional Services"
+          ],
+          "company_professional_network_industry": "IT Services and IT Consulting",
+          "company_professional_network_profile_url": "https://linkedin.com/company/68987477",
+          "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ccef5161f31984398e03f699491a1dddfee9acbfa666bc00606463ce31ca6f78.jpg",
+          "company_status": "active",
+          "company_website": "https://www.ortigan.in",
+          "company_website_domain": "ortigan.com",
+          "crustdata_company_id": 708169,
+          "description": "",
+          "employment_type": "",
+          "end_date": "2024-02-01T00:00:00+00:00",
+          "function_category": "",
+          "is_default": false,
+          "location": {
+            "raw": "Aurangabad, Maharashtra, India"
+          },
+          "name": "Ortigan",
+          "position_id": 1644220726,
+          "professional_network_id": "68987477",
+          "seniority_level": "CXO",
+          "start_date": "2020-05-01T00:00:00+00:00",
+          "title": "Co-Founder and CTO",
+          "years_at_company": "3 to 5 years",
+          "years_at_company_raw": 3.0
+        }
+      ]
+    }
+  },
+  "skills": {
+    "professional_network_skills": [
+      "Project Management",
+      "Databases",
+      "Communication",
+      "Technical Leadership",
+      "System Development",
+      "Computer Engineering",
+      "Team Leadership",
+      "REST APIs",
+      "Version Control",
+      "Coding Standards",
+      "Code Review",
+      "Programming",
+      "User Interface Design",
+      "Hypertext Transfer Protocol (HTTP)",
+      "JSON",
+      "Computer Science",
+      "PHP",
+      "SQL",
+      "Python (Programming Language)",
+      "Computer Networking"
+    ]
+  },
+  "social_handles": {
+    "dev_platform_identifier": {
+      "profile_url": null
+    },
+    "professional_network_identifier": {
+      "profile_url": "https://www.linkedin.com/in/vinayakkalushe"
+    },
+    "twitter_identifier": {
+      "slug": ""
+    }
+  },
+  "crustdata_person_id": 481161,
+  "_match": {
+    "confidence_score": 1.0,
+    "match_type": "professional_network_profile_url",
+    "match_status": "matched"
+  },
+  "_source": {
+    "endpoint": "person/enrich",
+    "request_hash": "627455e12892d8db",
+    "fetched_at": "2026-10-31T05:00:59+00:00",
+    "origin": "cache",
+    "matched_on": "https://www.linkedin.com/in/vinayakkalushe"
+  }
+}

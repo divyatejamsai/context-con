@@ -1,0 +1,1302 @@
+{
+  "endpoint": "person/enrich",
+  "request": {
+    "professional_network_profile_urls": [
+      "https://www.linkedin.com/in/vinod-sonagara",
+      "https://www.linkedin.com/in/vinayakkalushe",
+      "https://www.linkedin.com/in/pankajsavaliya",
+      "https://www.linkedin.com/in/shivankverma",
+      "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+    ],
+    "fields": [
+      "basic_profile",
+      "experience",
+      "education",
+      "skills",
+      "social_handles"
+    ]
+  },
+  "status": 200,
+  "response": [
+    {
+      "matched_on": "https://www.linkedin.com/in/vinod-sonagara",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "Backend Engineer",
+              "first_name": "Vinod",
+              "headline": "Building Tech at Fam | Ex-entrepreneur | IIT Roorkee",
+              "languages": [
+                "English (Full professional proficiency)",
+                "Hindi (Native or bilingual proficiency)"
+              ],
+              "last_name": "Sonagara",
+              "location": {
+                "city": "Bengaluru",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Bengaluru, Karnataka, India",
+                "state": "Karnataka"
+              },
+              "name": "Vinod Sonagara",
+              "professional_network_name": "Vinod Sonagara",
+              "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/07b24c62e98c8c570de963e1172d67ebd77aa4c9c8488e0da1b7f291b5ed748b.jpg",
+              "summary": "At Newtral, I lead the development of an AI-powered sustainability platform designed to help companies streamline their carbon accounting and ESG reporting. By integrating advanced technology, we’re enabling businesses to meet regulatory requirements and drive sustainability with precision and scale.\n\nPreviously, I contributed to the healthcare supply chain at SupplyCopia and built enterprise AI solutions at Leena AI. These experiences, along with my education from IIT Roorkee, have shaped my approach to creating technology that drives real-world impact.\n\nNow, I’m focused on using AI to support organizations in their sustainability journey, helping them turn ESG goals into tangible actions for a better future."
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Technology (B.Tech.)",
+                  "description": "",
+                  "end_year": 2019,
+                  "field_of_study": "Electrical Engineering Technologies/Technicians",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ef10fcb54b8e6990ed3caa46f2b9f1d01d0190182cd018d98ac4a3fcc3a2ca34.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/C510BAQFxnsvax1W4UQ/company-logo_400_400/company-logo_400_400/0/1631431492069/indian_institute_of_technology_roorkee_logo?e=1783555200&v=beta&t=kPdlmlov9hlaseTSY_SRd3g7dIcDwO5ekhP3duSxBHA",
+                  "location": {
+                    "city": "Roorkee",
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "Roorkee, Uttarakhand",
+                    "state": "Uttarakhand"
+                  },
+                  "professional_network_id": "157269",
+                  "school": "Indian Institute of Technology, Roorkee",
+                  "start_year": 2014
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "Fam, formerly FamPay, focuses on financial inclusion of the next generation. FamX by Trio, is India's first Spending Account made for everyone. With their own Spending Account, everyone can now save, spend, earn, and learn everything about money!",
+                    "company_headcount_latest": 1503,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Financial Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/14618763",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/92968debc5f01ff4cee3f721b4ca79d1b0f73656a4752b948c57907936167f5e.jpg",
+                    "company_status": "active",
+                    "company_website": "http://famapp.in",
+                    "company_website_domain": "famapp.in",
+                    "crustdata_company_id": 13599234,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "Fam",
+                    "position_id": 2704414624,
+                    "professional_network_id": "14618763",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2025-05-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": "Newtral is an AI company for compliance and sustainability teams at industrial enterprises. We build Noa, your AI VP of Compliance, who runs the full operation across sustainability, EHS, and audit, audit-ready in 18 days. Unlike legacy ERPs and reporting tools that just record data, Noa runs the work that produces it, with every number traceable to its source and every disclosure built to earn auditor confidence on day one.",
+                    "company_headcount_latest": 21,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Technology, Information and Internet",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/82832151",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbabdb9517fec2a043a79ad3678d6e3e58bf73dd034cd8ebb11b7594912d8fa6.jpg",
+                    "company_status": "active",
+                    "company_website": "https://newtral.ai/",
+                    "company_website_domain": "newtral.io",
+                    "crustdata_company_id": 917316,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Consulting",
+                    "is_default": false,
+                    "location": {
+                      "raw": ""
+                    },
+                    "name": "Newtral",
+                    "position_id": 2618506144,
+                    "professional_network_id": "82832151",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2025-04-01T00:00:00+00:00",
+                    "title": "Advisor",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "Newtral is an AI company for compliance and sustainability teams at industrial enterprises. We build Noa, your AI VP of Compliance, who runs the full operation across sustainability, EHS, and audit, audit-ready in 18 days. Unlike legacy ERPs and reporting tools that just record data, Noa runs the work that produces it, with every number traceable to its source and every disclosure built to earn auditor confidence on day one.",
+                    "company_headcount_latest": 21,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Technology, Information and Internet",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/82832151",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/cbabdb9517fec2a043a79ad3678d6e3e58bf73dd034cd8ebb11b7594912d8fa6.jpg",
+                    "company_status": "active",
+                    "company_website": "https://newtral.ai/",
+                    "company_website_domain": "newtral.io",
+                    "crustdata_company_id": 917316,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2025-03-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "Newtral",
+                    "position_id": 2093307359,
+                    "professional_network_id": "82832151",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2023-01-01T00:00:00+00:00",
+                    "title": "Co-Founder",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 2.0
+                  },
+                  {
+                    "company_description": "Trinkerr is transforming the trading experience in India with the help of ready-made algos crafted by industry experts.",
+                    "company_headcount_latest": 21,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Capital Markets",
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Capital Markets",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/73821388",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/58874800d72001005548371bc376432917e731d2b90de492ba610858ed868ba3.jpg",
+                    "company_status": "active",
+                    "company_website": "http://trin.kr/installapp",
+                    "company_website_domain": "trin.kr",
+                    "crustdata_company_id": 6037484,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2022-12-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Bangalore Urban, Karnataka, India"
+                    },
+                    "name": "Trinkerr",
+                    "position_id": 1914340857,
+                    "professional_network_id": "73821388",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2022-01-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "Leena AI empowers employees using “AI Colleagues” to get answers and take action across IT, HR, Finance, Procurement and beyond through a single intelligent interface. Our customers boost productivity and reduce the volume of manually handled requests by 70%.Rapid deployment through integrations with 200+ enterprise systems, such as ServiceNow, SAP, Workday, UKG, Atlassian, and Salesforce, and a large number of customizable agentic workflows out of the box. Employees interact via voice, Slack, Teams, text, and other means.Leena AI  is the world’s largest independent employee‐facing Agentic AI Colleague, serving hundreds of enterprises worldwide such as Nestlé, Coca-Cola, Assurant, MongoDB, CHRISTUS Health, Sony, and Etihad Airways. Recognized by Gartner as a Leader in Agentic AI. Founded in 2018, Leena AI supports 100+ languages globally, and millions of employees use the work assistant daily.For more information, visit https://leena.ai.",
+                    "company_headcount_latest": 313,
+                    "company_headcount_range": "201-500",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13370785",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/91492474dd4badfb5de312662ab53cf9c207fd5381abdcc0c2428c47307c4a1c.jpg",
+                    "company_status": "active",
+                    "company_website": "https://leena.ai/",
+                    "company_website_domain": "leena.ai",
+                    "crustdata_company_id": 632040,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2022-01-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Gurugram, Haryana, India"
+                    },
+                    "name": "Leena AI",
+                    "position_id": 1774763958,
+                    "professional_network_id": "13370785",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2021-04-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "SupplyCopia is a Software as a Service (SaaS) B2B platform helping all types of healthcare organizations – from acute care hospitals and non-acute care facilities to global manufacturers – to get the visibility they’ve always needed to aggregated data sets. Today we’re delivering cost savings to hospitals and net new revenues to suppliers. We’ve got an army of data scientists developing and leveraging technology to solve your supply chain challenges. Today, a complete set of supply chain solutions sit on an integrated platform that leverages machine learning, artificial intelligence, and multiple patent-pending software applications, ready to take on your most pressing needs. Be part of the new healthcare experience. We’ll help you solve your supply chain challenges, so you can continue delivering exceptional patient care. Because what matters is that you can care for patients and offer the innovations they need. And what matters, even more, is that patients can afford the highest quality care.Providers: The integrated software platform built and delivered on the cloud provides the hospitals with a unique global item master, spend & value analysis, capacity & financial planning, and preference card management solution. In addition, the process efficiency and strategic sourcing software include P2P, RFP, and contract management. It seamlessly integrates with ERP, MMIS, and EMR/EHR systems.   Suppliers: The suppliers collaborate with the hospitals in real-time, responding to the PO or sending pricing and promotions. Suppliers can access a propriety hospital database. Ready to begin? What do you want to do first?-Improve the spend-Fix data issues-Compare products, procedures, and physicians-Understand the drivers of supply costs-Get recommendations for consolidate-Visualize ways to adjust procedures to impact cost while ensuring quality and outcomesCall to chat about ways to get started.",
+                    "company_headcount_latest": 98,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Hospitals and Health Care"
+                    ],
+                    "company_professional_network_industry": "Hospitals and Health Care",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/5003032",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/f4acf75c03bfb76890f2d92e737db4a6a1b51f5e3857777e587ac699637d3116.jpg",
+                    "company_status": "active",
+                    "company_website": "http://www.supplycopia.com",
+                    "company_website_domain": "supplycopia.com",
+                    "crustdata_company_id": 961697,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2021-04-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Noida Area, India"
+                    },
+                    "name": "SupplyCopia",
+                    "position_id": 1571032086,
+                    "professional_network_id": "5003032",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2020-01-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Software Development",
+                "Artificial Intelligence (AI)",
+                "Leadership",
+                "Enterprise Software",
+                "Software as a Service (SaaS)",
+                "Sustainability",
+                "Product Management",
+                "Product Development",
+                "Team Management",
+                "Node.js",
+                "JavaScript",
+                "React.js",
+                "HTML",
+                "CSS",
+                "REST API",
+                "GraphQL",
+                "Bootstrap",
+                "Webpack",
+                "Redux.js",
+                "Jest",
+                "SASS",
+                "Express.js",
+                "npm",
+                "yarn",
+                "WebSocket",
+                "MaterialCSS",
+                "MongoDB",
+                "Github"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/vinod-sonagara"
+              },
+              "twitter_identifier": {
+                "slug": ""
+              }
+            },
+            "crustdata_person_id": 314613
+          }
+        }
+      ]
+    },
+    {
+      "matched_on": "https://www.linkedin.com/in/vinayakkalushe",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "Backend & DevOps Engineer",
+              "first_name": "Vinayak",
+              "headline": "Backend & DevOps Engineer | Previous Co-Founder at Ortigan",
+              "languages": [
+                "Php (Full professional proficiency)"
+              ],
+              "last_name": "Kalushe",
+              "location": {
+                "city": "Hyderabad",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Hyderabad, Telangana, India",
+                "state": "Telangana"
+              },
+              "name": "Vinayak Kalushe",
+              "professional_network_name": "Vinayak Kalushe",
+              "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/b3fc20b412069fa17ae621e6fb02eae27e29c60124c3d191a00124f079a1db73.jpg",
+              "summary": ""
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Engineering - BE, Computer Science",
+                  "description": "",
+                  "end_year": 2020,
+                  "field_of_study": "Web Development",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/6736d99ba9ebc0022d15c8210a5429f370eb1b5bd35f60a2dde4fe9d8bcc8bb4.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQFRxdXydVinnw/company-logo_400_400/company-logo_400_400/0/1631355916675?e=1747872000&v=beta&t=30Y89nOw67KfUvukV7LEUw7ZgLmKjIXWuN_JGWxi784",
+                  "location": {
+                    "city": "Chhatrapati Sambhajinagar",
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "MGM Campus, N-6 CIDCO",
+                    "state": "Maharashtra"
+                  },
+                  "professional_network_id": "6973745",
+                  "school": "Jawaharlal Nehru Engineering College",
+                  "start_year": 2015
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "KIOT Innovations is the go-to IoT platform for enterprises to launch smart IoT appliances, devices with integrated cloud, mobile, web & voice applications, a full stack platform to launch IoT products & solutions.With 200+ customers across Home appliances, Energy, Automotive, Healthcare & Government domains, we are proud technology partner shaping future with scalable, interoperable and cost-effective IoT Solutions",
+                    "company_headcount_latest": 108,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Appliances, Electrical, and Electronics Manufacturing",
+                      "Manufacturing"
+                    ],
+                    "company_professional_network_industry": "Appliances, Electrical, and Electronics Manufacturing",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13255543",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b3d0be2dfe854a95ea6671026a9949afd76f2c1007461d797710de2f2e48987f.jpg",
+                    "company_status": "active",
+                    "company_website": "http://kiot.io/",
+                    "company_website_domain": "kiot.io",
+                    "crustdata_company_id": 6533485,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Hyderabad, Telangana, India"
+                    },
+                    "name": "KIoT",
+                    "position_id": 2472136900,
+                    "professional_network_id": "13255543",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2024-09-01T00:00:00+00:00",
+                    "title": "Backend & DevOps Engineer",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 2.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "Ortigan is a software development company and multidisciplinary design firm. Pillars of which are a family of tech enthusiasts who are committed to working with modern-day technologies & methodologies to delivering fast, scalable & secure web applications for any and every use case there is in a completely agile manner. We excel in developing modern-day Software As A Service (SaaS) based applications for small businesses and emerging startups. Our development team is capable of delivering real-time, high-performance, secure, and scalable web-based applications that help our clients digitally transform their businesses.Our Design unit is committed to deliver more than the actual requirements and to make the user experience at its best. We excel in designing custom illustrations, Brand Guidelines,  elementary design, and all sorts of graphics there are. After all, functionality makes the product usable, but its good design turns it Desirable and what makes people stay, Turning ideas into reality which is adored by masses and target audience equally.            Our approach towards projects is for every problem there exists a solution and for every solution there exists a better one! A Team of Seven, Ortigan stands behind every type of business firmly, supporting its digital backbone in whatever aspect the use case might present.    We embrace the beautiful struggle involved in building young and promising businesses and support those at the forefront of change & believe you and us together can build something which is vibrant as well as extremely useful at its core. We are the team that backs The Team. With specialists in key disciplines, including designing, system design, and system architecture, and corporate strategy. Our intention is to partner with entrepreneurs to give them the best foundations to succeed.",
+                    "company_headcount_latest": 2,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "IT Services and IT Consulting",
+                      "Professional Services"
+                    ],
+                    "company_professional_network_industry": "IT Services and IT Consulting",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/68987477",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ccef5161f31984398e03f699491a1dddfee9acbfa666bc00606463ce31ca6f78.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.ortigan.in",
+                    "company_website_domain": "ortigan.com",
+                    "crustdata_company_id": 708169,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2024-02-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Aurangabad, Maharashtra, India"
+                    },
+                    "name": "Ortigan",
+                    "position_id": 1644220726,
+                    "professional_network_id": "68987477",
+                    "seniority_level": "CXO",
+                    "start_date": "2020-05-01T00:00:00+00:00",
+                    "title": "Co-Founder and CTO",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 3.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Project Management",
+                "Databases",
+                "Communication",
+                "Technical Leadership",
+                "System Development",
+                "Computer Engineering",
+                "Team Leadership",
+                "REST APIs",
+                "Version Control",
+                "Coding Standards",
+                "Code Review",
+                "Programming",
+                "User Interface Design",
+                "Hypertext Transfer Protocol (HTTP)",
+                "JSON",
+                "Computer Science",
+                "PHP",
+                "SQL",
+                "Python (Programming Language)",
+                "Computer Networking"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/vinayakkalushe"
+              },
+              "twitter_identifier": {
+                "slug": ""
+              }
+            },
+            "crustdata_person_id": 481161
+          }
+        }
+      ]
+    },
+    {
+      "matched_on": "https://www.linkedin.com/in/pankajsavaliya",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "Co-Founder | Backend Engineer",
+              "first_name": "Pankaj",
+              "headline": "Co-Founder @ Grewon | Cloud & Backend Architect | Python, Django, ML, AWS, Terraform | Scalable Infra & Web Scraping Expert | Android Dev",
+              "languages": [
+                "English",
+                "Gujarati",
+                "Hindi"
+              ],
+              "last_name": "Savaliya",
+              "location": {
+                "city": "Surat",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Surat, Gujarat, India",
+                "state": "Gujarat"
+              },
+              "name": "Pankaj Savaliya",
+              "normalized_title": {
+                "confident": true,
+                "department": "Engineering & Technology",
+                "matched_title": "Senior Backend Engineer",
+                "similarity": 0.9810000061988831,
+                "sub_department": "Software Engineering"
+              },
+              "professional_network_name": "Pankaj Savaliya",
+              "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/881ca7a57442f6528607242472cd1cd0b5a10c30d8eb25415261551bad647780.jpg",
+              "summary": "I'm a Full-Stack Engineer and Co-Founder at Grewon with over 10 years of experience in backend development, scalable infrastructure, and automation.\n\n🔧 Core Expertise:\nPython, Django, Flask\nMachine Learning, Model Deployment\nScalable Web Scraping Systems\nAndroid Development\nAWS, Docker, Kubernetes, Terraform\n\n🚀 I’ve led development of scalable cloud solutions, microservices architectures, and data-driven platforms for diverse industries.\n\nI thrive in agile environments, love solving complex backend challenges, and believe in writing clean, efficient, and tested code. Always exploring new technologies and open to exciting collaborations."
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Engineering - BE",
+                  "description": "",
+                  "end_year": 2014,
+                  "field_of_study": "Information Technology",
+                  "institute_logo_permalink": null,
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4D0BAQGtjQSOHkeaoQ/company-logo_400_400/company-logo_400_400/0/1630478551086?e=1775692800&v=beta&t=JcJNbeWlpPjTt4adxfTxuk_aJagJj0uYO4DUXOVUFfY",
+                  "location": {
+                    "city": null,
+                    "continent": null,
+                    "country": null,
+                    "raw": null,
+                    "state": null
+                  },
+                  "professional_network_id": "13034038",
+                  "school": "Gujarat Technological University",
+                  "start_year": 2010
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "The world is always evolving so are the emerging needs that require more efficient digital solutions. Every solution starts with a genuine idea, yet not every idea can be concretized in time or is unique as you think. The key is to look for the right and fastest service provider. Grewon is an expertized growing team of 50+  talented and dedicated members. What we do is: transform your ideas digitally and convert your entrepreneur dreams into practical, flawless and profitable digital solutions with the blessing of the latest and highest technologies.Our process includes filling the blanks in your ideas by developing compelling stories and concretizing them into exceptional Apps and Websites that are ready to conquer the market. With innovative design practices, end-to-end digital, technology, and marketing services are available for all types of businesses going from small businesses, and startups to enterprises. We have been able to deliver more than 1500 projects in diversified industries across the globe and we are proud partners of so many of our clients.We are Grewon and we are ready to deliver flawless services for your digital dreams!Get to know more about who we are and what we do. Check our website - http://www.grewon.com and our work https://grewon.com/our-portfolio/ and get a free consultation for your idea.",
+                    "company_headcount_latest": 59,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "IT Services and IT Consulting",
+                      "Professional Services"
+                    ],
+                    "company_professional_network_industry": "IT Services and IT Consulting",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/14522586",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/1265513d6e0ac29a25d3561316492532c94e928b64f7f841c32ce277fee38970.jpg",
+                    "company_status": "active",
+                    "company_website": "https://grewon.com/",
+                    "company_website_domain": "grewon.com",
+                    "crustdata_company_id": 1090701,
+                    "description": "Co-founded and scaled a tech services company focused on backend systems and Android development.\n\nDesigned and implemented cloud-native backend solutions using Python, Django, AWS, Docker, and Terraform.\n\nDeveloped scalable web scraping platforms for market intelligence and automation.\n\nMentored and led a team of engineers; implemented CI/CD pipelines and agile development practices.",
+                    "employment_type": "Self-employed",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Surat Area, India"
+                    },
+                    "name": "Grewon Technologies Pvt. Ltd.",
+                    "position_id": 1443478288,
+                    "professional_network_id": "14522586",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2019-01-01T00:00:00+00:00",
+                    "title": "Co-Founder | Backend Engineer",
+                    "years_at_company": "6 to 10 years",
+                    "years_at_company_raw": 7.0
+                  },
+                  {
+                    "company_description": "Social Infotech IT Professional services exclusively focus to deliver High Quality IT services with value propositions and unique solutions to need of IT Professional firms in IN. Social Infotech Services main aim is to provide solutions with effectual combination of Technology and comprehensive IT Business applications, which meet all your business needs and challenges improving service delivery and Profitability. Social Infotech IT Professional Services offer innovative software development by following adaptable architectures ensuring 24X7 service availability and reduced augmentation cycle time.Social Infotech Software development services have expertise in assorted areas to meet your needs which include Application Development, Business Processing Outsourcing, Business Consulting, Maintenance and Support, QA &amp; Testing etc. Step to Step progress of IT Services developed in Social Infotech are notified ensuring to meet all your Industrial requirements. Applications developed and Services provided by Technology and Domain Experts at Halcyon Services are of high quality and Cost effective ensuring swift growth of your industry.",
+                    "company_headcount_latest": 1,
+                    "company_headcount_range": "11-50",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/6614699",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/32f8654b3deea26de7655360ff9f0cee154dc18cfb234abb5fcdace986da052a.jpg",
+                    "company_status": "active",
+                    "company_website": "http://socialinfotech.com/",
+                    "company_website_domain": "socialinfotech.com",
+                    "crustdata_company_id": 4433230,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": ""
+                    },
+                    "name": "Social Infotech",
+                    "position_id": 758646958,
+                    "professional_network_id": "6614699",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2015-03-01T00:00:00+00:00",
+                    "title": "Co-Owner | Android | Backend Engineer",
+                    "years_at_company": "More than 10 years",
+                    "years_at_company_raw": 11.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "Infusion Infotech offers SOA services to organizations to enable integrating the applications and businesses. We help enterprises align IT to your business process orchestration needs via our SOA consulting and enablement solutions. We engage in design and architecture of Oracle Fusion Middleware SOA solutions, proofing the concept, development, testing, user training, and production configuration and support. Whether you are about to embark on a new project using Oracle’s Fusion Middleware SOA technologies, or you are mid-way through a project and need some extra help, our team of expert consultants can work with you to ensure the success of your project. We can also engage with you to execute the design/development work backing you with our resources and expertise.Reach out to Sreenivasa Setty at 630.379.6600 for inquiries.",
+                    "company_headcount_latest": 5,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "IT Services and IT Consulting",
+                      "Professional Services"
+                    ],
+                    "company_professional_network_industry": "IT Services and IT Consulting",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/2892131",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b193d032fa44fd346e08d1d04c095d742d90033191be97594d15e0c9d175196b.jpg",
+                    "company_status": "active",
+                    "company_website": "http://infusioninfotech.co",
+                    "company_website_domain": "infusioninfotech.co",
+                    "crustdata_company_id": 13863519,
+                    "description": "> Developed android application in various factor such as an emergency helping app, social sharing app, live music app, etc. \n> As a trainee in the iOS app too.",
+                    "employment_type": "",
+                    "end_date": "2015-03-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "surat"
+                    },
+                    "name": "Infusion Infotech",
+                    "position_id": 641469136,
+                    "professional_network_id": "2892131",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2014-06-01T00:00:00+00:00",
+                    "title": "Jr.Android Developer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": null,
+                    "company_headcount_latest": null,
+                    "company_headcount_range": null,
+                    "company_industries": null,
+                    "company_professional_network_industry": null,
+                    "company_professional_network_profile_url": null,
+                    "company_profile_picture_permalink": null,
+                    "company_status": null,
+                    "company_website": null,
+                    "company_website_domain": null,
+                    "crustdata_company_id": null,
+                    "description": "* Learning an SQLite Database.\n* REST API parsing.\n* Creating a Prototype from the documentary/requirement.\n* Implementing a third-party library.",
+                    "employment_type": "",
+                    "end_date": "2014-01-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Ahmedabad Area, India"
+                    },
+                    "name": "Implicit Solutions",
+                    "position_id": 1502571098,
+                    "professional_network_id": null,
+                    "seniority_level": "In Training",
+                    "start_date": "2013-01-01T00:00:00+00:00",
+                    "title": "Android App Developer Intern",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Django",
+                "Kubernetes",
+                "Cloud Computing",
+                "Terraform",
+                "DevOps",
+                "Python (Programming Language)",
+                "Android Development",
+                "Java",
+                "SQL",
+                "Security Management",
+                "Data Analysis",
+                "C++",
+                "Android SDK",
+                "Blockchain",
+                "MySQL"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/pankajsavaliya"
+              },
+              "twitter_identifier": {
+                "slug": "savaliya1111"
+              }
+            },
+            "crustdata_person_id": 637977
+          }
+        }
+      ]
+    },
+    {
+      "matched_on": "https://www.linkedin.com/in/shivankverma",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "VP Backend Engineer",
+              "first_name": "Shivank",
+              "headline": "Senior trading systems engineer with 10+ years building production trading infrastructure across crypto, fintech, and real-time systems | 2X Entrepreneur",
+              "languages": [
+                "English (Full professional proficiency)",
+                "Hindi (Native or bilingual proficiency)"
+              ],
+              "last_name": "Verma",
+              "location": {
+                "city": "Mumbai",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Mumbai, Maharashtra, India",
+                "state": "Maharashtra"
+              },
+              "name": "Shivank Verma",
+              "normalized_title": {
+                "confident": true,
+                "department": "Engineering & Technology",
+                "matched_title": "Senior Backend Engineer",
+                "similarity": 0.9925000071525574,
+                "sub_department": "Software Engineering"
+              },
+              "professional_network_name": "Shivank Verma",
+              "profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/person/bf93a9b92baadf4c92f68360cca16b63e29d1be2528537c127f12a6b62324e32.jpg",
+              "summary": "Self-driven and motivated serial Tech Entrepreneur with a proven track record of success in building companies from scratch to PMF. Passion for building inspiring companies through industry-leading Tech, Design & Execution. \nInterest Fields : Crypto and Fintech"
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Technology (BTech)",
+                  "description": "",
+                  "end_year": 2015,
+                  "field_of_study": "Computer Science and Engineering",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e122754f4b7597af9664eb69ba5b10237889f207b26cf2819e4c263f8eb8087e.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/C4E0BAQFtUoITUxojtQ/company-logo_400_400/company-logo_400_400/0/1631351239680?e=1781136000&v=beta&t=txrehAJX1SDYpx1J_8_bCNmmpC8HoiXrGZ1EzcZuXM0",
+                  "location": {
+                    "city": null,
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "Silchar",
+                    "state": "Assam"
+                  },
+                  "professional_network_id": "15097403",
+                  "school": "National Institute of Technology Silchar",
+                  "start_year": 2011
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "Galaxy is a digital assets and AI infrastructure company, building and investing across the two forces reshaping the economy: finance moving onchain, and the compute that powers AI.Our digital assets platform offers institutional access to trading, advisory, asset management, staking, self-custody, and tokenization technology. Alongside this, we develop and operate data center infrastructure that powers AI and high-performance computing, working to meet the growing demand for scalable energy and compute in the U.S.Galaxy is headquartered in New York City, with offices across North America, Europe, the Middle East and Asia.Additional information about Galaxy's businesses and products is available on www.galaxy.com Disclaimer: hubs.li/Q022Cvpy0",
+                    "company_headcount_latest": 2692,
+                    "company_headcount_range": "501-1000",
+                    "company_industries": [
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Financial Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/11275244",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/ce2ff382aa338db69d34a64f721bfbc0941a720256431194e5cb24bdcd1434e1.jpg",
+                    "company_status": "active",
+                    "company_website": "http://galaxy.com",
+                    "company_website_domain": "galaxy.app",
+                    "crustdata_company_id": 631307,
+                    "description": "NASDAQ: GLXY",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Mumbai Metropolitan Region"
+                    },
+                    "name": "Galaxy",
+                    "position_id": 2886066095,
+                    "professional_network_id": "11275244",
+                    "seniority_level": "Vice President",
+                    "start_date": "2026-04-01T00:00:00+00:00",
+                    "title": "VP Backend Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "PulseTrader is a quant-first execution platform for on-chain derivatives traders.We enable independent and semi-professional quant traders to deploy, execute, and manage risk across perp DEXs from a single system.",
+                    "company_headcount_latest": null,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Financial Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/111383043",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/3cc5819954f2b40124d462a752b12b9a824fca137f549f90930533fb08476439.jpg",
+                    "company_status": "active",
+                    "company_website": "https://pulsetrader.xyz",
+                    "company_website_domain": "pulsetrader.xyz",
+                    "crustdata_company_id": 32582484,
+                    "description": "Built and operate a production-grade quantitative trading cockpit focused on execution, automation, and risk controls.\n\nArchitected a real-time OMS and execution layer for leveraged crypto trading with embedded TP/SL, sizing logic, and portfolio controls\n\nImplemented strategy automation pipelines for market-neutral and hedged setups (basis, funding, stat-arb execution)\n\nDesigned wallet-connected trading flows for both retail and fund-style users\n\nIntegrated Hyperliquid APIs and on-chain venues with latency-aware execution logic\n\nBuilt execution safety systems: circuit breakers, exposure caps, and fail-safe shutdowns\n\nWorked closely with quants and traders to translate strategy logic into live systems\n\nRole focus: execution engineering, infra reliability, and capital protection",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Dubai, United Arab Emirates"
+                    },
+                    "name": "PulseTrader",
+                    "position_id": 2798698167,
+                    "professional_network_id": "111383043",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2025-01-01T00:00:00+00:00",
+                    "title": "Co-Founder",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": null,
+                    "company_headcount_latest": null,
+                    "company_headcount_range": null,
+                    "company_industries": null,
+                    "company_professional_network_industry": null,
+                    "company_professional_network_profile_url": null,
+                    "company_profile_picture_permalink": null,
+                    "company_status": null,
+                    "company_website": null,
+                    "company_website_domain": null,
+                    "crustdata_company_id": null,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Dubai, United Arab Emirates"
+                    },
+                    "name": "Diamond Hands Trading Desk",
+                    "position_id": 2346631702,
+                    "professional_network_id": null,
+                    "seniority_level": "Director",
+                    "start_date": "2023-11-01T00:00:00+00:00",
+                    "title": "Head of Engineering",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 2.0
+                  },
+                  {
+                    "company_description": "At KwikBiz, We're building better business Software for the enterprise which are easy to use, needs minimum or no Customization and don't burn the hole through your pocket.All this & world-class support guaranteed !",
+                    "company_headcount_latest": 1,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/75537874",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eec8d71433cdb34b974b48e9ad18f4ff5624f3f08de7307ce4906906463df331.jpg",
+                    "company_status": "active",
+                    "company_website": "https://kwikbiz.in/",
+                    "company_website_domain": "kwikbiz.in",
+                    "crustdata_company_id": 614715,
+                    "description": "• Built Kwikbiz, a full-fledged ERP solution for SMEs in India. Significantly increased efficiency & Transparency of running a business for Small and Medium-sized enterprises in Tier2 cities in India\n• Wrote Version 1.0 of the application single-handedly\n• Grew company from idea to 500+ customers within 1 year. Managed and trained a team of 6 Full Time employees.\n• Participated in all aspects of business development from market research and finance to operations and marketing.\n• Built and maintained professional relationships with potential investors and partners; attended various startup and business events all around the world.",
+                    "employment_type": "",
+                    "end_date": "2026-04-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Delhi, India"
+                    },
+                    "name": "KwikBiz",
+                    "position_id": 1738698398,
+                    "professional_network_id": "75537874",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2020-08-01T00:00:00+00:00",
+                    "title": "Founder",
+                    "years_at_company": "6 to 10 years",
+                    "years_at_company_raw": 5.0
+                  },
+                  {
+                    "company_description": "3poch Labs is a $15M Liquid crypto fund and research lab.We're a group of crypto-native folks who believe that this is the next frontier of innovation. We don't work in crypto; we live in it.",
+                    "company_headcount_latest": 4,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Investment Management",
+                      "Capital Markets",
+                      "Financial Services"
+                    ],
+                    "company_professional_network_industry": "Investment Management",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/101454171",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/eccca1ee1617451f434a121c409ed33479bf4d13a0930f7766e7c67b6ccdf024.jpg",
+                    "company_status": "active",
+                    "company_website": "https://3poch.xyz/",
+                    "company_website_domain": "3poch.xyz",
+                    "crustdata_company_id": 4040628,
+                    "description": "• Lead Software Development Engineer at 3poch Labs, a trailblazer in crypto liquid funds.\n• Spearheaded the development of advanced trading algorithms and systems for market-making and other trading scenarios, significantly enhancing trading efficiency and profitability.\n•Architected robust, high-performance code, ensuring superior reliability and performance in fast-paced trading environments.\n•Expert in algorithmic trading and blockchain technology, with a deep understanding of the technical and financial dimensions of cryptocurrency markets.\n•Committed to innovation, constantly exploring new technologies and methodologies to stay at the forefront of the crypto finance industry.",
+                    "employment_type": "",
+                    "end_date": "2023-09-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Mumbai"
+                    },
+                    "name": "3poch Labs",
+                    "position_id": 2121519651,
+                    "professional_network_id": "101454171",
+                    "seniority_level": "Senior",
+                    "start_date": "2022-07-01T00:00:00+00:00",
+                    "title": "Founding Lead Software Development Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": "Greetings from Infocraft Solutions.We at infocraft Solutions build web and digital marketing solutions with fanatical attention to detail , and offer a range of other development services. We pride ourselves on using modern and industry best practices to craft modern solution to our client's problems that are as elegant as they are enjoyable to use.✅ Website Development✅ Digital Marketing✅ Social media marketing✅ Bulk SMS , Email , Whatsapp✅ Software development✅ Whatsapp BOT or Transactional WhatsApp API✅ Pre built software solutions✅ Bulk SMS , IVR , Bulk WhatsApp✅ Any type of Database , listsConnect with us :📩 sales@infocraft.co.in📲 wa.me/918646969697Contact 📞 : +91-9696123039Website 🌐 : www.infocraft.co.in",
+                    "company_headcount_latest": 3,
+                    "company_headcount_range": "2-10",
+                    "company_industries": [
+                      "Information Technology & Services"
+                    ],
+                    "company_professional_network_industry": "Information Technology & Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13268008",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/b76378ac573ed285ebfe160ef8accecf428476ba92c90e5859ed789c13731182.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.infocraft.co.in/",
+                    "company_website_domain": "infocraft.co.in",
+                    "crustdata_company_id": 15555059,
+                    "description": "• Founded an IT services company\n• Grew from 0 to 1000+ clients including some national and International Government Bodies\n• Designed and executed dissemination campaigns for various political parties in Assembly and General Elections 2019",
+                    "employment_type": "",
+                    "end_date": "2021-07-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Kanpur Area, India"
+                    },
+                    "name": "Infocraft Solutions",
+                    "position_id": 927656565,
+                    "professional_network_id": "13268008",
+                    "seniority_level": "Owner / Partner",
+                    "start_date": "2017-02-01T00:00:00+00:00",
+                    "title": "Founder",
+                    "years_at_company": "3 to 5 years",
+                    "years_at_company_raw": 4.0
+                  },
+                  {
+                    "company_description": "SOL Analytics has been incorporated with a vision to help businesses take well informed decisions through fact-based analysis and insights. Our consulting solution focuses on analyzing research and transactional data, provides the consumer with an insight and brings out customer needs by understanding their purchase history, perceptions, feedback and recommendations they provide on availing client services. We built our offerings in Business Intelligence, Market & Consumer Research and Business Analytics catering to the middle east, Asian subcontinent and North American region.We develop and implement information-based strategies that highlights the challenges faced by an enterprise. We use analytical solutions with the help of   qualified research and analytics professionals using latest technology and tools to collect customer feedback, Analyze the customers transactional history, understand different perceptions and provide valuable insights and recommendations to our valuable clients.Our mission is to assist organizations to make fact based and Data driven decisions, in order to achieve higher efficiencies in all areas of operation.Specialties: a. Business Analytics solution b. Business Intelligence solutionc. Market Research and Analytics d. Management consulting services",
+                    "company_headcount_latest": 10,
+                    "company_headcount_range": "11-50",
+                    "company_industries": [
+                      "Business Consulting and Services",
+                      "Professional Services"
+                    ],
+                    "company_professional_network_industry": "Business Consulting and Services",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13268948",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/4e6deb21b5d80fb9ac27ac592dcadab1fce87e99f6322ee384175557be18b18f.jpg",
+                    "company_status": "active",
+                    "company_website": "http://www.solanalytics.com/",
+                    "company_website_domain": "solanalytics.com",
+                    "crustdata_company_id": 2225045,
+                    "description": "• Re-wrote CRM application for a client based in UAE",
+                    "employment_type": "",
+                    "end_date": "2018-11-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "SOL Analytics Business Solutions",
+                    "position_id": 1243926751,
+                    "professional_network_id": "13268948",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2018-03-01T00:00:00+00:00",
+                    "title": "Software Developer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "We help people grow their businesses by transforming DATA into information that is meaningful and actionable. If it’s data services you need, our database architects help companies collect, organize and export product selection and ordering data needed by their B2B trading partners. We are experts in the electrical manufacturing industry. Our focus is on data needed by customers to make selection and ordering decisions.We thank you for your request to connect with dataZen Engineering and invite you to follow our company updates at https://www.linkedin.com/company/datazen-engineering. For any product information, you could contact us at sales@dataZenEngineering.com.http://www.datazenengineering.com/",
+                    "company_headcount_latest": 14,
+                    "company_headcount_range": "11-50",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/2034400",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e438f08ed8fd925942dba06f3f46a9baac18c10539b38e854ef41ccf02f88d91.jpg",
+                    "company_status": "active",
+                    "company_website": "http://www.datazenengineering.com",
+                    "company_website_domain": "datazenengineering.com",
+                    "crustdata_company_id": 1779266,
+                    "description": "• Created a system for measuring performance of CNC Machines using MTConnect",
+                    "employment_type": "",
+                    "end_date": "2016-07-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": ""
+                    },
+                    "name": "dataZen Engineering",
+                    "position_id": 1355225241,
+                    "professional_network_id": "2034400",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2016-01-01T00:00:00+00:00",
+                    "title": "Software Developer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  },
+                  {
+                    "company_description": "DronaHQ is an agentic application platform that helps engineering teams build AI agents capable of executing real operational workflows across enterprise systems.Deploying production-grade agents that can safely query databases, retrieve knowledge from documents, and trigger downstream workflows remains complex. Most teams end up stitching together LLMs, vector databases, orchestration frameworks, and internal APIs.DronaHQ provides the orchestration layer that bridges this integration gap.The platform combines managed RAG pipelines, schema-aware SQL agents, and secure API integrations so agents can reason over data and take actions across internal tools.With DronaHQ, teams can build agents that:• Retrieve knowledge from large document repositories• Query structured data across enterprise databases• Trigger workflows across CRMs, ERPs, and internal APIs• Power internal copilots and operational automationEngineering teams use DronaHQ to deploy agents for support triage, finance automation, internal operations, CRM workflows, and data assistants.Today, organizations use DronaHQ to build operational applications, internal tools, and autonomous AI agents that integrate deeply with their existing systems.DronaHQ is trusted by engineering teams building scalable operational infrastructure across SaaS, fintech, and digital businesses.Learn more: www.dronahq.com/agentsStart building: https://agents.dronahq.com#agenticAI #AIagents #agenticAgents #AI #internaltools #nocode #automation #AIapps",
+                    "company_headcount_latest": 56,
+                    "company_headcount_range": "51-200",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/225531",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/7e17ff92bda8b83ad36336684b1122e4f07c4aca7e423bc44cb0b340bf835bce.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.DronaHQ.com",
+                    "company_website_domain": "dronahq.com",
+                    "crustdata_company_id": 6781,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2015-10-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Mumbai Area, India"
+                    },
+                    "name": "DronaHQ",
+                    "position_id": 697827168,
+                    "professional_network_id": "225531",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2015-07-01T00:00:00+00:00",
+                    "title": "Software Engineer",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Apache Kafka",
+                "Redis",
+                "NestJS",
+                "Large Scale Development",
+                "Engineering",
+                "Quantitative Research",
+                "Next.js",
+                "Docker",
+                "Exchange Connectivity",
+                "Order Management",
+                "Engineering Management",
+                "Go (Programming Language)",
+                "Systems Design",
+                "Algorithmic Trading",
+                "Communication",
+                "Problem Solving",
+                "Design Patterns",
+                "Containerization",
+                "Microservices",
+                "Product Development"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/shivankverma"
+              },
+              "twitter_identifier": {
+                "slug": "i_am_Shivank"
+              }
+            },
+            "crustdata_person_id": 646211
+          }
+        }
+      ]
+    },
+    {
+      "matched_on": "https://www.linkedin.com/in/charish-anumukonda-80b459140",
+      "match_type": "professional_network_profile_url",
+      "match_status": "matched",
+      "matches": [
+        {
+          "confidence_score": 1.0,
+          "person_data": {
+            "basic_profile": {
+              "current_title": "Backend Engineer",
+              "first_name": "Charish",
+              "headline": "Engineering @SpotDraft | ex-PharmEasy",
+              "languages": [],
+              "last_name": "Anumukonda",
+              "location": {
+                "city": "Hyderabad",
+                "continent": "Asia",
+                "country": "India",
+                "full_location": null,
+                "raw": "Hyderabad, Telangana, India",
+                "state": "Telangana"
+              },
+              "name": "Charish Anumukonda",
+              "professional_network_name": "Charish Anumukonda",
+              "profile_picture_permalink": "",
+              "summary": "I am Backend Engineer at Spotdraft working in Python (Django framework).\nInterested in C++,Python,Algorithms,Data structures,ML,AI.\n\nI spend time coding (competitive mostly... from online platforms like gfg,firecode,hackerrank,interviewbit ), Gaming(CS:GO mostly), Chess(Represented my college),Table Tennis."
+            },
+            "education": {
+              "schools": [
+                {
+                  "activities_and_societies": "",
+                  "degree": "Bachelor of Technology - BTech",
+                  "description": "",
+                  "end_year": 2018,
+                  "field_of_study": "Computer Science",
+                  "institute_logo_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/992fce28dcabbb8ad4864f4dabbe2f5b67af0991214f1a318685eb52ceadd79a.jpg",
+                  "institute_logo_url": "https://media.licdn.com/dms/image/v2/D4D0BAQHMxoGEoHiGLA/company-logo_400_400/company-logo_400_400/0/1691132180316/manipalacademyofhighereducation_logo?e=1776902400&v=beta&t=8ftRFAuOsW8aVgSCGQM1DbBs95IvH5ngIrfQBinME8I",
+                  "location": {
+                    "city": "Udupi",
+                    "continent": "Asia",
+                    "country": "India",
+                    "raw": "Madhav Nagar, Manipal",
+                    "state": "Karnataka"
+                  },
+                  "professional_network_id": "15094374",
+                  "school": "Manipal Academy of Higher Education",
+                  "start_year": 2014
+                }
+              ]
+            },
+            "experience": {
+              "employment_details": {
+                "current": [
+                  {
+                    "company_description": "SpotDraft is on a mission to build the future of how legal works. The way we do that is to make contracts feel a lot less like paperwork and a lot more like progress. Founded by Madhav Bhagat and Shashank Bijapur, SpotDraft reflects the founders’ own cross-continental journeys into law and technology. Shashank trained as a lawyer at Harvard Law School and worked in New York as a corporate lawyer. Madhav, a computer science graduate from Carnegie Mellon University, built his career as a software engineer in the U.S. That combination of a lawyer who lived the pain of contracting and an engineer who knows how to build for scale became the foundation of SpotDraft’s product philosophy. The platform is built for teams working under real pressure. Tight timelines, real risk, and real business impact. Its AI supports legal judgment, not replaces it, helping teams draft faster, review smarter, surface key clauses and obligations, and free up time to focus on what truly matters: advising the business, shaping decisions, managing risk with confidence, and collaborating better as true business enablers.But SpotDraft isn’t only for legal teams. Sales, procurement, HR, finance, and operations all work inside the same contract ecosystem; so collaboration becomes simpler, handoffs become cleaner, and deals move without friction. Everyone stays aligned, without needing another tool or another process. Simply put:SpotDraft doesn’t just manage contracts.It helps teams move with confidence. One well-designed agreement at a time.",
+                    "company_headcount_latest": 343,
+                    "company_headcount_range": "201-500",
+                    "company_industries": [
+                      "Software Development",
+                      "Technology, Information and Internet",
+                      "Technology, Information and Media"
+                    ],
+                    "company_professional_network_industry": "Software Development",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/13233729",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/e0a3a32a2554d460a33bcc721e018ac1bfc74505b19bf6e6010682362b6e451d.jpg",
+                    "company_status": "active",
+                    "company_website": "https://www.spotdraft.com",
+                    "company_website_domain": "spotdraft.com",
+                    "crustdata_company_id": 6443,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": null,
+                    "function_category": "Engineering",
+                    "is_default": true,
+                    "location": {
+                      "raw": "Bengaluru, Karnataka, India"
+                    },
+                    "name": "SpotDraft",
+                    "position_id": 1630305641,
+                    "professional_network_id": "13233729",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2020-04-01T00:00:00+00:00",
+                    "title": "Backend Engineer",
+                    "years_at_company": "6 to 10 years",
+                    "years_at_company_raw": 6.0
+                  }
+                ],
+                "past": [
+                  {
+                    "company_description": "Launched in 2015, PharmEasy is a consumer healthcare “super app.”Started with the sole purpose of making healthcare accessible and affordable to all, today PharmEasy is India's leading and most trusted online healthcare aggregator in the country.We provide on-demand, home-delivered access to a wide range of prescription pharmaceuticals, diagnostic test services, OTC pharmaceuticals, other consumer healthcare products, thereby serving your healthcare needs. Thus, through our services, we ensure you get access to the best and most genuine health products, with the highest savings in the shortest time possible.Today, we deliver medicines in 1000+ cities in India, covering 19000+ pin codes. We offer diagnostic test services across Mumbai, including Thane, Navi Mumbai, Kalyan & Dombivali, Delhi with Noida, Gurgaon, Faridabad & Ghaziabad, Chennai, Pune, Ahmedabad, and Gandhi Nagar, Surat, Vadodara, Lucknow, Kolkata, Hyderabad, Bengaluru, and Jaipur.We’re proud to be Great Place to Work® CertifiedTM and even prouder of our teams, whose passion for 'Simplifying Healthcare, Impacting Lives' continues to shape and strengthen an ever-evolving healthcare ecosystem.",
+                    "company_headcount_latest": 3977,
+                    "company_headcount_range": "1001-5000",
+                    "company_industries": [
+                      "Health, Wellness & Fitness"
+                    ],
+                    "company_professional_network_industry": "Health, Wellness & Fitness",
+                    "company_professional_network_profile_url": "https://linkedin.com/company/10244704",
+                    "company_profile_picture_permalink": "https://crustdata-media.s3.us-east-2.amazonaws.com/company/caacc878a4e6e0e2a0294b40a6685230c5ffa4692c6d443389fdea8dc4aa2d38.jpg",
+                    "company_status": "active",
+                    "company_website": "http://pharmeasy.in/",
+                    "company_website_domain": "pharmeasy.in",
+                    "crustdata_company_id": 5742,
+                    "description": "Backend Engineer.",
+                    "employment_type": "",
+                    "end_date": "2020-04-01T00:00:00+00:00",
+                    "function_category": "Engineering",
+                    "is_default": false,
+                    "location": {
+                      "raw": "India"
+                    },
+                    "name": "PharmEasy",
+                    "position_id": 1394756718,
+                    "professional_network_id": "10244704",
+                    "seniority_level": "Entry Level",
+                    "start_date": "2018-08-01T00:00:00+00:00",
+                    "title": "Software Engineer",
+                    "years_at_company": "1 to 2 years",
+                    "years_at_company_raw": 1.0
+                  },
+                  {
+                    "company_description": null,
+                    "company_headcount_latest": null,
+                    "company_headcount_range": null,
+                    "company_industries": null,
+                    "company_professional_network_industry": null,
+                    "company_professional_network_profile_url": null,
+                    "company_profile_picture_permalink": null,
+                    "company_status": null,
+                    "company_website": null,
+                    "company_website_domain": null,
+                    "crustdata_company_id": null,
+                    "description": "",
+                    "employment_type": "",
+                    "end_date": "2018-05-01T00:00:00+00:00",
+                    "function_category": "",
+                    "is_default": false,
+                    "location": {
+                      "raw": "Noida Area, India"
+                    },
+                    "name": "SAMSUNG R&D INSTITUTE INDIA - Noida",
+                    "position_id": 1194305096,
+                    "professional_network_id": null,
+                    "seniority_level": "In Training",
+                    "start_date": "2018-01-01T00:00:00+00:00",
+                    "title": "Software Engineering Intern",
+                    "years_at_company": "Less than 1 year",
+                    "years_at_company_raw": 0.0
+                  }
+                ]
+              }
+            },
+            "skills": {
+              "professional_network_skills": [
+                "Node.js",
+                "Python (Programming Language)",
+                "JavaScript",
+                "Programming",
+                "Machine Learning",
+                "Artificial Intelligence",
+                "Software Development",
+                "Computer Science",
+                "Data Structures",
+                "C++",
+                "Java",
+                "ASP.NET",
+                "Git",
+                "Cascading Style Sheets (CSS)",
+                "C (Programming Language)",
+                "Github",
+                "File Systems",
+                "Android Studio",
+                "Software Development Life Cycle (SDLC)",
+                "Amazon Web Services (AWS)"
+              ]
+            },
+            "social_handles": {
+              "dev_platform_identifier": {
+                "profile_url": null
+              },
+              "professional_network_identifier": {
+                "profile_url": "https://www.linkedin.com/in/charish-anumukonda-80b459140"
+              },
+              "twitter_identifier": {
+                "slug": ""
+              }
+            },
+            "crustdata_person_id": 869887
+          }
+        }
+      ]
+    }
+  ],
+  "fetched_at": "2026-10-31T05:00:59+00:00"
+}
