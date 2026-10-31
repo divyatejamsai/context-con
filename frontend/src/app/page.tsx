@@ -12,6 +12,7 @@ import { claimCounts, evidenceStrength, initialRun, runReducer } from "@/lib/run
 import { download, toCSV, toMarkdown } from "@/lib/export";
 import { AGENT_STEPS, PIPELINE_STEPS, type Criteria } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ProductNav } from "@/components/app-header";
 
 function useWide() {
   const [wide, setWide] = useState(true);
@@ -465,7 +466,9 @@ function TopBar({
           <span className="text-[14px] font-semibold tracking-[-0.01em]">Sourced</span>
         </Link>
         <span className="hidden text-[14px] text-border-strong sm:inline">/</span>
-        <span className="mr-auto hidden truncate text-[13px] text-muted-foreground sm:inline">{started ? "Shortlist" : "Find candidates"}</span>
+        <div className="mr-auto hidden min-w-0 sm:block">
+          <ProductNav active="/" />
+        </div>
         <div className="flex items-center gap-2.5">
           {started && (
             <span className="hidden items-center gap-1.5 text-[12px] text-muted-foreground tabular-nums md:flex">
@@ -569,7 +572,21 @@ function Hero({ brief, setBrief, onRun, briefRef, mode }: { brief: string; setBr
             </div>
           ))}
         </div>
-        <p className="mt-4 text-[12.5px] text-muted-foreground">
+        <h2 className="mt-12 text-[13px] font-[590]">Hiring more than one person?</h2>
+        <div className="mt-3 grid w-full gap-3 sm:grid-cols-2">
+          {[
+            ["/campaigns", "Campaigns", "Take one brief to a signed offer. Sourced runs about 100 conversations at once: outreach, follow-ups, screening, interviews and the offer."],
+            ["/staffing", "Shift staffing", "Fill 1,000 shifts from applicants. Every application is checked against Crustdata, so the ones who lie are caught before they get a shift."],
+          ].map(([href, t, d]) => (
+            <Link key={href} href={href} prefetch={false} className="group rounded-lg border border-border bg-panel p-4 transition hover:border-border-strong hover:bg-elevated">
+              <span className="flex items-center justify-between text-[14px] font-[590]">
+                {t} <span className="text-faint transition group-hover:translate-x-0.5 group-hover:text-foreground">→</span>
+              </span>
+              <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">{d}</span>
+            </Link>
+          ))}
+        </div>
+        <p className="mt-6 text-[12.5px] text-muted-foreground">
           Sourced runs as an AI employee with a passport. To see who it acts for and what it was allowed to send, open the{" "}
           <Link href="/console" prefetch={false} className="text-primary hover:underline">
             Countersign console
