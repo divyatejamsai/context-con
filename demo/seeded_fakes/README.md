@@ -23,6 +23,8 @@ For each input profile it writes:
 `check_fakes.py` runs WS3's verifier offline and prints CAUGHT / MISSED / FALSE POSITIVE per lie (exit 1 on any failure).
 Tested on WS3's verifier fixtures: 4 fakes, 8 planted lies, 8 caught, 0 false positives.
 
+**The repo is public: never commit `out/` (it holds real people's records). It's gitignored.** Generate the fakes on the demo machine from the local cache.
+
 ## The lie types (each maps to a check the verifier already does)
 | Type | Example planted claim | Graph field that disproves it |
 |---|---|---|
