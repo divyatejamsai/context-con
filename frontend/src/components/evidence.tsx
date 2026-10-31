@@ -1,4 +1,4 @@
-import { Check, HelpCircle, X } from "lucide-react";
+import { CheckCircle2, CircleDashed, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Candidate, ClaimStatus } from "@/lib/types";
 import { normalizeStatus } from "@/lib/run-state";
@@ -9,40 +9,42 @@ export const STATUS_LABEL: Record<ClaimStatus, string> = {
   unverifiable: "Unverifiable",
 };
 
-const ICON = { verified: Check, contradicted: X, unverifiable: HelpCircle } as const;
-export const STATUS_BG: Record<ClaimStatus, string> = {
-  verified: "bg-lime",
-  contradicted: "bg-coral",
-  unverifiable: "bg-elevated",
+const ICON = { verified: CheckCircle2, contradicted: XCircle, unverifiable: CircleDashed } as const;
+const TONE: Record<ClaimStatus, string> = {
+  verified: "text-verified",
+  contradicted: "text-contradicted",
+  unverifiable: "text-unverifiable",
 };
 
 export function StatusIcon({ status, className }: { status: ClaimStatus; className?: string }) {
   const I = ICON[status];
-  return (
-    <span className={cn("grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] border-ink text-on-color", STATUS_BG[status], status === "unverifiable" && "text-foreground", className)}>
-      <I className="size-2.5" strokeWidth={3.5} aria-label={STATUS_LABEL[status]} />
-    </span>
-  );
+  return <I className={cn("size-3.5 shrink-0", TONE[status], className)} aria-label={STATUS_LABEL[status]} />;
 }
 
 export function StatusPill({ status, count, className }: { status: ClaimStatus; count?: number; className?: string }) {
-  const I = ICON[status];
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full border-[1.5px] border-ink px-2 text-[11px] font-semibold",
-        STATUS_BG[status],
-        status === "unverifiable" ? "text-foreground" : "text-on-color",
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[11px] font-[510]",
+        status === "verified" && "border-verified/25 bg-verified/10 text-verified",
+        status === "contradicted" && "border-contradicted/30 bg-contradicted/10 text-contradicted",
+        status === "unverifiable" && "border-border-strong text-muted-foreground",
         className,
       )}
     >
-      <I className="size-3" strokeWidth={3.5} />
+      <StatusIcon status={status} className="size-3" />
       {count !== undefined ? count : STATUS_LABEL[status]}
     </span>
   );
 }
 
-/** One block per claim, contradicted first: the record's trustworthiness at a glance. */
+const SEG: Record<ClaimStatus, string> = {
+  verified: "bg-verified",
+  contradicted: "bg-contradicted",
+  unverifiable: "bg-border-strong",
+};
+
+/** One segment per claim, contradicted first: the record's trustworthiness at a glance. */
 export function EvidenceStrip({ candidate, className }: { candidate: Candidate; className?: string }) {
   const order = { contradicted: 0, verified: 1, unverifiable: 2 } as const;
   const statuses = (candidate.claims ?? [])
@@ -50,50 +52,38 @@ export function EvidenceStrip({ candidate, className }: { candidate: Candidate; 
     .sort((a, b) => order[a] - order[b]);
   if (!statuses.length) return <span className="text-[11px] text-faint">no claims</span>;
   return (
-    <span className={cn("inline-flex h-3.5 overflow-hidden rounded-[3px] border-[1.5px] border-ink", className)} aria-label={`${statuses.length} claims`}>
+    <span className={cn("inline-flex items-center gap-[2px]", className)} aria-label={`${statuses.length} claims`}>
       {statuses.map((s, i) => (
-        <span key={i} className={cn("w-2.5", STATUS_BG[s], i > 0 && "border-l-[1.5px] border-ink")} title={STATUS_LABEL[s]} />
+        <span key={i} className={cn("h-2.5 w-[5px] rounded-[1.5px]", SEG[s])} title={STATUS_LABEL[s]} />
       ))}
     </span>
   );
 }
 
-export function matchLabel(score?: number): { label: string; bg: string; cls: string } {
-  if (score === undefined) return { label: "Scoring", bg: "bg-elevated", cls: "text-faint" };
-  if (score >= 85) return { label: "Strong", bg: "bg-lime", cls: "text-verified" };
-  if (score >= 70) return { label: "Good", bg: "bg-sky", cls: "text-foreground" };
-  if (score >= 50) return { label: "Partial", bg: "bg-yellow", cls: "text-flag" };
-  return { label: "Weak", bg: "bg-elevated", cls: "text-muted-foreground" };
+export function matchLabel(score?: number): { label: string; cls: string } {
+  if (score === undefined) return { label: "Scoring", cls: "text-faint" };
+  if (score >= 85) return { label: "Strong match", cls: "text-foreground" };
+  if (score >= 70) return { label: "Good match", cls: "text-secondary" };
+  if (score >= 50) return { label: "Partial match", cls: "text-muted-foreground" };
+  return { label: "Weak match", cls: "text-faint" };
 }
 
-export function FitBadge({ score, size = "md" }: { score?: number; size?: "md" | "lg" }) {
+export function FitBadge({ score, align = "right" }: { score?: number; align?: "left" | "right" }) {
   const m = matchLabel(score);
   return (
-    <span
-      className={cn(
-        "flex shrink-0 flex-col items-center justify-center rounded-lg border-[1.5px] border-ink text-on-color shadow-brut-sm",
-        m.bg,
-        score === undefined && "text-foreground",
-        size === "lg" ? "h-[68px] w-[76px]" : "h-[52px] w-[60px]",
-      )}
-    >
-      <span className={cn("font-display font-bold leading-none tabular-nums", size === "lg" ? "text-[30px]" : "text-[22px]")}>
-        {score === undefined ? "–" : Math.round(score)}
-      </span>
-      <span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em]">{m.label}</span>
+    <span className={cn("flex flex-col leading-tight", align === "right" ? "items-end" : "items-start")}>
+      <span className="font-mono text-[15px] font-medium tabular-nums">{score === undefined ? "–" : `${Math.round(score)}%`}</span>
+      <span className={cn("text-[11px] font-[510]", m.cls)}>{m.label}</span>
     </span>
   );
 }
 
-const SWATCH = ["bg-yellow", "bg-lime", "bg-lavender", "bg-sky", "bg-pink", "bg-coral"];
 export function Avatar({ name, size = 28, className }: { name: string; size?: number; className?: string }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
-  let h = 0;
-  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return (
     <span
-      className={cn("font-display grid shrink-0 place-items-center rounded-full border-[1.5px] border-ink font-bold text-on-color", SWATCH[h % SWATCH.length], className)}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className={cn("grid shrink-0 place-items-center rounded-full border border-border-strong bg-elevated font-[590] text-secondary", className)}
+      style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {initials}
     </span>

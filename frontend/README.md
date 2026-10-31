@@ -20,8 +20,7 @@ Event handling (contract in CONTEXT.md section 6):
 
 ## What's in the UI
 - **Shortlist tiers:** if the final `rank` step carries `data.shortlist` / `data.near_miss`, the shortlist is the main list, near misses sit in a collapsed section, and everyone else goes in a greyed "Below the bar" section. Without those fields, everyone is shortlisted.
-- **Stat tiles:** searched, shortlisted, verified and contradicted counts, which count up as events arrive.
-- **Hero** with a big brief box and example briefs (including a deliberately messy one). ⌘↵ runs it.
+- **Start screen:** one question, a brief box and example briefs (including a deliberately messy one). ⌘↵ runs it.
 - **Three panes on wide screens:** the agent trace on the left (pipeline stepper with per-step timings, counts, warnings, and a timestamped log), the ranked shortlist in the middle, and the selected candidate's dossier on the right. Below 1280px the dossier opens as a drawer.
 - **Dossier:** fit score, flags, reasons with footnote citations that jump to the claim, an evidence ledger where each claim has a stamp (verified, contradicted or unverifiable) and its Crustdata source, and an editable outreach draft marked "not sent".
 - **Evidence strip:** one tick per claim on every row, so contradictions are visible without opening anything.
@@ -30,4 +29,4 @@ Event handling (contract in CONTEXT.md section 6):
 - **Export:** a Markdown report with every claim and its source, plus CSV and JSON. Passed candidates are left out, and edited drafts are kept.
 - **Keyboard:** j/k move, c copy outreach, v toggle compare, / edit brief, ? shows all shortcuts.
 
-Fonts (Fraunces, IBM Plex Sans and Mono) are bundled through @fontsource, so the app works offline.
+Visual system: a Vercel / Attio-style look. It's light by default with a dark toggle in the top bar, white surfaces, hairline grey borders and one blue accent for selection, focus and links. Green, red and amber only ever mean verified, contradicted and unverifiable or flagged. There are no gradients, glows or decorative icons. Type is Geist Sans with Geist Mono for endpoints, ids and timings, bundled through the `geist` package so the app works offline.
