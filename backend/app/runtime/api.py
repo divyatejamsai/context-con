@@ -369,15 +369,18 @@ async def hire(req: HireRequest):
     t = next((x for x in TEMPLATES if x["key"] == req.key), None)
     if not t:
         raise HTTPException(404, "no such template")
-    if any(a["name"] == t["name"] and a["status"] != "offboarded" for a in registry.list_agents()):
+    me = authz.current()
+    mine = [a for a in registry.list_agents() if authz.sees_agent(me, a)]  # this workspace's payroll only
+    if any(a["name"] == t["name"] and a["status"] != "offboarded" for a in mine):
         raise HTTPException(409, f"{t['name']} is already on the payroll")
-    peer = next((a for a in registry.list_agents() if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
+    peer = next((a for a in mine if a["name"] == t["sponsor_from"] and a["status"] == "active"), None)
     if peer:
         sponsor = Sponsor.model_validate(peer["passport"]["sponsor"])
     else:
         from ..fleet.roster import PANKAJ as sponsor
     try:
-        rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house")
+        rec = registry.onboard(t["name"], t["role"], sponsor, t["scopes"], job=t["job"], runtime="in-house",
+                               workspace_id=me.workspace_id if me else None)
         v = await registry.recheck(rec["agent_id"], crustdata())  # live sponsor check right away
     except RegistryError as e:
         raise HTTPException(400, str(e))
