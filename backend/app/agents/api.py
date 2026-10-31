@@ -10,7 +10,9 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+import hmac
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from . import ledger
@@ -60,12 +62,20 @@ class RevokeRequest(BaseModel):
     reason: str
 
 
+def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
+    """Issuing and revoking passports needs COUNTERSIGN_ADMIN_TOKEN (header x-admin-token) when it is set.
+    Unset = local dev/demo mode, open. Verify and ledger reads are always public: anyone may check an agent."""
+    want = os.getenv("COUNTERSIGN_ADMIN_TOKEN")
+    if want and not (x_admin_token and hmac.compare_digest(x_admin_token, want)):
+        raise HTTPException(401, "admin token required (x-admin-token)")
+
+
 @router.get("/passport/issuer")
 async def issuer():
     return {"key_id": issuer_key_id(), "public_key": issuer_public_key(), "alg": "Ed25519"}
 
 
-@router.post("/passport/issue", response_model=IssueResponse)
+@router.post("/passport/issue", response_model=IssueResponse, dependencies=[Depends(require_admin)])
 async def issue(req: IssueRequest):
     import base64
     p, key = issue_passport(req.agent_name, req.role, req.sponsor, req.scopes, req.days)
@@ -77,12 +87,12 @@ async def verify(req: VerifyRequest):
     return await verify_passport(req.passport, scope=req.scope, graph=Graph(crustdata()))
 
 
-@router.post("/passport/revoke")
+@router.post("/passport/revoke", dependencies=[Depends(require_admin)])
 async def revoke_route(req: RevokeRequest):
     return {"ledger_entry": revoke(req.agent_id, req.reason)}
 
 
-@router.post("/passport/reinstate")
+@router.post("/passport/reinstate", dependencies=[Depends(require_admin)])
 async def reinstate_route(req: RevokeRequest):
     return {"ledger_entry": reinstate(req.agent_id, req.reason)}
 

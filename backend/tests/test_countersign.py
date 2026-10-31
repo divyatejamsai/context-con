@@ -159,3 +159,16 @@ def test_title_roles_dont_mix_round2():
     assert can_grant("Chief Product and Technology Officer", "outreach.hiring")
     assert can_grant("Manager - IT - Engineering", "outreach.hiring")
     assert not can_grant("Software Engineer", "outreach.hiring")
+
+
+def test_admin_token_guards_mutating_routes(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setenv("COUNTERSIGN_ADMIN_TOKEN", "s3cret")
+    c = TestClient(app)
+    body = {"agent_name": "X", "role": "bot", "sponsor": SCENARIOS[0]["sponsor"], "scopes": ["data.read"]}
+    assert c.post("/api/passport/issue", json=body).status_code == 401
+    assert c.post("/api/passport/revoke", json={"agent_id": "a", "reason": "r"}, headers={"x-admin-token": "nope"}).status_code == 401
+    r = c.post("/api/passport/issue", json=body, headers={"x-admin-token": "s3cret"})
+    assert r.status_code == 200
+    assert c.post("/api/passport/verify", json={"passport": r.json()["passport"]}).status_code == 200  # verify stays public
